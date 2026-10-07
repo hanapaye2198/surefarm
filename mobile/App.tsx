@@ -1017,7 +1017,11 @@ function Dashboard({
     ];
     const hour = new Date().getHours();
     const greeting =
-        hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+        hour < 12
+            ? 'Good morning'
+            : hour < 18
+              ? 'Good afternoon'
+              : 'Good evening';
     return (
         <ScrollView style={styles.page} contentContainerStyle={styles.content}>
             <View style={styles.welcome}>
@@ -1025,11 +1029,12 @@ function Dashboard({
                     SUREFARM · {ROLE_LABEL[user?.role ?? 'admin'].toUpperCase()}
                 </Text>
                 <Text style={styles.welcomeTitle}>
-                    {greeting}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
+                    {greeting}
+                    {user?.name ? `, ${user.name.split(' ')[0]}` : ''}
                 </Text>
                 <Text style={styles.welcomeBody}>
-                    Your live overview of farmer registrations, farm verification,
-                    and harvest activity.
+                    Your live overview of farmer registrations, farm
+                    verification, and harvest activity.
                 </Text>
             </View>
             <Heading title="Program snapshot" />
@@ -2268,7 +2273,9 @@ function BottomItem({
             accessibilityState={{ selected: active }}
             style={styles.bottomItem}
         >
-            <View style={[styles.bottomIcon, active && styles.bottomIconActive]}>
+            <View
+                style={[styles.bottomIcon, active && styles.bottomIconActive]}
+            >
                 <Text
                     style={[
                         styles.bottomGlyph,
@@ -2278,7 +2285,9 @@ function BottomItem({
                     {glyph}
                 </Text>
             </View>
-            <Text style={[styles.bottomLabel, active && styles.bottomLabelActive]}>
+            <Text
+                style={[styles.bottomLabel, active && styles.bottomLabelActive]}
+            >
                 {label}
             </Text>
         </Pressable>
@@ -2586,7 +2595,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e5eae5',
     },
-    statValue: { color: API_FOREST, fontSize: 23, fontWeight: '800', marginTop: 5 },
+    statValue: {
+        color: API_FOREST,
+        fontSize: 23,
+        fontWeight: '800',
+        marginTop: 5,
+    },
     statLabel: { color: MUTED, fontSize: 10, fontWeight: '600' },
     quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
     quickCard: {
@@ -2723,7 +2737,12 @@ const styles = StyleSheet.create({
     bottomIconActive: { backgroundColor: '#e8f0e8' },
     bottomGlyph: { color: MUTED, fontSize: 19, lineHeight: 23 },
     bottomGlyphActive: { color: API_FOREST },
-    bottomLabel: { color: MUTED, marginTop: 1, fontSize: 10, fontWeight: '600' },
+    bottomLabel: {
+        color: MUTED,
+        marginTop: 1,
+        fontSize: 10,
+        fontWeight: '600',
+    },
     bottomLabelActive: { color: API_FOREST, fontWeight: '800' },
     primary: {
         minHeight: 47,
