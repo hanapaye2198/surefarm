@@ -1,6 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { HarvestForm } from '@/components/harvest-form';
-import type { HarvestFarmOption, ProductionOption, StatusOption } from '@/components/harvest-form';
+import type {
+    HarvestFarmOption,
+    ProductionOption,
+    StatusOption,
+} from '@/components/harvest-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { index as harvestIndex } from '@/routes/harvest';
@@ -23,7 +27,9 @@ export default function CreateHarvest({
     today: string;
 }) {
     const farm = farms.find((item) => item.id === selectedFarmId);
-    const production = productions.find((item) => item.id === selectedProductionId);
+    const production = productions.find(
+        (item) => item.id === selectedProductionId,
+    );
 
     return (
         <>
@@ -46,8 +52,11 @@ export default function CreateHarvest({
                     units={units}
                     initial={{
                         farm_id: selectedFarmId ? String(selectedFarmId) : '',
-                        crop_type: production?.crop_type ?? farm?.crop_type ?? '',
-                        production_id: selectedProductionId ? String(selectedProductionId) : '',
+                        crop_type:
+                            production?.crop_type ?? farm?.crop_type ?? '',
+                        production_id: selectedProductionId
+                            ? String(selectedProductionId)
+                            : '',
                         harvest_date: today,
                         quantity: '',
                         unit: production?.unit ?? 'kg',

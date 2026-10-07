@@ -22,7 +22,11 @@ export default function EditFarmInsurance({
                     description="Update the coverage for this farm. The farm record itself stays the same."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={showFarm.url(farm.id, { query: { tab: 'insurance' } })}>
+                            <Link
+                                href={showFarm.url(farm.id, {
+                                    query: { tab: 'insurance' },
+                                })}
+                            >
                                 Back to farm
                             </Link>
                         </Button>

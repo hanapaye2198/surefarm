@@ -83,7 +83,10 @@ export function LandingNavbar() {
                 id="landing-menu"
                 className={cn('border-t lg:hidden', open ? 'block' : 'hidden')}
             >
-                <nav aria-label="Mobile" className="flex flex-col gap-1 px-4 py-3">
+                <nav
+                    aria-label="Mobile"
+                    className="flex flex-col gap-1 px-4 py-3"
+                >
                     {links.map((link) => (
                         <a
                             key={link.href}

@@ -58,7 +58,9 @@ export default function EditFarmerDetails({
 }: {
     farmer: FarmerDetails;
 }) {
-    const pageErrors = usePage().props.errors as Record<string, string> | undefined;
+    const pageErrors = usePage().props.errors as
+        | Record<string, string>
+        | undefined;
 
     setLayoutProps({
         breadcrumbs: [
@@ -254,7 +256,7 @@ export default function EditFarmerDetails({
                                                 event.target.value,
                                             )
                                         }
-                                        className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     >
                                         <option value="unverified">
                                             Unverified

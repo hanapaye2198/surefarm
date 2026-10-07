@@ -60,7 +60,9 @@ export function loadGoogleMaps(apiKey: string): Promise<void> {
                     return;
                 }
 
-                maps.importLibrary('maps').then(() => resolve()).catch(reject);
+                maps.importLibrary('maps')
+                    .then(() => resolve())
+                    .catch(reject);
             };
             script.onerror = () => {
                 loading = null;

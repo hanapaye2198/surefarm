@@ -90,7 +90,10 @@ export function AppSidebarHeader({
                             <Bell />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72 rounded-xl">
+                    <DropdownMenuContent
+                        align="end"
+                        className="w-72 rounded-xl"
+                    >
                         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <p className="px-2 py-4 text-sm text-muted-foreground">

@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -46,9 +47,7 @@ export default function FarmersIndex({
 
     function searchFarmers(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const search = String(
-            new FormData(event.currentTarget).get('search') ?? '',
-        );
+        const search = formString(new FormData(event.currentTarget), 'search');
 
         router.get(
             farmersIndex.url({
@@ -127,7 +126,12 @@ export default function FarmersIndex({
                                 key="status"
                                 status={farmer.status}
                             />,
-                            <Button key="view" variant="outline" size="sm" asChild>
+                            <Button
+                                key="view"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
                                 <Link href={show(farmer.id)}>View</Link>
                             </Button>,
                         ],
@@ -157,7 +161,8 @@ export default function FarmersIndex({
                 {farmers.total > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Showing {farmers.from}–{farmers.to} of {farmers.total}
+                            Showing {farmers.from}–{farmers.to} of{' '}
+                            {farmers.total}
                         </p>
                         <div className="flex gap-2">
                             {farmers.prev_page_url && (
@@ -169,7 +174,9 @@ export default function FarmersIndex({
                             )}
                             {farmers.next_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={farmers.next_page_url}>Next</Link>
+                                    <Link href={farmers.next_page_url}>
+                                        Next
+                                    </Link>
                                 </Button>
                             )}
                         </div>

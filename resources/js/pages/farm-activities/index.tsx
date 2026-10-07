@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -106,7 +107,9 @@ export default function FarmActivitiesIndex({
     const { auth } = usePage().props;
     const canRecord =
         can_record && userCanAccess(auth.user?.role, ['operations']);
-    const hasFilters = Object.values(filters).some((value) => value.trim() !== '');
+    const hasFilters = Object.values(filters).some(
+        (value) => value.trim() !== '',
+    );
 
     function applyFilters(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -115,14 +118,14 @@ export default function FarmActivitiesIndex({
         router.get(
             activitiesIndex.url({
                 query: {
-                    search: String(formData.get('search') ?? '').trim(),
-                    farm: String(formData.get('farm') ?? ''),
-                    farmer: String(formData.get('farmer') ?? ''),
-                    crop: String(formData.get('crop') ?? ''),
-                    activity_type: String(formData.get('activity_type') ?? ''),
-                    status: String(formData.get('status') ?? ''),
-                    from: String(formData.get('from') ?? ''),
-                    to: String(formData.get('to') ?? ''),
+                    search: formString(formData, 'search').trim(),
+                    farm: formString(formData, 'farm'),
+                    farmer: formString(formData, 'farmer'),
+                    crop: formString(formData, 'crop'),
+                    activity_type: formString(formData, 'activity_type'),
+                    status: formString(formData, 'status'),
+                    from: formString(formData, 'from'),
+                    to: formString(formData, 'to'),
                 },
             }),
             {},

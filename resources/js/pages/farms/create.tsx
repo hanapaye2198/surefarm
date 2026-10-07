@@ -174,7 +174,11 @@ export default function RegisterFarm({
                     </CardContent>
                 </Card>
 
-                <form onSubmit={submit} noValidate className="flex flex-col gap-6">
+                <form
+                    onSubmit={submit}
+                    noValidate
+                    className="flex flex-col gap-6"
+                >
                     <InputError message={pageErrors?.farm} />
 
                     <Card className="shadow-none">
@@ -190,9 +194,9 @@ export default function RegisterFarm({
                                     aria-readonly="true"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Assigned by SureFarm when the farm is
-                                    saved. This demo sequence can be replaced
-                                    if an official farm ID scheme is defined.
+                                    Assigned by SureFarm when the farm is saved.
+                                    This demo sequence can be replaced if an
+                                    official farm ID scheme is defined.
                                 </p>
                             </Field>
                             <Field
@@ -226,7 +230,7 @@ export default function RegisterFarm({
                                             event.target.value,
                                         )
                                     }
-                                    className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 >
                                     <option value="">Select crop type</option>
                                     {cropTypes.map((crop) => (
@@ -371,101 +375,163 @@ export default function RegisterFarm({
                             <CardTitle>Farm reference</CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-4 md:grid-cols-2">
-                            <Field label="Current Stage" htmlFor="current_stage" error={form.errors.current_stage}>
+                            <Field
+                                label="Current Stage"
+                                htmlFor="current_stage"
+                                error={form.errors.current_stage}
+                            >
                                 <select
                                     id="current_stage"
                                     value={form.data.current_stage}
                                     onChange={(event) =>
-                                        form.setData('current_stage', event.target.value)
+                                        form.setData(
+                                            'current_stage',
+                                            event.target.value,
+                                        )
                                     }
-                                    className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
                                 >
                                     <option value="">Not provided</option>
                                     {stages.map((stage) => (
-                                        <option key={stage.value} value={stage.value}>
+                                        <option
+                                            key={stage.value}
+                                            value={stage.value}
+                                        >
                                             {stage.label}
                                         </option>
                                     ))}
                                 </select>
                             </Field>
-                            <Field label="Property Ownership" htmlFor="property_ownership" error={form.errors.property_ownership}>
+                            <Field
+                                label="Property Ownership"
+                                htmlFor="property_ownership"
+                                error={form.errors.property_ownership}
+                            >
                                 <select
                                     id="property_ownership"
                                     value={form.data.property_ownership}
                                     onChange={(event) =>
-                                        form.setData('property_ownership', event.target.value)
+                                        form.setData(
+                                            'property_ownership',
+                                            event.target.value,
+                                        )
                                     }
-                                    className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
                                 >
                                     <option value="">Not provided</option>
                                     {ownerships.map((ownership) => (
-                                        <option key={ownership.value} value={ownership.value}>
+                                        <option
+                                            key={ownership.value}
+                                            value={ownership.value}
+                                        >
                                             {ownership.label}
                                         </option>
                                     ))}
                                 </select>
                             </Field>
-                            <Field label="No. of Hills" htmlFor="number_of_hills" error={form.errors.number_of_hills}>
+                            <Field
+                                label="No. of Hills"
+                                htmlFor="number_of_hills"
+                                error={form.errors.number_of_hills}
+                            >
                                 <Input
                                     id="number_of_hills"
                                     inputMode="numeric"
                                     value={form.data.number_of_hills}
                                     onChange={(event) =>
-                                        form.setData('number_of_hills', event.target.value)
+                                        form.setData(
+                                            'number_of_hills',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
-                            <Field label="Data validation" htmlFor="data_validated" error={form.errors.data_validated}>
+                            <Field
+                                label="Data validation"
+                                htmlFor="data_validated"
+                                error={form.errors.data_validated}
+                            >
                                 <select
                                     id="data_validated"
                                     value={form.data.data_validated}
                                     onChange={(event) =>
-                                        form.setData('data_validated', event.target.value)
+                                        form.setData(
+                                            'data_validated',
+                                            event.target.value,
+                                        )
                                     }
-                                    className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
                                 >
                                     <option value="">Not provided</option>
                                     <option value="1">Yes</option>
                                     <option value="0">No</option>
                                 </select>
                             </Field>
-                            <Field label="Contracted Value (PHP)" htmlFor="contracted_value_estimated" error={form.errors.contracted_value_estimated}>
+                            <Field
+                                label="Contracted Value (PHP)"
+                                htmlFor="contracted_value_estimated"
+                                error={form.errors.contracted_value_estimated}
+                            >
                                 <Input
                                     id="contracted_value_estimated"
                                     inputMode="decimal"
                                     value={form.data.contracted_value_estimated}
                                     onChange={(event) =>
-                                        form.setData('contracted_value_estimated', event.target.value)
+                                        form.setData(
+                                            'contracted_value_estimated',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
-                            <Field label="Input Support (PHP)" htmlFor="input_support_amount" error={form.errors.input_support_amount}>
+                            <Field
+                                label="Input Support (PHP)"
+                                htmlFor="input_support_amount"
+                                error={form.errors.input_support_amount}
+                            >
                                 <Input
                                     id="input_support_amount"
                                     inputMode="decimal"
                                     value={form.data.input_support_amount}
                                     onChange={(event) =>
-                                        form.setData('input_support_amount', event.target.value)
+                                        form.setData(
+                                            'input_support_amount',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
-                            <Field label="Financing Support (PHP)" htmlFor="financing_support_amount" error={form.errors.financing_support_amount}>
+                            <Field
+                                label="Financing Support (PHP)"
+                                htmlFor="financing_support_amount"
+                                error={form.errors.financing_support_amount}
+                            >
                                 <Input
                                     id="financing_support_amount"
                                     inputMode="decimal"
                                     value={form.data.financing_support_amount}
                                     onChange={(event) =>
-                                        form.setData('financing_support_amount', event.target.value)
+                                        form.setData(
+                                            'financing_support_amount',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
-                            <Field label="Drone Image" htmlFor="drone_image" error={form.errors.drone_image}>
+                            <Field
+                                label="Drone Image"
+                                htmlFor="drone_image"
+                                error={form.errors.drone_image}
+                            >
                                 <Input
                                     id="drone_image"
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
                                     onChange={(event) =>
-                                        form.setData('drone_image', event.target.files?.[0] ?? null)
+                                        form.setData(
+                                            'drone_image',
+                                            event.target.files?.[0] ?? null,
+                                        )
                                     }
                                 />
                             </Field>
@@ -486,10 +552,13 @@ export default function RegisterFarm({
                                     id="notes"
                                     value={form.data.notes}
                                     onChange={(event) =>
-                                        form.setData('notes', event.target.value)
+                                        form.setData(
+                                            'notes',
+                                            event.target.value,
+                                        )
                                     }
                                     rows={4}
-                                    className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 />
                             </Field>
                             <p className="text-xs text-muted-foreground">

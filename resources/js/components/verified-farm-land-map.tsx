@@ -195,7 +195,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                         </Button>
                     )}
                 </div>
-                <ul className="app-scroll flex max-h-80 flex-col gap-2 overflow-y-auto sm:max-h-[24rem]">
+                <ul className="flex max-h-80 app-scroll flex-col gap-2 overflow-y-auto sm:max-h-[24rem]">
                     {lands.map((land) => {
                         const active = selected?.id === land.id;
 
@@ -214,8 +214,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                                     </span>
                                     <span className="mt-1 block text-xs text-muted-foreground">
                                         {land.crop_label}
-                                        {land.verified_area_hectares !==
-                                            null &&
+                                        {land.verified_area_hectares !== null &&
                                             ` · ${areaFormatter.format(land.verified_area_hectares)} ha verified`}
                                     </span>
                                 </button>

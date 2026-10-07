@@ -14,7 +14,7 @@ export default function AppSidebarLayout({
             <AppSidebar />
             <AppContent variant="sidebar" className="min-w-0">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                <div className="app-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain">
+                <div className="min-h-0 flex-1 app-scroll overflow-x-hidden overflow-y-auto overscroll-y-contain">
                     <PageContainer>{children}</PageContainer>
                 </div>
             </AppContent>

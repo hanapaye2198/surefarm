@@ -33,7 +33,10 @@ export default function CreateTraceabilityLot({
     selected_inventory_id: number | null;
     units: string[];
 }) {
-    const initial = inventories.find((item) => item.id === selected_inventory_id) ?? inventories[0] ?? null;
+    const initial =
+        inventories.find((item) => item.id === selected_inventory_id) ??
+        inventories[0] ??
+        null;
     const form = useForm({
         inventory_id: initial?.id ?? 0,
         quantity: initial ? String(initial.quantity) : '',
@@ -41,7 +44,8 @@ export default function CreateTraceabilityLot({
         notes: '',
     });
 
-    const selected = inventories.find((item) => item.id === form.data.inventory_id) ?? null;
+    const selected =
+        inventories.find((item) => item.id === form.data.inventory_id) ?? null;
 
     function choose(id: string) {
         const next = inventories.find((item) => item.id === Number(id));
@@ -77,69 +81,147 @@ export default function CreateTraceabilityLot({
                             value={String(form.data.inventory_id)}
                             onChange={(event) => choose(event.target.value)}
                         >
-                            {inventories.length === 0 && <option value="">No green bean inventory</option>}
+                            {inventories.length === 0 && (
+                                <option value="">
+                                    No green bean inventory
+                                </option>
+                            )}
                             {inventories.map((item) => (
-                                <option key={item.id} value={item.id}>{item.label}</option>
+                                <option key={item.id} value={item.id}>
+                                    {item.label}
+                                </option>
                             ))}
                         </select>
-                        {form.errors.inventory_id && <p className="text-sm text-destructive">{form.errors.inventory_id}</p>}
+                        {form.errors.inventory_id && (
+                            <p className="text-sm text-destructive">
+                                {form.errors.inventory_id}
+                            </p>
+                        )}
                     </div>
 
                     <dl className="grid gap-3 rounded-lg bg-muted/40 p-4 sm:grid-cols-2">
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Farmer</dt>
-                            <dd className="text-sm">{display(selected?.farmer)}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Farmer
+                            </dt>
+                            <dd className="text-sm">
+                                {display(selected?.farmer)}
+                            </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Farm</dt>
-                            <dd className="text-sm">{display(selected?.farm)}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Farm
+                            </dt>
+                            <dd className="text-sm">
+                                {display(selected?.farm)}
+                            </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Crop</dt>
-                            <dd className="text-sm">{display(selected?.crop)}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Crop
+                            </dt>
+                            <dd className="text-sm">
+                                {display(selected?.crop)}
+                            </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Harvest</dt>
-                            <dd className="text-sm">{display(selected?.harvest)}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Harvest
+                            </dt>
+                            <dd className="text-sm">
+                                {display(selected?.harvest)}
+                            </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Processing stage</dt>
-                            <dd className="text-sm">{display(selected?.stage)}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Processing stage
+                            </dt>
+                            <dd className="text-sm">
+                                {display(selected?.stage)}
+                            </dd>
                         </div>
                         <div>
-                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Available quantity</dt>
-                            <dd className="text-sm tabular-nums">{selected ? `${selected.quantity} ${selected.unit}` : '—'}</dd>
+                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Available quantity
+                            </dt>
+                            <dd className="text-sm tabular-nums">
+                                {selected
+                                    ? `${selected.quantity} ${selected.unit}`
+                                    : '—'}
+                            </dd>
                         </div>
                     </dl>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="quantity">Quantity</Label>
-                            <Input id="quantity" inputMode="decimal" value={form.data.quantity} onChange={(event) => form.setData('quantity', event.target.value)} />
-                            {form.errors.quantity && <p className="text-sm text-destructive">{form.errors.quantity}</p>}
+                            <Input
+                                id="quantity"
+                                inputMode="decimal"
+                                value={form.data.quantity}
+                                onChange={(event) =>
+                                    form.setData('quantity', event.target.value)
+                                }
+                            />
+                            {form.errors.quantity && (
+                                <p className="text-sm text-destructive">
+                                    {form.errors.quantity}
+                                </p>
+                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="unit">Unit</Label>
-                            <select id="unit" className={selectClassName} value={form.data.unit} onChange={(event) => form.setData('unit', event.target.value)}>
+                            <select
+                                id="unit"
+                                className={selectClassName}
+                                value={form.data.unit}
+                                onChange={(event) =>
+                                    form.setData('unit', event.target.value)
+                                }
+                            >
                                 {units.map((unit) => (
-                                    <option key={unit} value={unit}>{unit}</option>
+                                    <option key={unit} value={unit}>
+                                        {unit}
+                                    </option>
                                 ))}
                             </select>
-                            {form.errors.unit && <p className="text-sm text-destructive">{form.errors.unit}</p>}
+                            {form.errors.unit && (
+                                <p className="text-sm text-destructive">
+                                    {form.errors.unit}
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="notes">Notes</Label>
-                        <textarea id="notes" value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} className="border-input min-h-24 rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" />
-                        {form.errors.notes && <p className="text-sm text-destructive">{form.errors.notes}</p>}
+                        <textarea
+                            id="notes"
+                            value={form.data.notes}
+                            onChange={(event) =>
+                                form.setData('notes', event.target.value)
+                            }
+                            className="min-h-24 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        />
+                        {form.errors.notes && (
+                            <p className="text-sm text-destructive">
+                                {form.errors.notes}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <Button variant="outline" asChild>
                             <Link href={index()}>Back to traceability</Link>
                         </Button>
-                        <Button type="submit" disabled={form.processing || inventories.length === 0}>Create lot</Button>
+                        <Button
+                            type="submit"
+                            disabled={
+                                form.processing || inventories.length === 0
+                            }
+                        >
+                            Create lot
+                        </Button>
                     </div>
                 </form>
             </div>

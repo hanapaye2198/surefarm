@@ -14,8 +14,8 @@ export function HeroSection() {
                 </h1>
                 <p className="mt-5 text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
                     SureFarm brings farmer records, farm mapping, area
-                    verification, and agricultural operations into one
-                    connected platform.
+                    verification, and agricultural operations into one connected
+                    platform.
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                     <Button asChild size="lg" className="w-full sm:w-auto">
@@ -100,7 +100,12 @@ function FarmLandscape() {
                         className="fill-none stroke-primary"
                         strokeWidth="2"
                     />
-                    <circle cx="490" cy="220" r="8" className="fill-secondary-foreground" />
+                    <circle
+                        cx="490"
+                        cy="220"
+                        r="8"
+                        className="fill-secondary-foreground"
+                    />
                     <circle
                         cx="490"
                         cy="220"
@@ -127,7 +132,9 @@ function FarmLandscape() {
                     <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                         Check
                     </p>
-                    <p className="mt-1 text-sm font-semibold">Ready to verify</p>
+                    <p className="mt-1 text-sm font-semibold">
+                        Ready to verify
+                    </p>
                 </div>
             </div>
         </div>

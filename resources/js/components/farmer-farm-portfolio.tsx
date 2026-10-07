@@ -133,7 +133,10 @@ function FarmCard({
                             </Badge>
                         </dd>
                     </div>
-                    <Detail label="No. of Hills" value={farm.number_of_hills_label} />
+                    <Detail
+                        label="No. of Hills"
+                        value={farm.number_of_hills_label}
+                    />
                     <Detail label="Geolocation" value={farm.geolocation} />
                 </dl>
                 <details className="rounded-lg border px-3 py-2">
@@ -141,9 +144,15 @@ function FarmCard({
                         Support, ownership, and location
                     </summary>
                     <dl className="mt-3 grid gap-4 sm:grid-cols-2">
-                        <Detail label="Owner / Farmer" value={farm.owner_name} />
+                        <Detail
+                            label="Owner / Farmer"
+                            value={farm.owner_name}
+                        />
                         <Detail label="Address" value={farm.address} />
-                        <Detail label="Data validation" value={farm.data_validated} />
+                        <Detail
+                            label="Data validation"
+                            value={farm.data_validated}
+                        />
                         <Detail label="Boundary" value={farm.boundary_status} />
                         <Detail
                             label="Latitude"
@@ -153,15 +162,25 @@ function FarmCard({
                             label="Longitude"
                             value={farm.longitude ?? 'Not yet captured'}
                         />
-                        <Detail label="Contracted Value" value={farm.contracted_value} />
-                        <Detail label="Input Support" value={farm.input_support} />
+                        <Detail
+                            label="Contracted Value"
+                            value={farm.contracted_value}
+                        />
+                        <Detail
+                            label="Input Support"
+                            value={farm.input_support}
+                        />
                         <Detail
                             label="Financing Support"
                             value={farm.financing_support}
                         />
                         <Detail
                             label="Drone Image"
-                            value={farm.drone_image_url ? 'Available' : 'Not available'}
+                            value={
+                                farm.drone_image_url
+                                    ? 'Available'
+                                    : 'Not available'
+                            }
                         />
                     </dl>
                 </details>
@@ -412,18 +431,25 @@ export function FarmerFarmPortfolio({
                             farm.crop_label,
                             farm.declared_area,
                             farm.verified_area,
-                            <FarmerStatusBadge key="status" status={farm.status} />,
+                            <FarmerStatusBadge
+                                key="status"
+                                status={farm.status}
+                            />,
                             <StatusBadge
                                 key="verification"
                                 status={farm.verification_status}
                             />,
                             <span key="actions" className="flex gap-2">
                                 <Button variant="outline" size="sm" asChild>
-                                    <Link href={showFarm(farm.id)}>View Farm</Link>
+                                    <Link href={showFarm(farm.id)}>
+                                        View Farm
+                                    </Link>
                                 </Button>
                                 {canRegister && (
                                     <Button variant="outline" size="sm" asChild>
-                                        <Link href={editFarm(farm.id)}>Edit</Link>
+                                        <Link href={editFarm(farm.id)}>
+                                            Edit
+                                        </Link>
                                     </Button>
                                 )}
                             </span>,

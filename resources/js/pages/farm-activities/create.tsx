@@ -31,7 +31,9 @@ export default function CreateFarmActivity({
                     description="Add operational work performed on one farm."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={activitiesIndex()}>Back to activities</Link>
+                            <Link href={activitiesIndex()}>
+                                Back to activities
+                            </Link>
                         </Button>
                     }
                 />
@@ -42,7 +44,9 @@ export default function CreateFarmActivity({
                     statuses={statuses}
                     initial={{
                         farm_id:
-                            selectedFarmId === null ? '' : String(selectedFarmId),
+                            selectedFarmId === null
+                                ? ''
+                                : String(selectedFarmId),
                         activity_type_id: '',
                         crop_type: '',
                         activity_date: today,

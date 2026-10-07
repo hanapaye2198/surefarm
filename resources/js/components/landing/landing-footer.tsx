@@ -24,7 +24,10 @@ export function LandingFooter() {
                         Digital Farm Management & Verification Platform
                     </p>
                 </div>
-                <nav aria-label="Footer" className="flex flex-col gap-2 text-sm">
+                <nav
+                    aria-label="Footer"
+                    className="flex flex-col gap-2 text-sm"
+                >
                     {links.map((link) => (
                         <a
                             key={link.href}

@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search, Sprout, Tractor, Wheat } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -11,7 +12,12 @@ import { Input } from '@/components/ui/input';
 import { userCanAccess } from '@/lib/access';
 import { show as showFarm } from '@/routes/farms';
 import { show as showFarmer } from '@/routes/farmers';
-import { create, edit, index as productionIndex, show } from '@/routes/production';
+import {
+    create,
+    edit,
+    index as productionIndex,
+    show,
+} from '@/routes/production';
 
 type ProductionRow = {
     id: number;
@@ -83,8 +89,11 @@ export default function ProductionIndex({
     can_record: boolean;
 }) {
     const { auth } = usePage().props;
-    const canRecord = can_record && userCanAccess(auth.user?.role, ['operations']);
-    const hasFilters = Object.values(filters).some((value) => value.trim() !== '');
+    const canRecord =
+        can_record && userCanAccess(auth.user?.role, ['operations']);
+    const hasFilters = Object.values(filters).some(
+        (value) => value.trim() !== '',
+    );
 
     function applyFilters(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -93,12 +102,12 @@ export default function ProductionIndex({
         router.get(
             productionIndex.url({
                 query: {
-                    search: String(formData.get('search') ?? '').trim(),
-                    farm: String(formData.get('farm') ?? ''),
-                    farmer: String(formData.get('farmer') ?? ''),
-                    crop: String(formData.get('crop') ?? ''),
-                    period: String(formData.get('period') ?? ''),
-                    status: String(formData.get('status') ?? ''),
+                    search: formString(formData, 'search').trim(),
+                    farm: formString(formData, 'farm'),
+                    farmer: formString(formData, 'farmer'),
+                    crop: formString(formData, 'crop'),
+                    period: formString(formData, 'period'),
+                    status: formString(formData, 'status'),
                 },
             }),
             {},
@@ -133,7 +142,9 @@ export default function ProductionIndex({
                     />
                     <StatCard
                         label="Farms in Production"
-                        value={countFormatter.format(summary.farms_in_production)}
+                        value={countFormatter.format(
+                            summary.farms_in_production,
+                        )}
                         icon={Tractor}
                     />
                     <StatCard
@@ -159,7 +170,12 @@ export default function ProductionIndex({
                         />
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-                        <select name="farmer" defaultValue={filters.farmer} className={selectClassName} aria-label="Farmer">
+                        <select
+                            name="farmer"
+                            defaultValue={filters.farmer}
+                            className={selectClassName}
+                            aria-label="Farmer"
+                        >
                             <option value="">All farmers</option>
                             {farmers.map((farmer) => (
                                 <option key={farmer.id} value={farmer.id}>
@@ -167,7 +183,12 @@ export default function ProductionIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="farm" defaultValue={filters.farm} className={selectClassName} aria-label="Farm">
+                        <select
+                            name="farm"
+                            defaultValue={filters.farm}
+                            className={selectClassName}
+                            aria-label="Farm"
+                        >
                             <option value="">All farms</option>
                             {farms.map((farm) => (
                                 <option key={farm.id} value={farm.id}>
@@ -175,7 +196,12 @@ export default function ProductionIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="crop" defaultValue={filters.crop} className={selectClassName} aria-label="Crop">
+                        <select
+                            name="crop"
+                            defaultValue={filters.crop}
+                            className={selectClassName}
+                            aria-label="Crop"
+                        >
                             <option value="">All crops</option>
                             {crops.map((crop) => (
                                 <option key={crop.value} value={crop.value}>
@@ -183,7 +209,12 @@ export default function ProductionIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="period" defaultValue={filters.period} className={selectClassName} aria-label="Production period">
+                        <select
+                            name="period"
+                            defaultValue={filters.period}
+                            className={selectClassName}
+                            aria-label="Production period"
+                        >
                             <option value="">All periods</option>
                             {periods.map((period) => (
                                 <option key={period} value={period}>
@@ -191,7 +222,12 @@ export default function ProductionIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="status" defaultValue={filters.status} className={selectClassName} aria-label="Status">
+                        <select
+                            name="status"
+                            defaultValue={filters.status}
+                            className={selectClassName}
+                            aria-label="Status"
+                        >
                             <option value="">All statuses</option>
                             {statuses.map((status) => (
                                 <option key={status.value} value={status.value}>
@@ -229,14 +265,22 @@ export default function ProductionIndex({
                         id: production.id,
                         cells: [
                             production.farm ? (
-                                <Link key="farm" href={showFarm(production.farm.id)} className="font-medium hover:underline">
+                                <Link
+                                    key="farm"
+                                    href={showFarm(production.farm.id)}
+                                    className="font-medium hover:underline"
+                                >
                                     {production.farm.farm_name}
                                 </Link>
                             ) : (
                                 '—'
                             ),
                             production.farmer ? (
-                                <Link key="farmer" href={showFarmer(production.farmer.id)} className="hover:underline">
+                                <Link
+                                    key="farmer"
+                                    href={showFarmer(production.farmer.id)}
+                                    className="hover:underline"
+                                >
                                     {production.farmer.name}
                                 </Link>
                             ) : (
@@ -248,26 +292,38 @@ export default function ProductionIndex({
                             production.unit,
                             production.harvested_label,
                             production.exceeds ? (
-                                <span key="remaining" className="text-destructive">
+                                <span
+                                    key="remaining"
+                                    className="text-destructive"
+                                >
                                     {production.remaining_label}
                                 </span>
                             ) : (
                                 production.remaining_label
                             ),
-                            <ProductionStatusBadge key="status" status={production.status} />,
+                            <ProductionStatusBadge
+                                key="status"
+                                status={production.status}
+                            />,
                             <div key="actions" className="flex gap-2">
                                 <Button variant="outline" size="sm" asChild>
                                     <Link href={show(production.id)}>View</Link>
                                 </Button>
                                 {canRecord && (
                                     <Button variant="outline" size="sm" asChild>
-                                        <Link href={edit(production.id)}>Edit</Link>
+                                        <Link href={edit(production.id)}>
+                                            Edit
+                                        </Link>
                                     </Button>
                                 )}
                             </div>,
                         ],
                     }))}
-                    emptyTitle={hasFilters ? 'No production records match these filters.' : 'No production records yet.'}
+                    emptyTitle={
+                        hasFilters
+                            ? 'No production records match these filters.'
+                            : 'No production records yet.'
+                    }
                     emptyDescription={
                         hasFilters
                             ? 'Try a different farm, crop, period, or status.'
@@ -288,17 +344,22 @@ export default function ProductionIndex({
                 {productions.total > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Showing {productions.from}–{productions.to} of {productions.total}
+                            Showing {productions.from}–{productions.to} of{' '}
+                            {productions.total}
                         </p>
                         <div className="flex gap-2">
                             {productions.prev_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={productions.prev_page_url}>Previous</Link>
+                                    <Link href={productions.prev_page_url}>
+                                        Previous
+                                    </Link>
                                 </Button>
                             )}
                             {productions.next_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={productions.next_page_url}>Next</Link>
+                                    <Link href={productions.next_page_url}>
+                                        Next
+                                    </Link>
                                 </Button>
                             )}
                         </div>

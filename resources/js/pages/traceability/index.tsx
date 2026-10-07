@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, QrCode } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -78,7 +79,8 @@ export default function TraceabilityIndex({
     can_manage: boolean;
 }) {
     const { auth } = usePage().props;
-    const canManage = can_manage && userCanAccess(auth.user?.role, ['operations']);
+    const canManage =
+        can_manage && userCanAccess(auth.user?.role, ['operations']);
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -87,12 +89,12 @@ export default function TraceabilityIndex({
         router.get(
             index.url({
                 query: {
-                    search: String(data.get('search') ?? ''),
-                    stage: String(data.get('stage') ?? ''),
-                    status: String(data.get('status') ?? ''),
-                    crop: String(data.get('crop') ?? ''),
-                    from: String(data.get('from') ?? ''),
-                    to: String(data.get('to') ?? ''),
+                    search: formString(data, 'search'),
+                    stage: formString(data, 'stage'),
+                    status: formString(data, 'status'),
+                    crop: formString(data, 'crop'),
+                    from: formString(data, 'from'),
+                    to: formString(data, 'to'),
                 },
             }),
         );
@@ -118,53 +120,161 @@ export default function TraceabilityIndex({
                 />
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <StatCard label="Active Lots" value={countFormatter.format(summary.active_lots)} icon={QrCode} />
-                    <StatCard label="Green Bean Lots" value={countFormatter.format(summary.green_bean_lots)} icon={QrCode} />
-                    <StatCard label="Coffee Under Traceability" value={summary.traced_label} icon={QrCode} />
-                    <StatCard label="Completed Lots" value={countFormatter.format(summary.completed_lots)} icon={QrCode} />
+                    <StatCard
+                        label="Active Lots"
+                        value={countFormatter.format(summary.active_lots)}
+                        icon={QrCode}
+                    />
+                    <StatCard
+                        label="Green Bean Lots"
+                        value={countFormatter.format(summary.green_bean_lots)}
+                        icon={QrCode}
+                    />
+                    <StatCard
+                        label="Coffee Under Traceability"
+                        value={summary.traced_label}
+                        icon={QrCode}
+                    />
+                    <StatCard
+                        label="Completed Lots"
+                        value={countFormatter.format(summary.completed_lots)}
+                        icon={QrCode}
+                    />
                 </div>
 
-                <form className="grid gap-3 md:grid-cols-3 xl:grid-cols-6" onSubmit={submit}>
-                    <Input name="search" defaultValue={filters.search} placeholder="Lot, farmer, or farm" aria-label="Lot, farmer, or farm" />
-                    <select name="stage" defaultValue={filters.stage} aria-label="Current stage" className={selectClassName}>
+                <form
+                    className="grid gap-3 md:grid-cols-3 xl:grid-cols-6"
+                    onSubmit={submit}
+                >
+                    <Input
+                        name="search"
+                        defaultValue={filters.search}
+                        placeholder="Lot, farmer, or farm"
+                        aria-label="Lot, farmer, or farm"
+                    />
+                    <select
+                        name="stage"
+                        defaultValue={filters.stage}
+                        aria-label="Current stage"
+                        className={selectClassName}
+                    >
                         <option value="">All stages</option>
                         {stages.map((stage) => (
-                            <option key={stage.id} value={stage.id}>{stage.name}</option>
+                            <option key={stage.id} value={stage.id}>
+                                {stage.name}
+                            </option>
                         ))}
                     </select>
-                    <select name="status" defaultValue={filters.status} aria-label="Status" className={selectClassName}>
+                    <select
+                        name="status"
+                        defaultValue={filters.status}
+                        aria-label="Status"
+                        className={selectClassName}
+                    >
                         <option value="">All statuses</option>
                         {statuses.map((status) => (
-                            <option key={status.value} value={status.value}>{status.label}</option>
+                            <option key={status.value} value={status.value}>
+                                {status.label}
+                            </option>
                         ))}
                     </select>
-                    <select name="crop" defaultValue={filters.crop} aria-label="Crop" className={selectClassName}>
+                    <select
+                        name="crop"
+                        defaultValue={filters.crop}
+                        aria-label="Crop"
+                        className={selectClassName}
+                    >
                         <option value="">All crops</option>
                         {crops.map((crop) => (
-                            <option key={crop.value} value={crop.value}>{crop.label}</option>
+                            <option key={crop.value} value={crop.value}>
+                                {crop.label}
+                            </option>
                         ))}
                     </select>
-                    <Input name="from" type="date" defaultValue={filters.from} aria-label="Harvest from" />
-                    <Input name="to" type="date" defaultValue={filters.to} aria-label="Harvest to" />
-                    <Button type="submit" variant="outline" className="md:col-span-3 xl:col-span-6 xl:w-fit">Filter</Button>
+                    <Input
+                        name="from"
+                        type="date"
+                        defaultValue={filters.from}
+                        aria-label="Harvest from"
+                    />
+                    <Input
+                        name="to"
+                        type="date"
+                        defaultValue={filters.to}
+                        aria-label="Harvest to"
+                    />
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        className="md:col-span-3 xl:col-span-6 xl:w-fit"
+                    >
+                        Filter
+                    </Button>
                 </form>
 
                 <DataTable
-                    columns={['Lot code', 'Farmer', 'Farm', 'Crop', 'Quantity', 'Unit', 'Current stage', 'Harvest date', 'Status', 'QR', 'Actions']}
+                    columns={[
+                        'Lot code',
+                        'Farmer',
+                        'Farm',
+                        'Crop',
+                        'Quantity',
+                        'Unit',
+                        'Current stage',
+                        'Harvest date',
+                        'Status',
+                        'QR',
+                        'Actions',
+                    ]}
                     rows={lots.data.map((row) => ({
                         id: row.id,
                         cells: [
                             row.lot_code,
-                            row.farmer ? <Link key="farmer" href={showFarmer(row.farmer.id)} className="font-medium hover:underline">{row.farmer.name}</Link> : '—',
-                            row.farm ? <Link key="farm" href={showFarm(row.farm.id)} className="hover:underline">{row.farm.farm_name}</Link> : '—',
+                            row.farmer ? (
+                                <Link
+                                    key="farmer"
+                                    href={showFarmer(row.farmer.id)}
+                                    className="font-medium hover:underline"
+                                >
+                                    {row.farmer.name}
+                                </Link>
+                            ) : (
+                                '—'
+                            ),
+                            row.farm ? (
+                                <Link
+                                    key="farm"
+                                    href={showFarm(row.farm.id)}
+                                    className="hover:underline"
+                                >
+                                    {row.farm.farm_name}
+                                </Link>
+                            ) : (
+                                '—'
+                            ),
                             row.crop ?? '—',
                             row.quantity_label,
                             row.unit,
                             row.stage ?? '—',
                             row.harvest_date ?? '—',
-                            <TraceabilityStatusBadge key="status" status={row.status} />,
-                            <Link key="qr" href={show(row.id)} className="font-medium text-primary hover:underline">View QR</Link>,
-                            <Link key="view" href={show(row.id)} className="font-medium text-primary hover:underline">View</Link>,
+                            <TraceabilityStatusBadge
+                                key="status"
+                                status={row.status}
+                            />,
+                            <Link
+                                key="qr"
+                                href={show(row.id)}
+                                className="font-medium text-primary hover:underline"
+                            >
+                                View QR
+                            </Link>,
+                            <Link
+                                key="view"
+                                href={show(row.id)}
+                                className="font-medium text-primary hover:underline"
+                            >
+                                View
+                            </Link>,
                         ],
                     }))}
                     emptyTitle="No traceability lots yet."
@@ -183,11 +293,15 @@ export default function TraceabilityIndex({
 
                 {lots.total > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm text-muted-foreground">Showing {lots.from}–{lots.to} of {lots.total}</p>
+                        <p className="text-sm text-muted-foreground">
+                            Showing {lots.from}–{lots.to} of {lots.total}
+                        </p>
                         <div className="flex gap-2">
                             {lots.prev_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={lots.prev_page_url}>Previous</Link>
+                                    <Link href={lots.prev_page_url}>
+                                        Previous
+                                    </Link>
                                 </Button>
                             )}
                             {lots.next_page_url && (

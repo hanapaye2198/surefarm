@@ -39,10 +39,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { create as recordActivity } from '@/routes/farm-activities';
-import { create as addFinancing, edit as editFinancing } from '@/routes/farms/financing';
+import {
+    create as addFinancing,
+    edit as editFinancing,
+} from '@/routes/farms/financing';
 import { index as inventoryIndex } from '@/routes/inventory';
 import { show as showLot } from '@/routes/traceability';
-import { create as addInsurance, edit as editInsurance } from '@/routes/farms/insurance';
+import {
+    create as addInsurance,
+    edit as editInsurance,
+} from '@/routes/farms/insurance';
 import { create as recordHarvest } from '@/routes/harvest';
 import { show as showFarmer } from '@/routes/farmers';
 import { create as addProduction } from '@/routes/production';
@@ -257,9 +263,7 @@ function initialTab(): FarmTab {
 
 export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
     const [tab, setTab] = useState<FarmTab>(initialTab);
-    const [mapOpened, setMapOpened] = useState(
-        () => initialTab() === 'Map',
-    );
+    const [mapOpened, setMapOpened] = useState(() => initialTab() === 'Map');
 
     function selectTab(item: FarmTab) {
         setTab(item);
@@ -385,10 +389,9 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 </dl>
                                 <p className="mt-4 text-xs text-muted-foreground">
                                     Declared area is the area the farmer
-                                    reported. Measured area comes from the
-                                    saved map boundary. Verified area is
-                                    recorded only when verification is
-                                    approved.
+                                    reported. Measured area comes from the saved
+                                    map boundary. Verified area is recorded only
+                                    when verification is approved.
                                 </p>
                             </CardContent>
                         </Card>
@@ -437,11 +440,16 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     />
                                     <Detail
                                         label="Property"
-                                        value={farm.reference.property_ownership_label}
+                                        value={
+                                            farm.reference
+                                                .property_ownership_label
+                                        }
                                     />
                                     <Detail
                                         label="Current Stage"
-                                        value={farm.reference.current_stage_label}
+                                        value={
+                                            farm.reference.current_stage_label
+                                        }
                                     />
                                     <Detail
                                         label="Recent Activity"
@@ -449,19 +457,29 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     />
                                     <Detail
                                         label="Expected Production"
-                                        value={farm.production_summary.expected_label}
+                                        value={
+                                            farm.production_summary
+                                                .expected_label
+                                        }
                                     />
                                     <Detail
                                         label="Actual Harvest"
-                                        value={farm.production_summary.actual_label}
+                                        value={
+                                            farm.production_summary.actual_label
+                                        }
                                     />
                                     <Detail
                                         label="Remaining Expected"
-                                        value={farm.production_summary.remaining_label}
+                                        value={
+                                            farm.production_summary
+                                                .remaining_label
+                                        }
                                     />
                                     <Detail
                                         label="No. of Hills"
-                                        value={farm.reference.number_of_hills_label}
+                                        value={
+                                            farm.reference.number_of_hills_label
+                                        }
                                     />
                                     <Detail
                                         label="Data validation"
@@ -522,7 +540,9 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             </CardHeader>
                             <CardContent>
                                 {farm.insurances[0] ? (
-                                    <CropInsuranceDetails record={farm.insurances[0]} />
+                                    <CropInsuranceDetails
+                                        record={farm.insurances[0]}
+                                    />
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
                                         No crop insurance recorded.
@@ -544,7 +564,9 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             </CardHeader>
                             <CardContent>
                                 {farm.financings[0] ? (
-                                    <FinancingDetails record={farm.financings[0]} />
+                                    <FinancingDetails
+                                        record={farm.financings[0]}
+                                    />
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
                                         No financing recorded.
@@ -591,24 +613,24 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                 )}
 
                 {mapOpened && (
-                <div className={tab === 'Map' ? undefined : 'hidden'}>
-                    <FarmBoundaryMap
-                        active={tab === 'Map'}
-                        farm={{
-                            id: farm.id,
-                            farm_name: farm.farm_name,
-                            declared_area_hectares:
-                                farm.declared_area_hectares,
-                            verification_status: farm.verification_status,
-                            latitude: farm.latitude,
-                            longitude: farm.longitude,
-                            farmer_name: farm.farmer.full_name,
-                            can_manage_boundary: farm.can_manage_boundary,
-                            can_remove_boundary: farm.can_remove_boundary,
-                        }}
-                        boundary={farm.boundary}
-                    />
-                </div>
+                    <div className={tab === 'Map' ? undefined : 'hidden'}>
+                        <FarmBoundaryMap
+                            active={tab === 'Map'}
+                            farm={{
+                                id: farm.id,
+                                farm_name: farm.farm_name,
+                                declared_area_hectares:
+                                    farm.declared_area_hectares,
+                                verification_status: farm.verification_status,
+                                latitude: farm.latitude,
+                                longitude: farm.longitude,
+                                farmer_name: farm.farmer.full_name,
+                                can_manage_boundary: farm.can_manage_boundary,
+                                can_remove_boundary: farm.can_remove_boundary,
+                            }}
+                            boundary={farm.boundary}
+                        />
+                    </div>
                 )}
 
                 {tab === 'Verification History' &&
@@ -627,7 +649,10 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             {[
                                 ['Activities', farm.activity_summary.total],
                                 ['Completed', farm.activity_summary.completed],
-                                ['In Progress', farm.activity_summary.in_progress],
+                                [
+                                    'In Progress',
+                                    farm.activity_summary.in_progress,
+                                ],
                                 ['Planned', farm.activity_summary.planned],
                                 ['Cancelled', farm.activity_summary.cancelled],
                             ].map(([label, value]) => (
@@ -645,20 +670,21 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             ))}
                         </div>
 
-                        {farm.can_record_activity && farm.activities.length > 0 && (
-                            <div className="flex justify-end">
-                                <Button asChild>
-                                    <Link
-                                        href={recordActivity.url({
-                                            query: { farm: farm.id },
-                                        })}
-                                    >
-                                        <Plus />
-                                        Record Activity
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
+                        {farm.can_record_activity &&
+                            farm.activities.length > 0 && (
+                                <div className="flex justify-end">
+                                    <Button asChild>
+                                        <Link
+                                            href={recordActivity.url({
+                                                query: { farm: farm.id },
+                                            })}
+                                        >
+                                            <Plus />
+                                            Record Activity
+                                        </Link>
+                                    </Button>
+                                </div>
+                            )}
 
                         {farm.activities.length === 0 ? (
                             <EmptyState
@@ -727,9 +753,15 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             </CardHeader>
                             <CardContent>
                                 <ProductionBalance
-                                    expected={farm.production_summary.expected_label}
-                                    actual={farm.production_summary.actual_label}
-                                    remaining={farm.production_summary.remaining_label}
+                                    expected={
+                                        farm.production_summary.expected_label
+                                    }
+                                    actual={
+                                        farm.production_summary.actual_label
+                                    }
+                                    remaining={
+                                        farm.production_summary.remaining_label
+                                    }
                                     exceeds={farm.production_summary.exceeds}
                                     message={farm.production_summary.message}
                                     progress={farm.production_summary.progress}
@@ -743,7 +775,11 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 action={
                                     farm.can_record_production ? (
                                         <Button asChild>
-                                            <Link href={addProduction.url({ query: { farm: farm.id } })}>
+                                            <Link
+                                                href={addProduction.url({
+                                                    query: { farm: farm.id },
+                                                })}
+                                            >
                                                 <Plus />
                                                 Add Production
                                             </Link>
@@ -756,7 +792,11 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 {farm.can_record_production && (
                                     <div className="flex justify-end">
                                         <Button asChild>
-                                            <Link href={addProduction.url({ query: { farm: farm.id } })}>
+                                            <Link
+                                                href={addProduction.url({
+                                                    query: { farm: farm.id },
+                                                })}
+                                            >
                                                 <Plus />
                                                 Add Production
                                             </Link>
@@ -764,22 +804,40 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     </div>
                                 )}
                                 {farm.productions.map((production) => (
-                                    <Card key={production.id} className="shadow-none">
+                                    <Card
+                                        key={production.id}
+                                        className="shadow-none"
+                                    >
                                         <CardHeader className="flex flex-row items-center justify-between gap-3">
                                             <CardTitle className="text-base">
                                                 {production.crop_label}
-                                                {production.production_period ? ` · ${production.production_period}` : ''}
+                                                {production.production_period
+                                                    ? ` · ${production.production_period}`
+                                                    : ''}
                                             </CardTitle>
-                                            <ProductionStatusBadge status={production.status} />
+                                            <ProductionStatusBadge
+                                                status={production.status}
+                                            />
                                         </CardHeader>
                                         <CardContent className="grid gap-2">
                                             <p className="text-sm text-muted-foreground">
-                                                Expected {production.expected_label} · Harvested {production.harvested_label} · Remaining {production.remaining_label}
+                                                Expected{' '}
+                                                {production.expected_label} ·
+                                                Harvested{' '}
+                                                {production.harvested_label} ·
+                                                Remaining{' '}
+                                                {production.remaining_label}
                                             </p>
                                             <ProductionBalance
-                                                expected={production.expected_label}
-                                                actual={production.harvested_label}
-                                                remaining={production.remaining_label}
+                                                expected={
+                                                    production.expected_label
+                                                }
+                                                actual={
+                                                    production.harvested_label
+                                                }
+                                                remaining={
+                                                    production.remaining_label
+                                                }
                                                 exceeds={production.exceeds}
                                                 message={production.message}
                                                 progress={production.progress}
@@ -801,7 +859,11 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 action={
                                     farm.can_record_production ? (
                                         <Button asChild>
-                                            <Link href={recordHarvest.url({ query: { farm: farm.id } })}>
+                                            <Link
+                                                href={recordHarvest.url({
+                                                    query: { farm: farm.id },
+                                                })}
+                                            >
                                                 <Plus />
                                                 Record Harvest
                                             </Link>
@@ -814,7 +876,11 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 {farm.can_record_production && (
                                     <div className="flex justify-end">
                                         <Button asChild>
-                                            <Link href={recordHarvest.url({ query: { farm: farm.id } })}>
+                                            <Link
+                                                href={recordHarvest.url({
+                                                    query: { farm: farm.id },
+                                                })}
+                                            >
                                                 <Plus />
                                                 Record Harvest
                                             </Link>
@@ -825,8 +891,18 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     <table className="w-full text-sm">
                                         <thead className="border-b bg-muted/50">
                                             <tr>
-                                                {['Date', 'Crop', 'Quantity', 'Unit', 'Quality', 'Status'].map((column) => (
-                                                    <th key={column} className="h-11 px-4 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                {[
+                                                    'Date',
+                                                    'Crop',
+                                                    'Quantity',
+                                                    'Unit',
+                                                    'Quality',
+                                                    'Status',
+                                                ].map((column) => (
+                                                    <th
+                                                        key={column}
+                                                        className="h-11 px-4 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                                    >
                                                         {column}
                                                     </th>
                                                 ))}
@@ -834,14 +910,32 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                         </thead>
                                         <tbody>
                                             {farm.harvests.map((harvest) => (
-                                                <tr key={harvest.id} className="border-b last:border-0">
-                                                    <td className="px-4 py-3">{harvest.harvest_date}</td>
-                                                    <td className="px-4 py-3">{harvest.crop_label}</td>
-                                                    <td className="px-4 py-3 tabular-nums">{harvest.quantity_label}</td>
-                                                    <td className="px-4 py-3">{harvest.unit}</td>
-                                                    <td className="px-4 py-3">{harvest.quality_grade || '—'}</td>
+                                                <tr
+                                                    key={harvest.id}
+                                                    className="border-b last:border-0"
+                                                >
                                                     <td className="px-4 py-3">
-                                                        <HarvestStatusBadge status={harvest.status} />
+                                                        {harvest.harvest_date}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {harvest.crop_label}
+                                                    </td>
+                                                    <td className="px-4 py-3 tabular-nums">
+                                                        {harvest.quantity_label}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {harvest.unit}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {harvest.quality_grade ||
+                                                            '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <HarvestStatusBadge
+                                                            status={
+                                                                harvest.status
+                                                            }
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))}
@@ -872,12 +966,24 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             />
                         ) : (
                             farm.insurances.map((insurance) => (
-                                <Card key={insurance.id} className="shadow-none">
+                                <Card
+                                    key={insurance.id}
+                                    className="shadow-none"
+                                >
                                     <CardHeader className="flex-row items-center justify-between">
                                         <CardTitle>Crop Insurance</CardTitle>
                                         {farm.can_manage_coverage && (
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={editInsurance({ farm: farm.id, insurance: insurance.id })}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={editInsurance({
+                                                        farm: farm.id,
+                                                        insurance: insurance.id,
+                                                    })}
+                                                >
                                                     <Pencil />
                                                     Edit
                                                 </Link>
@@ -885,7 +991,9 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                         )}
                                     </CardHeader>
                                     <CardContent>
-                                        <CropInsuranceDetails record={insurance} />
+                                        <CropInsuranceDetails
+                                            record={insurance}
+                                        />
                                     </CardContent>
                                 </Card>
                             ))
@@ -912,12 +1020,24 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             />
                         ) : (
                             farm.financings.map((financing) => (
-                                <Card key={financing.id} className="shadow-none">
+                                <Card
+                                    key={financing.id}
+                                    className="shadow-none"
+                                >
                                     <CardHeader className="flex-row items-center justify-between">
                                         <CardTitle>Financing</CardTitle>
                                         {farm.can_manage_coverage && (
-                                            <Button variant="outline" size="sm" asChild>
-                                                <Link href={editFinancing({ farm: farm.id, financing: financing.id })}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={editFinancing({
+                                                        farm: farm.id,
+                                                        financing: financing.id,
+                                                    })}
+                                                >
                                                     <Pencil />
                                                     Edit
                                                 </Link>
@@ -938,14 +1058,20 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                         <CardHeader className="flex-row items-center justify-between">
                             <CardTitle>Inventory</CardTitle>
                             <Button variant="outline" size="sm" asChild>
-                                <Link href={inventoryIndex.url({ query: { farm: farm.id } })}>
+                                <Link
+                                    href={inventoryIndex.url({
+                                        query: { farm: farm.id },
+                                    })}
+                                >
                                     View inventory
                                 </Link>
                             </Button>
                         </CardHeader>
                         <CardContent>
                             {farm.inventory_summary.has_records ? (
-                                <InventoryStageBars summary={farm.inventory_summary} />
+                                <InventoryStageBars
+                                    summary={farm.inventory_summary}
+                                />
                             ) : (
                                 <p className="text-sm text-muted-foreground">
                                     No inventory records yet.
@@ -962,19 +1088,41 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                         </CardHeader>
                         <CardContent>
                             {farm.traceability_lots.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No traceability lots yet.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    No traceability lots yet.
+                                </p>
                             ) : (
                                 <ul className="grid gap-3">
                                     {farm.traceability_lots.map((lot) => (
-                                        <li key={lot.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <li
+                                            key={lot.id}
+                                            className="flex flex-col gap-2 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                                        >
                                             <div>
-                                                <p className="font-medium">{lot.lot_code}</p>
-                                                <p className="text-sm text-muted-foreground">{lot.quantity_label} · {lot.stage ?? 'Coffee'}</p>
+                                                <p className="font-medium">
+                                                    {lot.lot_code}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {lot.quantity_label} ·{' '}
+                                                    {lot.stage ?? 'Coffee'}
+                                                </p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <TraceabilityStatusBadge status={lot.status} />
-                                                <Link href={showLot(lot.id)} className="text-sm font-medium text-primary hover:underline">View traceability</Link>
-                                                <Link href={showLot(lot.id)} className="text-sm font-medium text-primary hover:underline">View QR</Link>
+                                                <TraceabilityStatusBadge
+                                                    status={lot.status}
+                                                />
+                                                <Link
+                                                    href={showLot(lot.id)}
+                                                    className="text-sm font-medium text-primary hover:underline"
+                                                >
+                                                    View traceability
+                                                </Link>
+                                                <Link
+                                                    href={showLot(lot.id)}
+                                                    className="text-sm font-medium text-primary hover:underline"
+                                                >
+                                                    View QR
+                                                </Link>
                                             </div>
                                         </li>
                                     ))}

@@ -229,7 +229,8 @@ export function HarvestForm({
                                     onChange={(event) => {
                                         const nextId = event.target.value;
                                         const match = farmProductions.find(
-                                            (item) => String(item.id) === nextId,
+                                            (item) =>
+                                                String(item.id) === nextId,
                                         );
 
                                         form.setData({
@@ -244,7 +245,9 @@ export function HarvestForm({
                                     className={selectClassName}
                                     disabled={!selectedFarm}
                                 >
-                                    <option value="">No production record</option>
+                                    <option value="">
+                                        No production record
+                                    </option>
                                     {farmProductions.map((item) => (
                                         <option key={item.id} value={item.id}>
                                             {item.label}
@@ -359,7 +362,11 @@ export function HarvestForm({
                         </select>
                     </Field>
 
-                    <Field label="Notes" htmlFor="notes" error={form.errors.notes}>
+                    <Field
+                        label="Notes"
+                        htmlFor="notes"
+                        error={form.errors.notes}
+                    >
                         <Input
                             id="notes"
                             value={form.data.notes}

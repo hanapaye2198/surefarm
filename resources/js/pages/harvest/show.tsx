@@ -55,7 +55,9 @@ export default function HarvestShow({
                         <div className="flex flex-col gap-2 sm:flex-row">
                             {can_receive && (
                                 <Button asChild>
-                                    <Link href={receiveHarvest(harvest.id)}>Receive into Inventory</Link>
+                                    <Link href={receiveHarvest(harvest.id)}>
+                                        Receive into Inventory
+                                    </Link>
                                 </Button>
                             )}
                             {canEdit && (
@@ -64,7 +66,9 @@ export default function HarvestShow({
                                 </Button>
                             )}
                             <Button variant="outline" asChild>
-                                <Link href={harvestIndex()}>Back to harvest</Link>
+                                <Link href={harvestIndex()}>
+                                    Back to harvest
+                                </Link>
                             </Button>
                         </div>
                     }
@@ -77,20 +81,61 @@ export default function HarvestShow({
                     </CardHeader>
                     <CardContent>
                         <dl className="grid gap-4 sm:grid-cols-2">
-                            <Detail label="Harvest date" value={display(harvest.harvest_date_long)} />
-                            <Detail label="Farm" value={harvest.farm?.farm_name ?? '—'} href={harvest.farm ? showFarm(harvest.farm.id).url : undefined} />
-                            <Detail label="Farmer" value={harvest.farmer?.name ?? '—'} href={harvest.farmer ? showFarmer(harvest.farmer.id).url : undefined} />
+                            <Detail
+                                label="Harvest date"
+                                value={display(harvest.harvest_date_long)}
+                            />
+                            <Detail
+                                label="Farm"
+                                value={harvest.farm?.farm_name ?? '—'}
+                                href={
+                                    harvest.farm
+                                        ? showFarm(harvest.farm.id).url
+                                        : undefined
+                                }
+                            />
+                            <Detail
+                                label="Farmer"
+                                value={harvest.farmer?.name ?? '—'}
+                                href={
+                                    harvest.farmer
+                                        ? showFarmer(harvest.farmer.id).url
+                                        : undefined
+                                }
+                            />
                             <Detail label="Crop" value={harvest.crop_label} />
                             <Detail label="Unit" value={harvest.unit} />
-                            <Detail label="Quality" value={display(harvest.quality_grade)} />
+                            <Detail
+                                label="Quality"
+                                value={display(harvest.quality_grade)}
+                            />
                             <Detail
                                 label="Production record"
-                                value={harvest.production_period ?? (harvest.production_id ? 'Linked estimate' : '—')}
-                                href={harvest.production_id ? showProduction(harvest.production_id).url : undefined}
+                                value={
+                                    harvest.production_period ??
+                                    (harvest.production_id
+                                        ? 'Linked estimate'
+                                        : '—')
+                                }
+                                href={
+                                    harvest.production_id
+                                        ? showProduction(harvest.production_id)
+                                              .url
+                                        : undefined
+                                }
                             />
-                            <Detail label="Notes" value={display(harvest.notes)} />
-                            <Detail label="Recorded by" value={display(harvest.created_by)} />
-                            <Detail label="Recorded on" value={display(harvest.created_at)} />
+                            <Detail
+                                label="Notes"
+                                value={display(harvest.notes)}
+                            />
+                            <Detail
+                                label="Recorded by"
+                                value={display(harvest.created_by)}
+                            />
+                            <Detail
+                                label="Recorded on"
+                                value={display(harvest.created_at)}
+                            />
                         </dl>
                     </CardContent>
                 </Card>
@@ -110,7 +155,9 @@ function Detail({
 }) {
     return (
         <div>
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</dt>
+            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {label}
+            </dt>
             <dd className="mt-1 text-sm">
                 {href ? (
                     <Link href={href} className="font-medium hover:underline">

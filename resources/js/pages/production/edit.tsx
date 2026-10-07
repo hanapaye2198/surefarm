@@ -41,7 +41,9 @@ export default function EditProduction({
                     description="Update the estimate. Recorded harvests stay unchanged."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={show(production.id)}>Back to record</Link>
+                            <Link href={show(production.id)}>
+                                Back to record
+                            </Link>
                         </Button>
                     }
                 />
@@ -63,7 +65,9 @@ export default function EditProduction({
                     statuses={statuses}
                     units={units}
                     initial={{
-                        farm_id: production.farm ? String(production.farm.id) : '',
+                        farm_id: production.farm
+                            ? String(production.farm.id)
+                            : '',
                         crop_type: production.crop_type ?? '',
                         production_period: production.production_period ?? '',
                         expected_quantity: production.expected_input,

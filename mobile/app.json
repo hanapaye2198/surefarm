@@ -1,43 +1,40 @@
 {
-  "expo": {
-    "name": "SureFarm",
-    "slug": "surefarm-mobile",
-    "scheme": "surefarm",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "plugins": [
-      "expo-secure-store",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "SureFarm needs access to photos you choose for farmer and farm records.",
-          "cameraPermission": "SureFarm uses the camera when you take a farmer or farm photo.",
-          "microphonePermission": false
+    "expo": {
+        "name": "SureFarm",
+        "slug": "surefarm-mobile",
+        "scheme": "surefarm",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "plugins": [
+            "expo-secure-store",
+            [
+                "expo-image-picker",
+                {
+                    "photosPermission": "SureFarm needs access to photos you choose for farmer and farm records.",
+                    "cameraPermission": "SureFarm uses the camera when you take a farmer or farm photo.",
+                    "microphonePermission": false
+                }
+            ],
+            [
+                "expo-location",
+                {
+                    "locationWhenInUsePermission": "SureFarm uses your location when you record farm coordinates or walk a farm boundary."
+                }
+            ]
+        ],
+        "ios": {
+            "bundleIdentifier": "io.surefarm.mobile",
+            "supportsTablet": true,
+            "infoPlist": {
+                "NSLocationWhenInUseUsageDescription": "SureFarm uses your location when you map or verify a farm boundary."
+            }
+        },
+        "android": {
+            "package": "io.surefarm.mobile",
+            "softwareKeyboardLayoutMode": "resize",
+            "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
         }
-      ],
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "SureFarm uses your location when you record farm coordinates or walk a farm boundary."
-        }
-      ]
-    ],
-    "ios": {
-      "bundleIdentifier": "io.surefarm.mobile",
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SureFarm uses your location when you map or verify a farm boundary."
-      }
-    },
-    "android": {
-      "package": "io.surefarm.mobile",
-      "softwareKeyboardLayoutMode": "resize",
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ]
     }
-  }
 }

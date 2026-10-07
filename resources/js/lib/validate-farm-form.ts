@@ -11,9 +11,7 @@ export type FarmFormInput = {
 
 const areaPattern = /^\d+(\.\d{1,2})?$/;
 
-export function validateFarmForm(
-    input: FarmFormInput,
-): Record<string, string> {
+export function validateFarmForm(input: FarmFormInput): Record<string, string> {
     const errors: Record<string, string> = {};
     const area = input.declared_area_hectares.trim();
 

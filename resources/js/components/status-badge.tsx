@@ -38,7 +38,8 @@ const farmerStatusStyles = {
     inactive: 'border-transparent bg-muted text-muted-foreground',
     pending: 'border-transparent bg-secondary text-secondary-foreground',
     harvesting: 'border-transparent bg-primary/15 text-primary',
-    under_development: 'border-transparent bg-secondary text-secondary-foreground',
+    under_development:
+        'border-transparent bg-secondary text-secondary-foreground',
 } as const;
 
 const farmerStatusLabels = {
@@ -59,7 +60,9 @@ export function FarmerStatusBadge({
     className?: string;
 }) {
     return (
-        <Badge className={cn('uppercase', farmerStatusStyles[status], className)}>
+        <Badge
+            className={cn('uppercase', farmerStatusStyles[status], className)}
+        >
             {farmerStatusLabels[status]}
         </Badge>
     );
@@ -120,7 +123,11 @@ export function ProductionStatusBadge({
 }) {
     return (
         <Badge
-            className={cn('uppercase', productionStatusStyles[status], className)}
+            className={cn(
+                'uppercase',
+                productionStatusStyles[status],
+                className,
+            )}
         >
             {productionStatusLabels[status]}
         </Badge>
@@ -158,7 +165,13 @@ export function InventoryStatusBadge({
     className?: string;
 }) {
     return (
-        <Badge className={cn('uppercase', inventoryStatusStyles[status], className)}>
+        <Badge
+            className={cn(
+                'uppercase',
+                inventoryStatusStyles[status],
+                className,
+            )}
+        >
             {status.replaceAll('_', ' ')}
         </Badge>
     );
@@ -182,7 +195,13 @@ export function TraceabilityStatusBadge({
     className?: string;
 }) {
     return (
-        <Badge className={cn('uppercase', traceabilityStatusStyles[status], className)}>
+        <Badge
+            className={cn(
+                'uppercase',
+                traceabilityStatusStyles[status],
+                className,
+            )}
+        >
             {status.replaceAll('_', ' ')}
         </Badge>
     );

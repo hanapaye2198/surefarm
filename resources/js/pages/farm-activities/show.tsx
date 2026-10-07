@@ -143,7 +143,10 @@ export default function FarmActivityDetail({
                                 label="Quantity"
                                 value={activity.quantity_label}
                             />
-                            <Detail label="Unit" value={display(activity.unit)} />
+                            <Detail
+                                label="Unit"
+                                value={display(activity.unit)}
+                            />
                             <Detail label="Cost" value={activity.cost} />
                             <Detail
                                 label="Created By"

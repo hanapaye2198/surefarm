@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -79,7 +80,8 @@ export default function InventoryIndex({
     can_manage: boolean;
 }) {
     const { auth } = usePage().props;
-    const canManage = can_manage && userCanAccess(auth.user?.role, ['operations']);
+    const canManage =
+        can_manage && userCanAccess(auth.user?.role, ['operations']);
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -88,14 +90,14 @@ export default function InventoryIndex({
         router.get(
             inventoryIndex.url({
                 query: {
-                    search: String(data.get('search') ?? ''),
-                    farmer: String(data.get('farmer') ?? ''),
-                    farm: String(data.get('farm') ?? ''),
-                    stage: String(data.get('stage') ?? ''),
-                    status: String(data.get('status') ?? ''),
-                    location: String(data.get('location') ?? ''),
-                    from: String(data.get('from') ?? ''),
-                    to: String(data.get('to') ?? ''),
+                    search: formString(data, 'search'),
+                    farmer: formString(data, 'farmer'),
+                    farm: formString(data, 'farm'),
+                    stage: formString(data, 'stage'),
+                    status: formString(data, 'status'),
+                    location: formString(data, 'location'),
+                    from: formString(data, 'from'),
+                    to: formString(data, 'to'),
                 },
             }),
             {},
@@ -113,11 +115,20 @@ export default function InventoryIndex({
                     actions={
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Button variant="outline" asChild>
-                                <Link href={processing()}>Coffee processing</Link>
+                                <Link href={processing()}>
+                                    Coffee processing
+                                </Link>
                             </Button>
                             {canManage && (
                                 <Button asChild>
-                                    <Link href={harvestIndex.url({ query: { status: 'completed', crop: 'coffee' } })}>
+                                    <Link
+                                        href={harvestIndex.url({
+                                            query: {
+                                                status: 'completed',
+                                                crop: 'coffee',
+                                            },
+                                        })}
+                                    >
                                         <Plus />
                                         Receive harvest
                                     </Link>
@@ -128,64 +139,164 @@ export default function InventoryIndex({
                 />
 
                 <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <StatCard label="Total Coffee Inventory" value={summary.total_label} />
+                    <StatCard
+                        label="Total Coffee Inventory"
+                        value={summary.total_label}
+                    />
                     {summary.stages.map((stage) => (
-                        <StatCard key={stage.id} label={stage.name} value={stage.label} />
+                        <StatCard
+                            key={stage.id}
+                            label={stage.name}
+                            value={stage.label}
+                        />
                     ))}
                 </section>
 
                 <InventoryStageBars summary={summary} />
 
-                <form onSubmit={submit} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+                <form
+                    onSubmit={submit}
+                    className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
+                >
                     <div className="relative sm:col-span-2">
                         <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
-                        <Input name="search" defaultValue={filters.search} placeholder="Farmer, farm, or harvest" className="pl-9" />
+                        <Input
+                            name="search"
+                            defaultValue={filters.search}
+                            placeholder="Farmer, farm, or harvest"
+                            className="pl-9"
+                        />
                     </div>
-                    <select name="farmer" defaultValue={filters.farmer} className={selectClassName} aria-label="Farmer">
+                    <select
+                        name="farmer"
+                        defaultValue={filters.farmer}
+                        className={selectClassName}
+                        aria-label="Farmer"
+                    >
                         <option value="">All farmers</option>
                         {farmers.map((farmer) => (
-                            <option key={farmer.id} value={farmer.id}>{farmer.name}</option>
+                            <option key={farmer.id} value={farmer.id}>
+                                {farmer.name}
+                            </option>
                         ))}
                     </select>
-                    <select name="farm" defaultValue={filters.farm} className={selectClassName} aria-label="Farm">
+                    <select
+                        name="farm"
+                        defaultValue={filters.farm}
+                        className={selectClassName}
+                        aria-label="Farm"
+                    >
                         <option value="">All farms</option>
                         {farms.map((farm) => (
-                            <option key={farm.id} value={farm.id}>{farm.name}</option>
+                            <option key={farm.id} value={farm.id}>
+                                {farm.name}
+                            </option>
                         ))}
                     </select>
-                    <select name="stage" defaultValue={filters.stage} className={selectClassName} aria-label="Processing stage">
+                    <select
+                        name="stage"
+                        defaultValue={filters.stage}
+                        className={selectClassName}
+                        aria-label="Processing stage"
+                    >
                         <option value="">All stages</option>
                         {stages.map((stage) => (
-                            <option key={stage.id} value={stage.id}>{stage.name}</option>
+                            <option key={stage.id} value={stage.id}>
+                                {stage.name}
+                            </option>
                         ))}
                     </select>
-                    <select name="status" defaultValue={filters.status} className={selectClassName} aria-label="Status">
+                    <select
+                        name="status"
+                        defaultValue={filters.status}
+                        className={selectClassName}
+                        aria-label="Status"
+                    >
                         <option value="">All statuses</option>
                         {statuses.map((status) => (
-                            <option key={status.value} value={status.value}>{status.label}</option>
+                            <option key={status.value} value={status.value}>
+                                {status.label}
+                            </option>
                         ))}
                     </select>
-                    <Input name="location" defaultValue={filters.location} placeholder="Location" aria-label="Location" />
-                    <Input name="from" type="date" defaultValue={filters.from} aria-label="From date" />
-                    <Input name="to" type="date" defaultValue={filters.to} aria-label="To date" />
-                    <Button type="submit" variant="outline">Filter</Button>
+                    <Input
+                        name="location"
+                        defaultValue={filters.location}
+                        placeholder="Location"
+                        aria-label="Location"
+                    />
+                    <Input
+                        name="from"
+                        type="date"
+                        defaultValue={filters.from}
+                        aria-label="From date"
+                    />
+                    <Input
+                        name="to"
+                        type="date"
+                        defaultValue={filters.to}
+                        aria-label="To date"
+                    />
+                    <Button type="submit" variant="outline">
+                        Filter
+                    </Button>
                 </form>
 
                 <DataTable
-                    columns={['Date', 'Farmer', 'Farm', 'Harvest', 'Processing Stage', 'Quantity', 'Unit', 'Location', 'Status', 'Actions']}
+                    columns={[
+                        'Date',
+                        'Farmer',
+                        'Farm',
+                        'Harvest',
+                        'Processing Stage',
+                        'Quantity',
+                        'Unit',
+                        'Location',
+                        'Status',
+                        'Actions',
+                    ]}
                     rows={inventories.data.map((row) => ({
                         id: row.id,
                         cells: [
                             display(row.received_date),
-                            row.farmer ? <Link key="farmer" href={showFarmer(row.farmer.id)} className="font-medium hover:underline">{row.farmer.name}</Link> : '—',
-                            row.farm ? <Link key="farm" href={showFarm(row.farm.id)} className="hover:underline">{row.farm.farm_name}</Link> : '—',
+                            row.farmer ? (
+                                <Link
+                                    key="farmer"
+                                    href={showFarmer(row.farmer.id)}
+                                    className="font-medium hover:underline"
+                                >
+                                    {row.farmer.name}
+                                </Link>
+                            ) : (
+                                '—'
+                            ),
+                            row.farm ? (
+                                <Link
+                                    key="farm"
+                                    href={showFarm(row.farm.id)}
+                                    className="hover:underline"
+                                >
+                                    {row.farm.farm_name}
+                                </Link>
+                            ) : (
+                                '—'
+                            ),
                             row.harvest?.label ?? '—',
                             row.stage?.name ?? '—',
                             row.quantity_label,
                             row.unit,
                             display(row.location),
-                            <InventoryStatusBadge key="status" status={row.status} />,
-                            <Link key="view" href={show(row.id)} className="font-medium text-primary hover:underline">View</Link>,
+                            <InventoryStatusBadge
+                                key="status"
+                                status={row.status}
+                            />,
+                            <Link
+                                key="view"
+                                href={show(row.id)}
+                                className="font-medium text-primary hover:underline"
+                            >
+                                View
+                            </Link>,
                         ],
                     }))}
                     emptyTitle="No inventory records yet."
@@ -193,7 +304,14 @@ export default function InventoryIndex({
                     emptyAction={
                         canManage ? (
                             <Button asChild>
-                                <Link href={harvestIndex.url({ query: { status: 'completed', crop: 'coffee' } })}>
+                                <Link
+                                    href={harvestIndex.url({
+                                        query: {
+                                            status: 'completed',
+                                            crop: 'coffee',
+                                        },
+                                    })}
+                                >
                                     <Plus />
                                     Receive harvest
                                 </Link>
@@ -205,17 +323,22 @@ export default function InventoryIndex({
                 {inventories.total > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Showing {inventories.from}–{inventories.to} of {inventories.total}
+                            Showing {inventories.from}–{inventories.to} of{' '}
+                            {inventories.total}
                         </p>
                         <div className="flex gap-2">
                             {inventories.prev_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={inventories.prev_page_url}>Previous</Link>
+                                    <Link href={inventories.prev_page_url}>
+                                        Previous
+                                    </Link>
                                 </Button>
                             )}
                             {inventories.next_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={inventories.next_page_url}>Next</Link>
+                                    <Link href={inventories.next_page_url}>
+                                        Next
+                                    </Link>
                                 </Button>
                             )}
                         </div>

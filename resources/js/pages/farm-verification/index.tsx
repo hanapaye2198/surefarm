@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -93,13 +94,14 @@ export default function FarmVerificationIndex({
         router.get(
             index.url({
                 query: {
-                    search: String(formData.get('search') ?? '').trim(),
-                    verification_status: String(
-                        formData.get('verification_status') ?? '',
+                    search: formString(formData, 'search').trim(),
+                    verification_status: formString(
+                        formData,
+                        'verification_status',
                     ),
-                    crop: String(formData.get('crop') ?? ''),
-                    province: String(formData.get('province') ?? ''),
-                    municipality: String(formData.get('municipality') ?? ''),
+                    crop: formString(formData, 'crop'),
+                    province: formString(formData, 'province'),
+                    municipality: formString(formData, 'municipality'),
                 },
             }),
             {},

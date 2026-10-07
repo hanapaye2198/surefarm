@@ -224,7 +224,8 @@ export default function FarmerProfilePage({
                                 </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {farmer.cooperative ?? 'No cooperative recorded'}
+                                {farmer.cooperative ??
+                                    'No cooperative recorded'}
                                 {farmer.member_since
                                     ? ` · Member since ${farmer.member_since}`
                                     : ''}
@@ -293,287 +294,367 @@ export default function FarmerProfilePage({
 
                 {tab === 'Profile' && (
                     <>
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        <Card className="shadow-none">
-                            <CardHeader>
-                                <CardTitle>Personal Information</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <dl className="grid gap-4 sm:grid-cols-2">
-                                    <Detail
-                                        label="Full Name"
-                                        value={farmer.full_name}
-                                    />
-                                    <Detail
-                                        label="Date of Birth"
-                                        value={display(farmer.date_of_birth)}
-                                    />
-                                    <div className="sm:col-span-2">
-                                        <Detail
-                                            label="Address"
-                                            value={display(farmer.address)}
-                                        />
-                                    </div>
-                                    <Detail
-                                        label="Government ID"
-                                        value={display(farmer.government_id)}
-                                    />
-                                    <Detail
-                                        label="Contact No."
-                                        value={farmer.mobile_number}
-                                    />
-                                    <Detail
-                                        label="Email"
-                                        value={display(farmer.email)}
-                                    />
-                                </dl>
-                            </CardContent>
-                        </Card>
-                        <div className="grid content-start gap-4">
+                        <div className="grid gap-4 lg:grid-cols-2">
                             <Card className="shadow-none">
                                 <CardHeader>
-                                    <CardTitle>Bank Account</CardTitle>
+                                    <CardTitle>Personal Information</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    {farmer.bank_account ? (
-                                        <div className="grid gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                                    <Landmark className="size-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold">
-                                                        {
-                                                            farmer.bank_account
-                                                                .bank_name
-                                                        }
-                                                    </p>
-                                                    <p className="font-mono text-sm tracking-wide text-muted-foreground">
-                                                        {
-                                                            farmer.bank_account
-                                                                .account_number
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <dl className="grid gap-4 sm:grid-cols-2">
-                                                <Detail
-                                                    label="Account Name"
-                                                    value={
-                                                        farmer.bank_account
-                                                            .account_name
-                                                    }
-                                                />
-                                                <div className="grid gap-1">
-                                                    <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                        Status
-                                                    </dt>
-                                                    <dd>
-                                                        {farmer.bank_account
-                                                            .status ===
-                                                        'verified' ? (
-                                                            <StatusBadge status="verified" />
-                                                        ) : (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="uppercase"
-                                                            >
-                                                                {
-                                                                    farmer
-                                                                        .bank_account
-                                                                        .status_label
-                                                                }
-                                                            </Badge>
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </div>
-                                    ) : (
-                                        <div className="grid gap-3">
-                                            <p className="text-sm text-muted-foreground">
-                                                No bank account linked yet.
-                                            </p>
-                                            {canRegister && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-fit"
-                                                    asChild
-                                                >
-                                                    <Link href={edit(farmer.id)}>
-                                                        Link bank account
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Cooperative</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex items-start gap-3">
-                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <Building2 className="size-5" />
-                                    </div>
-                                    <div className="grid gap-1">
-                                        <p className="text-sm font-semibold">
-                                            {farmer.cooperative ??
-                                                'No cooperative recorded'}
-                                        </p>
-                                        {farmer.member_since && (
-                                            <p className="text-sm text-muted-foreground">
-                                                Member since{' '}
-                                                {farmer.member_since}
-                                            </p>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            {farmer.spouse && (
-                                <Card className="shadow-none">
-                                    <CardHeader>
-                                        <CardTitle>Spouse</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
+                                    <dl className="grid gap-4 sm:grid-cols-2">
                                         <Detail
                                             label="Full Name"
-                                            value={farmer.spouse.full_name}
+                                            value={farmer.full_name}
                                         />
+                                        <Detail
+                                            label="Date of Birth"
+                                            value={display(
+                                                farmer.date_of_birth,
+                                            )}
+                                        />
+                                        <div className="sm:col-span-2">
+                                            <Detail
+                                                label="Address"
+                                                value={display(farmer.address)}
+                                            />
+                                        </div>
+                                        <Detail
+                                            label="Government ID"
+                                            value={display(
+                                                farmer.government_id,
+                                            )}
+                                        />
+                                        <Detail
+                                            label="Contact No."
+                                            value={farmer.mobile_number}
+                                        />
+                                        <Detail
+                                            label="Email"
+                                            value={display(farmer.email)}
+                                        />
+                                    </dl>
+                                </CardContent>
+                            </Card>
+                            <div className="grid content-start gap-4">
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Bank Account</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {farmer.bank_account ? (
+                                            <div className="grid gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                                        <Landmark className="size-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold">
+                                                            {
+                                                                farmer
+                                                                    .bank_account
+                                                                    .bank_name
+                                                            }
+                                                        </p>
+                                                        <p className="font-mono text-sm tracking-wide text-muted-foreground">
+                                                            {
+                                                                farmer
+                                                                    .bank_account
+                                                                    .account_number
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <dl className="grid gap-4 sm:grid-cols-2">
+                                                    <Detail
+                                                        label="Account Name"
+                                                        value={
+                                                            farmer.bank_account
+                                                                .account_name
+                                                        }
+                                                    />
+                                                    <div className="grid gap-1">
+                                                        <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                            Status
+                                                        </dt>
+                                                        <dd>
+                                                            {farmer.bank_account
+                                                                .status ===
+                                                            'verified' ? (
+                                                                <StatusBadge status="verified" />
+                                                            ) : (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="uppercase"
+                                                                >
+                                                                    {
+                                                                        farmer
+                                                                            .bank_account
+                                                                            .status_label
+                                                                    }
+                                                                </Badge>
+                                                            )}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                            </div>
+                                        ) : (
+                                            <div className="grid gap-3">
+                                                <p className="text-sm text-muted-foreground">
+                                                    No bank account linked yet.
+                                                </p>
+                                                {canRegister && (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-fit"
+                                                        asChild
+                                                    >
+                                                        <Link
+                                                            href={edit(
+                                                                farmer.id,
+                                                            )}
+                                                        >
+                                                            Link bank account
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
-                            )}
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Cooperative</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex items-start gap-3">
+                                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                            <Building2 className="size-5" />
+                                        </div>
+                                        <div className="grid gap-1">
+                                            <p className="text-sm font-semibold">
+                                                {farmer.cooperative ??
+                                                    'No cooperative recorded'}
+                                            </p>
+                                            {farmer.member_since && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Member since{' '}
+                                                    {farmer.member_since}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                {farmer.spouse && (
+                                    <Card className="shadow-none">
+                                        <CardHeader>
+                                            <CardTitle>Spouse</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <Detail
+                                                label="Full Name"
+                                                value={farmer.spouse.full_name}
+                                            />
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <Card className="shadow-none">
-                        <CardHeader>
-                            <CardTitle>Farm summary</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-3">
-                            {farmer.farms.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No farms registered yet.
-                                </p>
-                            ) : (
-                                farmer.farms.slice(0, 3).map((farm) => (
-                                    <div
-                                        key={farm.id}
-                                        className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                        <Card className="shadow-none">
+                            <CardHeader>
+                                <CardTitle>Farm summary</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3">
+                                {farmer.farms.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No farms registered yet.
+                                    </p>
+                                ) : (
+                                    farmer.farms.slice(0, 3).map((farm) => (
+                                        <div
+                                            key={farm.id}
+                                            className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div>
+                                                <p className="text-sm font-medium">
+                                                    {farm.number_label} ·{' '}
+                                                    {farm.farm_name}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {farm.crop_label} ·{' '}
+                                                    {farm.declared_area} ·{' '}
+                                                    {
+                                                        farm.property_ownership_label
+                                                    }
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <FarmerStatusBadge
+                                                    status={farm.status}
+                                                />
+                                                <StatusBadge
+                                                    status={
+                                                        farm.verification_status
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                                {farmer.farms.length > 3 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setTab('Farms')}
+                                        className="text-left text-sm font-medium text-primary"
                                     >
-                                        <div>
-                                            <p className="text-sm font-medium">
-                                                {farm.number_label} · {farm.farm_name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {farm.crop_label} · {farm.declared_area} ·{' '}
-                                                {farm.property_ownership_label}
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <FarmerStatusBadge status={farm.status} />
-                                            <StatusBadge status={farm.verification_status} />
-                                        </div>
+                                        View all farms
+                                    </button>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-none">
+                            <CardHeader>
+                                <CardTitle>Farm production</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Total Expected Production
+                                        </p>
+                                        <p className="text-lg font-semibold tabular-nums">
+                                            {
+                                                farmer.production_summary
+                                                    .expected_label
+                                            }
+                                        </p>
                                     </div>
-                                ))
-                            )}
-                            {farmer.farms.length > 3 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setTab('Farms')}
-                                    className="text-left text-sm font-medium text-primary"
-                                >
-                                    View all farms
-                                </button>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-none">
-                        <CardHeader>
-                            <CardTitle>Farm production</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-4">
-                            <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Total Harvested
+                                        </p>
+                                        <p className="text-lg font-semibold tabular-nums">
+                                            {
+                                                farmer.production_summary
+                                                    .actual_label
+                                            }
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Harvesting Farms
+                                        </p>
+                                        <p className="text-lg font-semibold tabular-nums">
+                                            {countFormatter.format(
+                                                farmer.production_summary
+                                                    .harvesting_farms,
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                {farmer.production_summary.has_records && (
+                                    <ProductionBalance
+                                        expected={
+                                            farmer.production_summary
+                                                .expected_label
+                                        }
+                                        actual={
+                                            farmer.production_summary
+                                                .actual_label
+                                        }
+                                        remaining={
+                                            farmer.production_summary
+                                                .remaining_label
+                                        }
+                                        exceeds={
+                                            farmer.production_summary.exceeds
+                                        }
+                                        message={
+                                            farmer.production_summary.message
+                                        }
+                                        progress={
+                                            farmer.production_summary.progress
+                                        }
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-none">
+                            <CardHeader className="flex-row items-center justify-between">
+                                <CardTitle>Inventory</CardTitle>
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link
+                                        href={inventoryIndex.url({
+                                            query: { farmer: farmer.id },
+                                        })}
+                                    >
+                                        View inventory
+                                    </Link>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="grid gap-4">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Total Expected Production</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Total Coffee Inventory
+                                    </p>
                                     <p className="text-lg font-semibold tabular-nums">
-                                        {farmer.production_summary.expected_label}
+                                        {farmer.inventory_summary.total_label}
+                                    </p>
+                                </div>
+                                {farmer.inventory_summary.has_records ? (
+                                    <InventoryStageBars
+                                        summary={farmer.inventory_summary}
+                                    />
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No inventory records yet.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card className="shadow-none">
+                            <CardHeader className="flex-row items-center justify-between">
+                                <CardTitle>Traceability</CardTitle>
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link
+                                        href={traceabilityIndex.url({
+                                            query: { search: farmer.farmer_id },
+                                        })}
+                                    >
+                                        View traceability
+                                    </Link>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Active Lots
+                                    </p>
+                                    <p className="text-lg font-semibold tabular-nums">
+                                        {countFormatter.format(
+                                            farmer.traceability_summary
+                                                .active_lots,
+                                        )}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Total Harvested</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Total Traced Coffee
+                                    </p>
                                     <p className="text-lg font-semibold tabular-nums">
-                                        {farmer.production_summary.actual_label}
+                                        {
+                                            farmer.traceability_summary
+                                                .traced_label
+                                        }
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Harvesting Farms</p>
-                                    <p className="text-lg font-semibold tabular-nums">
-                                        {countFormatter.format(farmer.production_summary.harvesting_farms)}
-                                    </p>
-                                </div>
-                            </div>
-                            {farmer.production_summary.has_records && (
-                                <ProductionBalance
-                                    expected={farmer.production_summary.expected_label}
-                                    actual={farmer.production_summary.actual_label}
-                                    remaining={farmer.production_summary.remaining_label}
-                                    exceeds={farmer.production_summary.exceeds}
-                                    message={farmer.production_summary.message}
-                                    progress={farmer.production_summary.progress}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-none">
-                        <CardHeader className="flex-row items-center justify-between">
-                            <CardTitle>Inventory</CardTitle>
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={inventoryIndex.url({ query: { farmer: farmer.id } })}>
-                                    View inventory
-                                </Link>
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="grid gap-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Total Coffee Inventory</p>
-                                <p className="text-lg font-semibold tabular-nums">{farmer.inventory_summary.total_label}</p>
-                            </div>
-                            {farmer.inventory_summary.has_records ? (
-                                <InventoryStageBars summary={farmer.inventory_summary} />
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No inventory records yet.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-none">
-                        <CardHeader className="flex-row items-center justify-between">
-                            <CardTitle>Traceability</CardTitle>
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={traceabilityIndex.url({ query: { search: farmer.farmer_id } })}>
-                                    View traceability
-                                </Link>
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="grid gap-3 sm:grid-cols-2">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Active Lots</p>
-                                <p className="text-lg font-semibold tabular-nums">{countFormatter.format(farmer.traceability_summary.active_lots)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Total Traced Coffee</p>
-                                <p className="text-lg font-semibold tabular-nums">{farmer.traceability_summary.traced_label}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <RecentFarmActivities
-                        activities={farmer.recent_activities}
-                        total={farmer.activity_count}
-                        viewAllHref={activitiesIndex.url({
-                            query: { farmer: farmer.id },
-                        })}
-                    />
-                </>
+                            </CardContent>
+                        </Card>
+                        <RecentFarmActivities
+                            activities={farmer.recent_activities}
+                            total={farmer.activity_count}
+                            viewAllHref={activitiesIndex.url({
+                                query: { farmer: farmer.id },
+                            })}
+                        />
+                    </>
                 )}
 
                 {tab === 'Farms' && (

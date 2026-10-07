@@ -69,8 +69,8 @@ export function PlatformFeatures() {
                         Everything you need to manage the farm lifecycle.
                     </h2>
                     <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                        SureFarm helps organizations manage farmers, farms,
-                        farm areas, verification, production, and agricultural
+                        SureFarm helps organizations manage farmers, farms, farm
+                        areas, verification, production, and agricultural
                         operations in one platform.
                     </p>
                 </div>

@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { edit, index as activityTypesIndex, store } from '@/routes/activity-types';
+import {
+    edit,
+    index as activityTypesIndex,
+    store,
+} from '@/routes/activity-types';
 
 type Option = {
     value: string;
@@ -87,8 +91,15 @@ export default function ActivityTypesIndex({
                         <CardTitle>Add activity type</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-                            <Field label="Name" htmlFor="name" error={form.errors.name}>
+                        <form
+                            onSubmit={submit}
+                            className="grid gap-4 sm:grid-cols-2"
+                        >
+                            <Field
+                                label="Name"
+                                htmlFor="name"
+                                error={form.errors.name}
+                            >
                                 <Input
                                     id="name"
                                     value={form.data.name}
@@ -97,7 +108,11 @@ export default function ActivityTypesIndex({
                                     }
                                 />
                             </Field>
-                            <Field label="Code" htmlFor="code" error={form.errors.code}>
+                            <Field
+                                label="Code"
+                                htmlFor="code"
+                                error={form.errors.code}
+                            >
                                 <Input
                                     id="code"
                                     value={form.data.code}
@@ -115,7 +130,10 @@ export default function ActivityTypesIndex({
                                     id="category"
                                     value={form.data.category}
                                     onChange={(event) =>
-                                        form.setData('category', event.target.value)
+                                        form.setData(
+                                            'category',
+                                            event.target.value,
+                                        )
                                     }
                                     className={selectClassName}
                                 >
@@ -139,12 +157,18 @@ export default function ActivityTypesIndex({
                                     id="status"
                                     value={form.data.status}
                                     onChange={(event) =>
-                                        form.setData('status', event.target.value)
+                                        form.setData(
+                                            'status',
+                                            event.target.value,
+                                        )
                                     }
                                     className={selectClassName}
                                 >
                                     {statuses.map((status) => (
-                                        <option key={status.value} value={status.value}>
+                                        <option
+                                            key={status.value}
+                                            value={status.value}
+                                        >
                                             {status.label}
                                         </option>
                                     ))}
@@ -169,7 +193,10 @@ export default function ActivityTypesIndex({
                                 </Field>
                             </div>
                             <div>
-                                <Button type="submit" disabled={form.processing}>
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                >
                                     Create activity type
                                 </Button>
                             </div>
@@ -178,7 +205,14 @@ export default function ActivityTypesIndex({
                 </Card>
 
                 <DataTable
-                    columns={['Name', 'Code', 'Category', 'Status', 'Used', 'Actions']}
+                    columns={[
+                        'Name',
+                        'Code',
+                        'Category',
+                        'Status',
+                        'Used',
+                        'Actions',
+                    ]}
                     rows={activityTypes.map((type) => ({
                         id: type.id,
                         cells: [
@@ -187,7 +221,12 @@ export default function ActivityTypesIndex({
                             type.category_label,
                             type.status_label,
                             type.activities_count ?? 0,
-                            <Button key="edit" variant="outline" size="sm" asChild>
+                            <Button
+                                key="edit"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
                                 <Link href={edit(type.id)}>Edit</Link>
                             </Button>,
                         ],

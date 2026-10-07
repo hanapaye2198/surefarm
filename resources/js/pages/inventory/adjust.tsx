@@ -46,7 +46,9 @@ export default function AdjustInventory({
                     description={`${inventory.stage?.name ?? 'Coffee'} · current ${inventory.quantity_label}`}
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={show(inventory.id)}>Back to inventory</Link>
+                            <Link href={show(inventory.id)}>
+                                Back to inventory
+                            </Link>
                         </Button>
                     }
                 />
@@ -58,7 +60,17 @@ export default function AdjustInventory({
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="direction">Direction</Label>
-                                <select id="direction" className={selectClassName} value={form.data.direction} onChange={(event) => form.setData('direction', event.target.value)}>
+                                <select
+                                    id="direction"
+                                    className={selectClassName}
+                                    value={form.data.direction}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'direction',
+                                            event.target.value,
+                                        )
+                                    }
+                                >
                                     <option value="decrease">Decrease</option>
                                     <option value="increase">Increase</option>
                                 </select>
@@ -66,23 +78,56 @@ export default function AdjustInventory({
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="quantity">Quantity</Label>
-                                <Input id="quantity" inputMode="decimal" value={form.data.quantity} onChange={(event) => form.setData('quantity', event.target.value)} />
+                                <Input
+                                    id="quantity"
+                                    inputMode="decimal"
+                                    value={form.data.quantity}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'quantity',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.quantity} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="movement_date">Date</Label>
-                                <Input id="movement_date" type="date" value={form.data.movement_date} onChange={(event) => form.setData('movement_date', event.target.value)} />
-                                <InputError message={form.errors.movement_date} />
+                                <Input
+                                    id="movement_date"
+                                    type="date"
+                                    value={form.data.movement_date}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'movement_date',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={form.errors.movement_date}
+                                />
                             </div>
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="reason">Reason</Label>
-                                <Input id="reason" value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+                                <Input
+                                    id="reason"
+                                    value={form.data.reason}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'reason',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.reason} />
                             </div>
                         </CardContent>
                     </Card>
                     <div>
-                        <Button type="submit" disabled={form.processing}>Save adjustment</Button>
+                        <Button type="submit" disabled={form.processing}>
+                            Save adjustment
+                        </Button>
                     </div>
                 </form>
             </div>

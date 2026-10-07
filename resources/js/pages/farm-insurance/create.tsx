@@ -15,7 +15,11 @@ export default function CreateFarmInsurance({ farm }: { farm: InsuranceFarm }) {
                     description="Record whether this farm is covered, and the peso amount and term when it is."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={showFarm.url(farm.id, { query: { tab: 'insurance' } })}>
+                            <Link
+                                href={showFarm.url(farm.id, {
+                                    query: { tab: 'insurance' },
+                                })}
+                            >
                                 Back to farm
                             </Link>
                         </Button>

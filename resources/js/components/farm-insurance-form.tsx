@@ -92,12 +92,19 @@ export function FarmInsuranceForm({
                     <p className="text-sm text-muted-foreground sm:col-span-2">
                         {farm.farm_name} · {farm.farm_id} · {farm.farmer_name}
                     </p>
-                    <Field label="Crop Insurance Covered" htmlFor="covered" required error={form.errors.covered}>
+                    <Field
+                        label="Crop Insurance Covered"
+                        htmlFor="covered"
+                        required
+                        error={form.errors.covered}
+                    >
                         <select
                             id="covered"
                             className={selectClassName}
                             value={form.data.covered}
-                            onChange={(event) => form.setData('covered', event.target.value)}
+                            onChange={(event) =>
+                                form.setData('covered', event.target.value)
+                            }
                         >
                             <option value="1">Yes</option>
                             <option value="0">No</option>
@@ -105,20 +112,40 @@ export function FarmInsuranceForm({
                     </Field>
                     {form.data.covered === '1' && (
                         <>
-                            <Field label="Insurance Amount (PHP)" htmlFor="amount" required error={form.errors.amount}>
+                            <Field
+                                label="Insurance Amount (PHP)"
+                                htmlFor="amount"
+                                required
+                                error={form.errors.amount}
+                            >
                                 <Input
                                     id="amount"
                                     inputMode="decimal"
                                     value={form.data.amount}
-                                    onChange={(event) => form.setData('amount', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'amount',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                             </Field>
-                            <Field label="Insurance Term (months)" htmlFor="term_months" required error={form.errors.term_months}>
+                            <Field
+                                label="Insurance Term (months)"
+                                htmlFor="term_months"
+                                required
+                                error={form.errors.term_months}
+                            >
                                 <Input
                                     id="term_months"
                                     inputMode="numeric"
                                     value={form.data.term_months}
-                                    onChange={(event) => form.setData('term_months', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'term_months',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                             </Field>
                         </>
@@ -127,7 +154,9 @@ export function FarmInsuranceForm({
             </Card>
             <div>
                 <Button type="submit" disabled={form.processing}>
-                    {mode === 'create' ? 'Save crop insurance' : 'Update crop insurance'}
+                    {mode === 'create'
+                        ? 'Save crop insurance'
+                        : 'Update crop insurance'}
                 </Button>
             </div>
         </form>

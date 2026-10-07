@@ -1,6 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 import { FarmFinancingForm } from '@/components/farm-financing-form';
-import type { FinancingFarm, FinancingTypeOption } from '@/components/farm-financing-form';
+import type {
+    FinancingFarm,
+    FinancingTypeOption,
+} from '@/components/farm-financing-form';
 import type { FinancingRecord } from '@/components/farm-mm-data';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -24,7 +27,11 @@ export default function EditFarmFinancing({
                     description="Update this financing record. It stays attached to the same farm."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={showFarm.url(farm.id, { query: { tab: 'financing' } })}>
+                            <Link
+                                href={showFarm.url(farm.id, {
+                                    query: { tab: 'financing' },
+                                })}
+                            >
                                 Back to farm
                             </Link>
                         </Button>

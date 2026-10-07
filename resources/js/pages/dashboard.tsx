@@ -17,14 +17,34 @@ import { StatCard } from '@/components/stat-card';
 import { InventoryStageBars } from '@/components/inventory-stage-bars';
 import type { InventorySummary } from '@/components/inventory-stage-bars';
 import { ProductionBalance } from '@/components/production-balance';
-import { ActivityStatusBadge, HarvestStatusBadge, StatusBadge } from '@/components/status-badge';
-import type { ActivityRecordStatus, FarmStatus, HarvestRecordStatus } from '@/components/status-badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    ActivityStatusBadge,
+    HarvestStatusBadge,
+    StatusBadge,
+} from '@/components/status-badge';
+import type {
+    ActivityRecordStatus,
+    FarmStatus,
+    HarvestRecordStatus,
+} from '@/components/status-badge';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { dashboard } from '@/routes';
-import { index as activitiesIndex, show as showActivity } from '@/routes/farm-activities';
+import {
+    index as activitiesIndex,
+    show as showActivity,
+} from '@/routes/farm-activities';
 import { index as harvestIndex, show as showHarvest } from '@/routes/harvest';
 import { index as inventoryIndex } from '@/routes/inventory';
-import { index as traceabilityIndex, show as showLot } from '@/routes/traceability';
+import {
+    index as traceabilityIndex,
+    show as showLot,
+} from '@/routes/traceability';
 
 type DashboardSummary = {
     registered_farmers: number;
@@ -294,17 +314,29 @@ export default function Dashboard({
                     <CardContent className="grid gap-4">
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <p className="text-xs text-muted-foreground">Expected Harvest</p>
-                                <p className="text-lg font-semibold tabular-nums">{harvest_summary.expected_label}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Actual Harvest</p>
-                                <p className="text-lg font-semibold tabular-nums">{harvest_summary.actual_label}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground">Harvesting Farms</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Expected Harvest
+                                </p>
                                 <p className="text-lg font-semibold tabular-nums">
-                                    {countFormatter.format(harvest_summary.harvesting_farms)}
+                                    {harvest_summary.expected_label}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">
+                                    Actual Harvest
+                                </p>
+                                <p className="text-lg font-semibold tabular-nums">
+                                    {harvest_summary.actual_label}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">
+                                    Harvesting Farms
+                                </p>
+                                <p className="text-lg font-semibold tabular-nums">
+                                    {countFormatter.format(
+                                        harvest_summary.harvesting_farms,
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -335,41 +367,70 @@ export default function Dashboard({
                         {inventory_summary.has_records ? (
                             <InventoryStageBars summary={inventory_summary} />
                         ) : (
-                            <p className="text-sm text-muted-foreground">No inventory records yet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                No inventory records yet.
+                            </p>
                         )}
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between gap-3">
                         <CardTitle>Traceability</CardTitle>
-                        <Link href={traceabilityIndex()} className="text-sm font-medium text-primary hover:underline">
+                        <Link
+                            href={traceabilityIndex()}
+                            className="text-sm font-medium text-primary hover:underline"
+                        >
                             View traceability
                         </Link>
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <p className="text-xs text-muted-foreground">Active Lots</p>
-                                <p className="text-lg font-semibold tabular-nums">{countFormatter.format(traceability_summary.active_lots)}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Active Lots
+                                </p>
+                                <p className="text-lg font-semibold tabular-nums">
+                                    {countFormatter.format(
+                                        traceability_summary.active_lots,
+                                    )}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-muted-foreground">Green Bean Lots</p>
-                                <p className="text-lg font-semibold tabular-nums">{countFormatter.format(traceability_summary.green_bean_lots)}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Green Bean Lots
+                                </p>
+                                <p className="text-lg font-semibold tabular-nums">
+                                    {countFormatter.format(
+                                        traceability_summary.green_bean_lots,
+                                    )}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-muted-foreground">Traced Coffee</p>
-                                <p className="text-lg font-semibold tabular-nums">{traceability_summary.traced_label}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Traced Coffee
+                                </p>
+                                <p className="text-lg font-semibold tabular-nums">
+                                    {traceability_summary.traced_label}
+                                </p>
                             </div>
                         </div>
                         {recent_lots.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No traceability lots yet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                No traceability lots yet.
+                            </p>
                         ) : (
                             <ul className="grid gap-2">
                                 {recent_lots.map((lot) => (
                                     <li key={lot.id}>
-                                        <Link href={showLot(lot.id)} className="flex items-center justify-between gap-3 text-sm hover:underline">
+                                        <Link
+                                            href={showLot(lot.id)}
+                                            className="flex items-center justify-between gap-3 text-sm hover:underline"
+                                        >
                                             <span>{lot.lot_code}</span>
-                                            <span className="text-muted-foreground">{lot.quantity_label} · {lot.stage ?? lot.status_label}</span>
+                                            <span className="text-muted-foreground">
+                                                {lot.quantity_label} ·{' '}
+                                                {lot.stage ?? lot.status_label}
+                                            </span>
                                         </Link>
                                     </li>
                                 ))}
@@ -379,111 +440,118 @@ export default function Dashboard({
                 </Card>
 
                 <section className="grid gap-4 lg:grid-cols-2">
-                <Card className="shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between gap-3">
-                        <CardTitle>Recent Farm Activities</CardTitle>
-                        <Link
-                            href={activitiesIndex()}
-                            className="text-sm font-medium text-primary hover:underline"
-                        >
-                            View all
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        {recent_activities.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                    <ListChecks className="size-5" />
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between gap-3">
+                            <CardTitle>Recent Farm Activities</CardTitle>
+                            <Link
+                                href={activitiesIndex()}
+                                className="text-sm font-medium text-primary hover:underline"
+                            >
+                                View all
+                            </Link>
+                        </CardHeader>
+                        <CardContent>
+                            {recent_activities.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+                                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                        <ListChecks className="size-5" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h2 className="text-base font-medium">
+                                            No farm activities recorded yet.
+                                        </h2>
+                                        <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                                            Work recorded on a farm will appear
+                                            here.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <h2 className="text-base font-medium">
-                                        No farm activities recorded yet.
-                                    </h2>
-                                    <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                                        Work recorded on a farm will appear
-                                        here.
-                                    </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {recent_activities.map((activity) => (
+                                        <li key={activity.id}>
+                                            <Link
+                                                href={showActivity(activity.id)}
+                                                className="grid gap-1 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+                                            >
+                                                <span className="text-sm text-muted-foreground">
+                                                    {activity.activity_date}
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-medium">
+                                                        {activity.farm_name}
+                                                    </span>
+                                                    <span className="block truncate text-sm text-muted-foreground">
+                                                        {activity.activity}
+                                                    </span>
+                                                </span>
+                                                <ActivityStatusBadge
+                                                    status={activity.status}
+                                                />
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between gap-3">
+                            <CardTitle>Recent Harvests</CardTitle>
+                            <Link
+                                href={harvestIndex()}
+                                className="text-sm font-medium text-primary hover:underline"
+                            >
+                                View all
+                            </Link>
+                        </CardHeader>
+                        <CardContent>
+                            {recent_harvests.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+                                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                        <Leaf className="size-5" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h2 className="text-base font-medium">
+                                            No harvest records yet.
+                                        </h2>
+                                        <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                                            Harvests recorded on a farm will
+                                            appear here.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <ul className="divide-y">
-                                {recent_activities.map((activity) => (
-                                    <li key={activity.id}>
-                                        <Link
-                                            href={showActivity(activity.id)}
-                                            className="grid gap-1 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
-                                        >
-                                            <span className="text-sm text-muted-foreground">
-                                                {activity.activity_date}
-                                            </span>
-                                            <span className="min-w-0">
-                                                <span className="block truncate text-sm font-medium">
-                                                    {activity.farm_name}
+                            ) : (
+                                <ul className="divide-y">
+                                    {recent_harvests.map((harvest) => (
+                                        <li key={harvest.id}>
+                                            <Link
+                                                href={showHarvest(harvest.id)}
+                                                className="grid gap-1 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+                                            >
+                                                <span className="text-sm text-muted-foreground">
+                                                    {harvest.harvest_date}
                                                 </span>
-                                                <span className="block truncate text-sm text-muted-foreground">
-                                                    {activity.activity}
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-medium">
+                                                        {harvest.farm_name}
+                                                    </span>
+                                                    <span className="block truncate text-sm text-muted-foreground">
+                                                        {harvest.farmer_name} ·{' '}
+                                                        {harvest.crop_label} ·{' '}
+                                                        {harvest.quantity_label}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                            <ActivityStatusBadge
-                                                status={activity.status}
-                                            />
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between gap-3">
-                        <CardTitle>Recent Harvests</CardTitle>
-                        <Link
-                            href={harvestIndex()}
-                            className="text-sm font-medium text-primary hover:underline"
-                        >
-                            View all
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        {recent_harvests.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-                                <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                    <Leaf className="size-5" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h2 className="text-base font-medium">No harvest records yet.</h2>
-                                    <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                                        Harvests recorded on a farm will appear here.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <ul className="divide-y">
-                                {recent_harvests.map((harvest) => (
-                                    <li key={harvest.id}>
-                                        <Link
-                                            href={showHarvest(harvest.id)}
-                                            className="grid gap-1 py-3 sm:grid-cols-[6.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
-                                        >
-                                            <span className="text-sm text-muted-foreground">
-                                                {harvest.harvest_date}
-                                            </span>
-                                            <span className="min-w-0">
-                                                <span className="block truncate text-sm font-medium">
-                                                    {harvest.farm_name}
-                                                </span>
-                                                <span className="block truncate text-sm text-muted-foreground">
-                                                    {harvest.farmer_name} · {harvest.crop_label} · {harvest.quantity_label}
-                                                </span>
-                                            </span>
-                                            <HarvestStatusBadge status={harvest.status} />
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </CardContent>
-                </Card>
+                                                <HarvestStatusBadge
+                                                    status={harvest.status}
+                                                />
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
                 </section>
             </div>
         </>

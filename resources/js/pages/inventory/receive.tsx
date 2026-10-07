@@ -37,7 +37,8 @@ export default function ReceiveHarvest({
     units: string[];
     today: string;
 }) {
-    const cherry = stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
+    const cherry =
+        stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
     const form = useForm({
         quantity: remaining > 0 ? String(remaining) : '',
         unit: harvest.unit,
@@ -61,7 +62,9 @@ export default function ReceiveHarvest({
                     description={`${harvest.farm?.farm_name ?? 'Farm'} · ${harvest.quantity_label} ${harvest.crop_label}`}
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={showHarvest(harvest.id)}>Back to harvest</Link>
+                            <Link href={showHarvest(harvest.id)}>
+                                Back to harvest
+                            </Link>
                         </Button>
                     }
                 />
@@ -72,50 +75,121 @@ export default function ReceiveHarvest({
                         </CardHeader>
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <p className="text-sm text-muted-foreground sm:col-span-2">
-                                {harvest.farmer?.name ?? 'Farmer'} · {remaining} {harvest.unit} not yet received. The harvest quantity stays {harvest.quantity_label}.
+                                {harvest.farmer?.name ?? 'Farmer'} · {remaining}{' '}
+                                {harvest.unit} not yet received. The harvest
+                                quantity stays {harvest.quantity_label}.
                             </p>
                             <div className="grid gap-2">
                                 <Label htmlFor="quantity">Quantity</Label>
-                                <Input id="quantity" inputMode="decimal" value={form.data.quantity} onChange={(event) => form.setData('quantity', event.target.value)} />
+                                <Input
+                                    id="quantity"
+                                    inputMode="decimal"
+                                    value={form.data.quantity}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'quantity',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.quantity} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="unit">Unit</Label>
-                                <select id="unit" className={selectClassName} value={form.data.unit} onChange={(event) => form.setData('unit', event.target.value)}>
+                                <select
+                                    id="unit"
+                                    className={selectClassName}
+                                    value={form.data.unit}
+                                    onChange={(event) =>
+                                        form.setData('unit', event.target.value)
+                                    }
+                                >
                                     {units.map((unit) => (
-                                        <option key={unit} value={unit}>{unit}</option>
+                                        <option key={unit} value={unit}>
+                                            {unit}
+                                        </option>
                                     ))}
                                 </select>
                                 <InputError message={form.errors.unit} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="processing_stage_id">Processing stage</Label>
-                                <select id="processing_stage_id" className={selectClassName} value={form.data.processing_stage_id} onChange={(event) => form.setData('processing_stage_id', event.target.value)}>
+                                <Label htmlFor="processing_stage_id">
+                                    Processing stage
+                                </Label>
+                                <select
+                                    id="processing_stage_id"
+                                    className={selectClassName}
+                                    value={form.data.processing_stage_id}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'processing_stage_id',
+                                            event.target.value,
+                                        )
+                                    }
+                                >
                                     {stages.map((stage) => (
-                                        <option key={stage.id} value={stage.id}>{stage.name}</option>
+                                        <option key={stage.id} value={stage.id}>
+                                            {stage.name}
+                                        </option>
                                     ))}
                                 </select>
-                                <InputError message={form.errors.processing_stage_id} />
+                                <InputError
+                                    message={form.errors.processing_stage_id}
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="location">Location</Label>
-                                <Input id="location" value={form.data.location} onChange={(event) => form.setData('location', event.target.value)} />
+                                <Input
+                                    id="location"
+                                    value={form.data.location}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'location',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.location} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="received_date">Received date</Label>
-                                <Input id="received_date" type="date" value={form.data.received_date} onChange={(event) => form.setData('received_date', event.target.value)} />
-                                <InputError message={form.errors.received_date} />
+                                <Label htmlFor="received_date">
+                                    Received date
+                                </Label>
+                                <Input
+                                    id="received_date"
+                                    type="date"
+                                    value={form.data.received_date}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'received_date',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={form.errors.received_date}
+                                />
                             </div>
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="notes">Notes</Label>
-                                <Input id="notes" value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                                <Input
+                                    id="notes"
+                                    value={form.data.notes}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'notes',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.notes} />
                             </div>
                         </CardContent>
                     </Card>
                     <div>
-                        <Button type="submit" disabled={form.processing}>Save inventory</Button>
+                        <Button type="submit" disabled={form.processing}>
+                            Save inventory
+                        </Button>
                     </div>
                 </form>
             </div>

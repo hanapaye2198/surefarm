@@ -150,7 +150,9 @@ export function FarmLocationMap({
                                     cx={point.x}
                                     cy={point.y}
                                     r={active ? 11 : 7}
-                                    fill={markerColors[point.verification_status]}
+                                    fill={
+                                        markerColors[point.verification_status]
+                                    }
                                     stroke="white"
                                     strokeWidth={active ? 3 : 2}
                                     className="cursor-pointer"
@@ -185,7 +187,9 @@ export function FarmLocationMap({
                 </div>
                 <dl className="grid gap-3 text-sm">
                     <div>
-                        <dt className="text-xs text-muted-foreground">Farmer</dt>
+                        <dt className="text-xs text-muted-foreground">
+                            Farmer
+                        </dt>
                         <dd>{selected.farmer_name}</dd>
                     </div>
                     <div>
@@ -197,7 +201,9 @@ export function FarmLocationMap({
                             Declared area
                         </dt>
                         <dd>
-                            {areaFormatter.format(selected.declared_area_hectares)}{' '}
+                            {areaFormatter.format(
+                                selected.declared_area_hectares,
+                            )}{' '}
                             ha
                         </dd>
                     </div>

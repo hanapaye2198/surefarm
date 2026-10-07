@@ -42,7 +42,12 @@ type Decision = 'verified' | 'failed' | 'needs_review';
 
 const decisionCopy: Record<
     Decision,
-    { title: string; description: string; confirm: string; variant: 'default' | 'destructive' | 'secondary' }
+    {
+        title: string;
+        description: string;
+        confirm: string;
+        variant: 'default' | 'destructive' | 'secondary';
+    }
 > = {
     verified: {
         title: 'Approve verification?',
@@ -184,8 +189,14 @@ export default function FarmVerificationShow({
                         label="Measured Area"
                         value={comparison.measured_area}
                     />
-                    <StatCard label="Verified Area" value={farm.verified_area} />
-                    <StatCard label="Difference" value={comparison.difference} />
+                    <StatCard
+                        label="Verified Area"
+                        value={farm.verified_area}
+                    />
+                    <StatCard
+                        label="Difference"
+                        value={comparison.difference}
+                    />
                     <StatCard label="Variance" value={comparison.variance} />
                 </section>
 
@@ -289,7 +300,7 @@ export default function FarmVerificationShow({
                                         )
                                     }
                                     rows={4}
-                                    className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     placeholder="Notes for this review"
                                 />
                             </label>

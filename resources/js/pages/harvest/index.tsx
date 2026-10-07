@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search, Tractor, Wheat } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -85,8 +86,11 @@ export default function HarvestIndex({
     can_record: boolean;
 }) {
     const { auth } = usePage().props;
-    const canRecord = can_record && userCanAccess(auth.user?.role, ['operations']);
-    const hasFilters = Object.values(filters).some((value) => value.trim() !== '');
+    const canRecord =
+        can_record && userCanAccess(auth.user?.role, ['operations']);
+    const hasFilters = Object.values(filters).some(
+        (value) => value.trim() !== '',
+    );
 
     function applyFilters(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -95,14 +99,14 @@ export default function HarvestIndex({
         router.get(
             harvestIndex.url({
                 query: {
-                    search: String(formData.get('search') ?? '').trim(),
-                    farm: String(formData.get('farm') ?? ''),
-                    farmer: String(formData.get('farmer') ?? ''),
-                    crop: String(formData.get('crop') ?? ''),
-                    status: String(formData.get('status') ?? ''),
-                    quality: String(formData.get('quality') ?? '').trim(),
-                    from: String(formData.get('from') ?? ''),
-                    to: String(formData.get('to') ?? ''),
+                    search: formString(formData, 'search').trim(),
+                    farm: formString(formData, 'farm'),
+                    farmer: formString(formData, 'farmer'),
+                    crop: formString(formData, 'crop'),
+                    status: formString(formData, 'status'),
+                    quality: formString(formData, 'quality').trim(),
+                    from: formString(formData, 'from'),
+                    to: formString(formData, 'to'),
                 },
             }),
             {},
@@ -130,7 +134,11 @@ export default function HarvestIndex({
                 />
 
                 <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-                    <StatCard label="Total Harvest" value={summary.total_harvest} icon={Wheat} />
+                    <StatCard
+                        label="Total Harvest"
+                        value={summary.total_harvest}
+                        icon={Wheat}
+                    />
                     <StatCard
                         label="Harvesting Farms"
                         value={countFormatter.format(summary.harvesting_farms)}
@@ -138,9 +146,14 @@ export default function HarvestIndex({
                     />
                     <StatCard
                         label="Completed Harvests"
-                        value={countFormatter.format(summary.completed_harvests)}
+                        value={countFormatter.format(
+                            summary.completed_harvests,
+                        )}
                     />
-                    <StatCard label="Current Harvest Period" value={summary.current_period} />
+                    <StatCard
+                        label="Current Harvest Period"
+                        value={summary.current_period}
+                    />
                 </section>
 
                 <form onSubmit={applyFilters} className="grid gap-2">
@@ -155,7 +168,12 @@ export default function HarvestIndex({
                         />
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                        <select name="farmer" defaultValue={filters.farmer} className={selectClassName} aria-label="Farmer">
+                        <select
+                            name="farmer"
+                            defaultValue={filters.farmer}
+                            className={selectClassName}
+                            aria-label="Farmer"
+                        >
                             <option value="">All farmers</option>
                             {farmers.map((farmer) => (
                                 <option key={farmer.id} value={farmer.id}>
@@ -163,7 +181,12 @@ export default function HarvestIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="farm" defaultValue={filters.farm} className={selectClassName} aria-label="Farm">
+                        <select
+                            name="farm"
+                            defaultValue={filters.farm}
+                            className={selectClassName}
+                            aria-label="Farm"
+                        >
                             <option value="">All farms</option>
                             {farms.map((farm) => (
                                 <option key={farm.id} value={farm.id}>
@@ -171,7 +194,12 @@ export default function HarvestIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="crop" defaultValue={filters.crop} className={selectClassName} aria-label="Crop">
+                        <select
+                            name="crop"
+                            defaultValue={filters.crop}
+                            className={selectClassName}
+                            aria-label="Crop"
+                        >
                             <option value="">All crops</option>
                             {crops.map((crop) => (
                                 <option key={crop.value} value={crop.value}>
@@ -179,7 +207,12 @@ export default function HarvestIndex({
                                 </option>
                             ))}
                         </select>
-                        <select name="status" defaultValue={filters.status} className={selectClassName} aria-label="Status">
+                        <select
+                            name="status"
+                            defaultValue={filters.status}
+                            className={selectClassName}
+                            aria-label="Status"
+                        >
                             <option value="">All statuses</option>
                             {statuses.map((status) => (
                                 <option key={status.value} value={status.value}>
@@ -187,9 +220,24 @@ export default function HarvestIndex({
                                 </option>
                             ))}
                         </select>
-                        <Input name="quality" defaultValue={filters.quality} placeholder="Quality grade" aria-label="Quality grade" />
-                        <Input type="date" name="from" defaultValue={filters.from} aria-label="From date" />
-                        <Input type="date" name="to" defaultValue={filters.to} aria-label="To date" />
+                        <Input
+                            name="quality"
+                            defaultValue={filters.quality}
+                            placeholder="Quality grade"
+                            aria-label="Quality grade"
+                        />
+                        <Input
+                            type="date"
+                            name="from"
+                            defaultValue={filters.from}
+                            aria-label="From date"
+                        />
+                        <Input
+                            type="date"
+                            name="to"
+                            defaultValue={filters.to}
+                            aria-label="To date"
+                        />
                         <div className="flex gap-2">
                             <Button type="submit" variant="secondary">
                                 Filter
@@ -204,20 +252,38 @@ export default function HarvestIndex({
                 </form>
 
                 <DataTable
-                    columns={['Harvest Date', 'Farm', 'Farmer', 'Crop', 'Quantity', 'Unit', 'Quality', 'Status', 'Actions']}
+                    columns={[
+                        'Harvest Date',
+                        'Farm',
+                        'Farmer',
+                        'Crop',
+                        'Quantity',
+                        'Unit',
+                        'Quality',
+                        'Status',
+                        'Actions',
+                    ]}
                     rows={harvests.data.map((harvest) => ({
                         id: harvest.id,
                         cells: [
                             harvest.harvest_date,
                             harvest.farm ? (
-                                <Link key="farm" href={showFarm(harvest.farm.id)} className="font-medium hover:underline">
+                                <Link
+                                    key="farm"
+                                    href={showFarm(harvest.farm.id)}
+                                    className="font-medium hover:underline"
+                                >
                                     {harvest.farm.farm_name}
                                 </Link>
                             ) : (
                                 '—'
                             ),
                             harvest.farmer ? (
-                                <Link key="farmer" href={showFarmer(harvest.farmer.id)} className="hover:underline">
+                                <Link
+                                    key="farmer"
+                                    href={showFarmer(harvest.farmer.id)}
+                                    className="hover:underline"
+                                >
                                     {harvest.farmer.name}
                                 </Link>
                             ) : (
@@ -227,20 +293,29 @@ export default function HarvestIndex({
                             harvest.quantity_label,
                             harvest.unit,
                             display(harvest.quality_grade),
-                            <HarvestStatusBadge key="status" status={harvest.status} />,
+                            <HarvestStatusBadge
+                                key="status"
+                                status={harvest.status}
+                            />,
                             <div key="actions" className="flex gap-2">
                                 <Button variant="outline" size="sm" asChild>
                                     <Link href={show(harvest.id)}>View</Link>
                                 </Button>
                                 {canRecord && (
                                     <Button variant="outline" size="sm" asChild>
-                                        <Link href={edit(harvest.id)}>Edit</Link>
+                                        <Link href={edit(harvest.id)}>
+                                            Edit
+                                        </Link>
                                     </Button>
                                 )}
                             </div>,
                         ],
                     }))}
-                    emptyTitle={hasFilters ? 'No harvest records match these filters.' : 'No harvest records yet.'}
+                    emptyTitle={
+                        hasFilters
+                            ? 'No harvest records match these filters.'
+                            : 'No harvest records yet.'
+                    }
                     emptyDescription={
                         hasFilters
                             ? 'Try a different farm, status, quality, or date.'
@@ -261,17 +336,22 @@ export default function HarvestIndex({
                 {harvests.total > 0 && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-muted-foreground">
-                            Showing {harvests.from}–{harvests.to} of {harvests.total}
+                            Showing {harvests.from}–{harvests.to} of{' '}
+                            {harvests.total}
                         </p>
                         <div className="flex gap-2">
                             {harvests.prev_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={harvests.prev_page_url}>Previous</Link>
+                                    <Link href={harvests.prev_page_url}>
+                                        Previous
+                                    </Link>
                                 </Button>
                             )}
                             {harvests.next_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={harvests.next_page_url}>Next</Link>
+                                    <Link href={harvests.next_page_url}>
+                                        Next
+                                    </Link>
                                 </Button>
                             )}
                         </div>

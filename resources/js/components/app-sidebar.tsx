@@ -37,7 +37,10 @@ import { dashboard } from '@/routes';
 import { index as farmersIndex } from '@/routes/farmers';
 import { index as activitiesIndex } from '@/routes/farm-activities';
 import { index as harvestIndex } from '@/routes/harvest';
-import { index as inventoryIndex, processing as processingIndex } from '@/routes/inventory';
+import {
+    index as inventoryIndex,
+    processing as processingIndex,
+} from '@/routes/inventory';
 import { index as traceabilityIndex } from '@/routes/traceability';
 import { index as productionIndex } from '@/routes/production';
 import { index as farmVerificationIndex } from '@/routes/farm-verification';

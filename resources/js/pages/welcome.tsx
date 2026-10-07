@@ -13,7 +13,10 @@ export default function Welcome() {
     return (
         <>
             <Head title="Digital Farm Management" />
-            <div id="top" className="scroll-smooth bg-background text-foreground">
+            <div
+                id="top"
+                className="scroll-smooth bg-background text-foreground"
+            >
                 <LandingNavbar />
                 <main>
                     <HeroSection />

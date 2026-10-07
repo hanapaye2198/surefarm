@@ -133,7 +133,11 @@ function MapViewport({
 
         map.invalidateSize();
 
-        if (fitKey === '' || fitted.current === fitKey || positions.length < 2) {
+        if (
+            fitKey === '' ||
+            fitted.current === fitKey ||
+            positions.length < 2
+        ) {
             return;
         }
 
@@ -321,218 +325,229 @@ export function FarmBoundaryMap({
             }
         >
             {!inspection && (
-            <aside className="flex flex-col gap-4 rounded-xl border bg-card p-4">
-                <div>
-                    <h2 className="text-base font-semibold">Farm Map</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                        The location marker is a reference point. The boundary
-                        is the polygon drawn on the map.
-                    </p>
-                </div>
-                <dl className="grid gap-3 text-sm">
+                <aside className="flex flex-col gap-4 rounded-xl border bg-card p-4">
                     <div>
-                        <dt className="text-xs text-muted-foreground">Farm</dt>
-                        <dd className="font-medium">{farm.farm_name}</dd>
+                        <h2 className="text-base font-semibold">Farm Map</h2>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            The location marker is a reference point. The
+                            boundary is the polygon drawn on the map.
+                        </p>
                     </div>
-                    <div>
-                        <dt className="text-xs text-muted-foreground">
-                            Farmer
-                        </dt>
-                        <dd>{farm.farmer_name}</dd>
+                    <dl className="grid gap-3 text-sm">
+                        <div>
+                            <dt className="text-xs text-muted-foreground">
+                                Farm
+                            </dt>
+                            <dd className="font-medium">{farm.farm_name}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground">
+                                Farmer
+                            </dt>
+                            <dd>{farm.farmer_name}</dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                            <dt className="text-xs text-muted-foreground">
+                                Verification
+                            </dt>
+                            <dd>
+                                <StatusBadge
+                                    status={farm.verification_status}
+                                />
+                            </dd>
+                        </div>
+                    </dl>
+                    <dl className="grid gap-2 border-t pt-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">
+                                Declared Area
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                                {hectaresLabel(farm.declared_area_hectares)}
+                            </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">
+                                Web Measured Area
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                                {measuredHectares === null
+                                    ? 'Not yet measured'
+                                    : hectaresLabel(measuredHectares)}
+                            </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">
+                                Difference
+                            </dt>
+                            <dd className="tabular-nums">
+                                {difference === null
+                                    ? '—'
+                                    : hectaresLabel(difference)}
+                            </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <dt className="text-muted-foreground">Variance</dt>
+                            <dd className="tabular-nums">
+                                {variance === null
+                                    ? '—'
+                                    : `${areaFormatter.format(variance)}%`}
+                            </dd>
+                        </div>
+                    </dl>
+                    <div className="grid gap-1 border-t pt-3 text-sm">
+                        <p className="text-xs text-muted-foreground">
+                            Farm Location
+                        </p>
+                        <p>
+                            {location
+                                ? `${location.latitude}, ${location.longitude}`
+                                : 'Farm location has not been recorded yet.'}
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            Farm Boundary
+                        </p>
+                        <p>
+                            {boundary
+                                ? 'Boundary Captured'
+                                : 'No farm boundary has been captured yet.'}
+                        </p>
+                        {boundary && mode === 'view' && (
+                            <>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Captured By
+                                </p>
+                                <p>{boundary.captured_by ?? '—'}</p>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Captured At
+                                </p>
+                                <p>{boundary.captured_at ?? '—'}</p>
+                                {boundary.updated_by && (
+                                    <>
+                                        <p className="mt-2 text-xs text-muted-foreground">
+                                            Updated By
+                                        </p>
+                                        <p>{boundary.updated_by}</p>
+                                    </>
+                                )}
+                            </>
+                        )}
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                        <dt className="text-xs text-muted-foreground">
-                            Verification
-                        </dt>
-                        <dd>
-                            <StatusBadge status={farm.verification_status} />
-                        </dd>
-                    </div>
-                </dl>
-                <dl className="grid gap-2 border-t pt-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted-foreground">Declared Area</dt>
-                        <dd className="font-medium tabular-nums">
-                            {hectaresLabel(farm.declared_area_hectares)}
-                        </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted-foreground">
-                            Web Measured Area
-                        </dt>
-                        <dd className="font-medium tabular-nums">
-                            {measuredHectares === null
-                                ? 'Not yet measured'
-                                : hectaresLabel(measuredHectares)}
-                        </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted-foreground">Difference</dt>
-                        <dd className="tabular-nums">
-                            {difference === null
-                                ? '—'
-                                : hectaresLabel(difference)}
-                        </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                        <dt className="text-muted-foreground">Variance</dt>
-                        <dd className="tabular-nums">
-                            {variance === null
-                                ? '—'
-                                : `${areaFormatter.format(variance)}%`}
-                        </dd>
-                    </div>
-                </dl>
-                <div className="grid gap-1 border-t pt-3 text-sm">
-                    <p className="text-xs text-muted-foreground">
-                        Farm Location
-                    </p>
-                    <p>
-                        {location
-                            ? `${location.latitude}, ${location.longitude}`
-                            : 'Farm location has not been recorded yet.'}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                        Farm Boundary
-                    </p>
-                    <p>
-                        {boundary
-                            ? 'Boundary Captured'
-                            : 'No farm boundary has been captured yet.'}
-                    </p>
-                    {boundary && mode === 'view' && (
-                        <>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                Captured By
-                            </p>
-                            <p>{boundary.captured_by ?? '—'}</p>
-                            <p className="mt-2 text-xs text-muted-foreground">
-                                Captured At
-                            </p>
-                            <p>{boundary.captured_at ?? '—'}</p>
-                            {boundary.updated_by && (
-                                <>
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        Updated By
-                                    </p>
-                                    <p>{boundary.updated_by}</p>
-                                </>
-                            )}
-                        </>
+                    {mode === 'view' && boundary === null && (
+                        <p className="text-sm text-muted-foreground">
+                            Use the map to draw and save the farm boundary.
+                        </p>
                     )}
-                </div>
-                {mode === 'view' && boundary === null && (
-                    <p className="text-sm text-muted-foreground">
-                        Use the map to draw and save the farm boundary.
-                    </p>
-                )}
-                {mode === 'draw' && (
-                    <p className="text-sm text-muted-foreground">
-                        Click on the map to add boundary points.
-                    </p>
-                )}
-                {mode === 'preview' && (
-                    <p className="text-sm font-medium">Boundary Preview</p>
-                )}
-                {previewHectares !== null && mode !== 'view' && (
-                    <p className="text-xs text-muted-foreground">
-                        This preview is not saved until you click Save
-                        Boundary. It does not verify the farm.
-                    </p>
-                )}
-                {form.errors.boundary_geojson && (
-                    <p className="text-sm text-destructive">
-                        {form.errors.boundary_geojson}
-                    </p>
-                )}
-                <div className="mt-auto flex flex-col gap-2">
-                    {mode === 'view' &&
-                        boundary === null &&
-                        farm.can_manage_boundary && (
-                            <Button type="button" onClick={beginDraw}>
-                                Draw Boundary
-                            </Button>
-                        )}
-                    {mode === 'view' &&
-                        boundary !== null &&
-                        farm.can_manage_boundary && (
-                            <Button type="button" onClick={beginEdit}>
-                                Edit Boundary
-                            </Button>
-                        )}
-                    {mode === 'view' &&
-                        boundary !== null &&
-                        farm.can_remove_boundary && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setConfirmRemove(true)}
-                            >
-                                Remove Boundary
-                            </Button>
-                        )}
                     {mode === 'draw' && (
-                        <>
-                            <Button
-                                type="button"
-                                onClick={finishDrawing}
-                                disabled={points.length < 3}
-                            >
-                                Finish Boundary
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setPoints([])}
-                                disabled={points.length === 0}
-                            >
-                                Clear Boundary
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={cancelEditing}
-                            >
-                                Cancel
-                            </Button>
-                        </>
+                        <p className="text-sm text-muted-foreground">
+                            Click on the map to add boundary points.
+                        </p>
                     )}
-                    {(mode === 'preview' || mode === 'edit') && (
-                        <>
-                            <Button
-                                type="button"
-                                onClick={saveBoundary}
-                                disabled={
-                                    form.processing || workingPoints.length < 3
-                                }
-                            >
-                                Save Boundary
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={beginDraw}
-                            >
-                                {mode === 'preview' ? 'Redraw' : 'Clear Boundary'}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={cancelEditing}
-                            >
-                                Cancel
-                            </Button>
-                        </>
+                    {mode === 'preview' && (
+                        <p className="text-sm font-medium">Boundary Preview</p>
                     )}
-                </div>
-            </aside>
+                    {previewHectares !== null && mode !== 'view' && (
+                        <p className="text-xs text-muted-foreground">
+                            This preview is not saved until you click Save
+                            Boundary. It does not verify the farm.
+                        </p>
+                    )}
+                    {form.errors.boundary_geojson && (
+                        <p className="text-sm text-destructive">
+                            {form.errors.boundary_geojson}
+                        </p>
+                    )}
+                    <div className="mt-auto flex flex-col gap-2">
+                        {mode === 'view' &&
+                            boundary === null &&
+                            farm.can_manage_boundary && (
+                                <Button type="button" onClick={beginDraw}>
+                                    Draw Boundary
+                                </Button>
+                            )}
+                        {mode === 'view' &&
+                            boundary !== null &&
+                            farm.can_manage_boundary && (
+                                <Button type="button" onClick={beginEdit}>
+                                    Edit Boundary
+                                </Button>
+                            )}
+                        {mode === 'view' &&
+                            boundary !== null &&
+                            farm.can_remove_boundary && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setConfirmRemove(true)}
+                                >
+                                    Remove Boundary
+                                </Button>
+                            )}
+                        {mode === 'draw' && (
+                            <>
+                                <Button
+                                    type="button"
+                                    onClick={finishDrawing}
+                                    disabled={points.length < 3}
+                                >
+                                    Finish Boundary
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setPoints([])}
+                                    disabled={points.length === 0}
+                                >
+                                    Clear Boundary
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={cancelEditing}
+                                >
+                                    Cancel
+                                </Button>
+                            </>
+                        )}
+                        {(mode === 'preview' || mode === 'edit') && (
+                            <>
+                                <Button
+                                    type="button"
+                                    onClick={saveBoundary}
+                                    disabled={
+                                        form.processing ||
+                                        workingPoints.length < 3
+                                    }
+                                >
+                                    Save Boundary
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={beginDraw}
+                                >
+                                    {mode === 'preview'
+                                        ? 'Redraw'
+                                        : 'Clear Boundary'}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={cancelEditing}
+                                >
+                                    Cancel
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                </aside>
             )}
 
             <div className="farm-boundary-map relative min-h-96 overflow-hidden rounded-xl border">
                 {!hasLocation && (
                     <p className="border-b bg-muted/40 px-4 py-2 text-sm text-muted-foreground">
-                        Farm location has not been recorded yet. The map view
-                        is a starting point, not this farm&apos;s location.
+                        Farm location has not been recorded yet. The map view is
+                        a starting point, not this farm&apos;s location.
                     </p>
                 )}
                 {googleApiKey !== '' && googleReady && (
@@ -574,109 +589,115 @@ export function FarmBoundaryMap({
                                 onError={markGoogleFailed}
                             />
                         )}
-                        {(googleApiKey === '' || googleFailed || !googleReady) && (
+                        {(googleApiKey === '' ||
+                            googleFailed ||
+                            !googleReady) && (
                             <TileLayer
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                 url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
                         )}
-                    <MapViewport
-                        active={active}
-                        drawing={mode === 'draw'}
-                        fitKey={
-                            mode === 'view' && boundary
-                                ? JSON.stringify(boundary.geojson.coordinates)
-                                : ''
-                        }
-                        positions={polygonPositions}
-                    />
-                    <DrawClicks
-                        enabled={mode === 'draw'}
-                        onAdd={(latitude, longitude) =>
-                            setPoints((current) => [
-                                ...current,
-                                {
-                                    latitude: roundCoordinate(latitude),
-                                    longitude: roundCoordinate(longitude),
-                                },
-                            ])
-                        }
-                    />
-                    {location && (
-                        <CircleMarker
-                            center={[location.latitude, location.longitude]}
-                            radius={8}
-                            pathOptions={{
-                                color: '#8a5a32',
-                                fillColor: '#8a5a32',
-                                fillOpacity: 0.9,
-                                weight: 2,
-                            }}
-                        />
-                    )}
-                    {mode === 'draw' && polygonPositions.length > 1 && (
-                        <Polyline
+                        <MapViewport
+                            active={active}
+                            drawing={mode === 'draw'}
+                            fitKey={
+                                mode === 'view' && boundary
+                                    ? JSON.stringify(
+                                          boundary.geojson.coordinates,
+                                      )
+                                    : ''
+                            }
                             positions={polygonPositions}
-                            pathOptions={{ color: '#2f6b45', weight: 2 }}
                         />
-                    )}
-                    {showPolygon && (
-                        <Polygon
-                            positions={polygonPositions}
-                            pathOptions={{
-                                color: '#2f6b45',
-                                fillColor: '#2f6b45',
-                                fillOpacity: 0.28,
-                                weight: 2,
-                            }}
+                        <DrawClicks
+                            enabled={mode === 'draw'}
+                            onAdd={(latitude, longitude) =>
+                                setPoints((current) => [
+                                    ...current,
+                                    {
+                                        latitude: roundCoordinate(latitude),
+                                        longitude: roundCoordinate(longitude),
+                                    },
+                                ])
+                            }
                         />
-                    )}
-                    {mode === 'draw' &&
-                        polygonPositions.map((position, index) => (
+                        {location && (
                             <CircleMarker
-                                key={`${position[0]}-${position[1]}-${index}`}
-                                center={position}
-                                radius={5}
+                                center={[location.latitude, location.longitude]}
+                                radius={8}
                                 pathOptions={{
-                                    color: '#ffffff',
-                                    fillColor: '#2f6b45',
-                                    fillOpacity: 1,
+                                    color: '#8a5a32',
+                                    fillColor: '#8a5a32',
+                                    fillOpacity: 0.9,
                                     weight: 2,
                                 }}
                             />
-                        ))}
-                    {mode === 'edit' &&
-                        points.map((point, index) => (
-                            <Marker
-                                key={`vertex-${index}`}
-                                position={[point.latitude, point.longitude]}
-                                icon={vertexIcon}
-                                draggable
-                                eventHandlers={{
-                                    dragend: (event) => {
-                                        const marker = event.target as L.Marker;
-                                        const next = marker.getLatLng();
-                                        setPoints((current) =>
-                                            current.map((item, itemIndex) =>
-                                                itemIndex === index
-                                                    ? {
-                                                          latitude:
-                                                              roundCoordinate(
-                                                                  next.lat,
-                                                              ),
-                                                          longitude:
-                                                              roundCoordinate(
-                                                                  next.lng,
-                                                              ),
-                                                      }
-                                                    : item,
-                                            ),
-                                        );
-                                    },
+                        )}
+                        {mode === 'draw' && polygonPositions.length > 1 && (
+                            <Polyline
+                                positions={polygonPositions}
+                                pathOptions={{ color: '#2f6b45', weight: 2 }}
+                            />
+                        )}
+                        {showPolygon && (
+                            <Polygon
+                                positions={polygonPositions}
+                                pathOptions={{
+                                    color: '#2f6b45',
+                                    fillColor: '#2f6b45',
+                                    fillOpacity: 0.28,
+                                    weight: 2,
                                 }}
                             />
-                        ))}
-                </MapContainer>
+                        )}
+                        {mode === 'draw' &&
+                            polygonPositions.map((position, index) => (
+                                <CircleMarker
+                                    key={`${position[0]}-${position[1]}-${index}`}
+                                    center={position}
+                                    radius={5}
+                                    pathOptions={{
+                                        color: '#ffffff',
+                                        fillColor: '#2f6b45',
+                                        fillOpacity: 1,
+                                        weight: 2,
+                                    }}
+                                />
+                            ))}
+                        {mode === 'edit' &&
+                            points.map((point, index) => (
+                                <Marker
+                                    key={`vertex-${index}`}
+                                    position={[point.latitude, point.longitude]}
+                                    icon={vertexIcon}
+                                    draggable
+                                    eventHandlers={{
+                                        dragend: (event) => {
+                                            const marker =
+                                                event.target as L.Marker;
+                                            const next = marker.getLatLng();
+                                            setPoints((current) =>
+                                                current.map(
+                                                    (item, itemIndex) =>
+                                                        itemIndex === index
+                                                            ? {
+                                                                  latitude:
+                                                                      roundCoordinate(
+                                                                          next.lat,
+                                                                      ),
+                                                                  longitude:
+                                                                      roundCoordinate(
+                                                                          next.lng,
+                                                                      ),
+                                                              }
+                                                            : item,
+                                                ),
+                                            );
+                                        },
+                                    }}
+                                />
+                            ))}
+                    </MapContainer>
                 </div>
             </div>
 

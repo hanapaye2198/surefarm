@@ -285,7 +285,7 @@ export function FarmActivityForm({
                                 rows={3}
                                 maxLength={500}
                                 placeholder="Applied organic fertilizer to the coffee plots."
-                                className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             />
                         </Field>
                     </div>
@@ -369,7 +369,7 @@ export function FarmActivityForm({
                                 rows={2}
                                 maxLength={1000}
                                 placeholder="Rain expected tomorrow."
-                                className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             />
                         </Field>
                     </div>
