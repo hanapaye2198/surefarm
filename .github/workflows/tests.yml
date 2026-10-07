@@ -176,15 +176,23 @@ jobs:
       - name: Verify Hostinger SSH connection
         run: |
           set -euo pipefail
+          printf 'GitHub deploy key fingerprint: '
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" | ssh-keygen -lf -
+          known_host="[$HOSTINGER_SSH_HOST]:$HOSTINGER_SSH_PORT"
+          ssh-keygen -F "$known_host" -f "$HOME/.ssh/known_hosts" >/dev/null || {
+            echo "::error::HOSTINGER_KNOWN_HOSTS has no entry for $known_host"
+            exit 1
+          }
           ssh_options=(
             -i "$HOME/.ssh/id_ed25519"
             -p "$HOSTINGER_SSH_PORT"
             -o BatchMode=yes
+            -o IdentitiesOnly=yes
             -o StrictHostKeyChecking=yes
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
             -o ConnectTimeout=10
           )
-          ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" 'echo "Hostinger SSH authentication succeeded"'
+          ssh -v "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" 'echo "Hostinger SSH authentication succeeded"'
 
       - name: Upload Laravel source and built assets
         run: |
