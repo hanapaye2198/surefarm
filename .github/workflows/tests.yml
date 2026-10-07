@@ -179,10 +179,16 @@ jobs:
           printf 'GitHub deploy key fingerprint: '
           ssh-keygen -y -f "$HOME/.ssh/id_ed25519" | ssh-keygen -lf -
           known_host="[$HOSTINGER_SSH_HOST]:$HOSTINGER_SSH_PORT"
-          ssh-keygen -F "$known_host" -f "$HOME/.ssh/known_hosts" >/dev/null || {
-            echo "::error::HOSTINGER_KNOWN_HOSTS has no entry for $known_host"
-            exit 1
-          }
+          use_host_key_alias=false
+          if ! ssh-keygen -F "$known_host" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+            if ssh-keygen -F "$HOSTINGER_SSH_HOST" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+              use_host_key_alias=true
+            else
+              known_hosts_entries="$(awk 'NF >= 2 { print $1 }' "$HOME/.ssh/known_hosts" | paste -sd ', ' -)"
+              echo "::error::HOSTINGER_KNOWN_HOSTS has no entry for $known_host or $HOSTINGER_SSH_HOST (entries present: ${known_hosts_entries:-none})"
+              exit 1
+            fi
+          fi
           ssh_options=(
             -i "$HOME/.ssh/id_ed25519"
             -p "$HOSTINGER_SSH_PORT"
@@ -192,6 +198,9 @@ jobs:
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
             -o ConnectTimeout=10
           )
+          if [[ "$use_host_key_alias" == true ]]; then
+            ssh_options+=(-o "HostKeyAlias=$HOSTINGER_SSH_HOST")
+          fi
           ssh -v "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" 'echo "Hostinger SSH authentication succeeded"'
 
       - name: Upload Laravel source and built assets
