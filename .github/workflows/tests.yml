@@ -209,6 +209,7 @@ jobs:
           [[ "$HOSTINGER_SSH_PORT" =~ ^[0-9]+$ ]] || { echo "::error::HOSTINGER_SSH_PORT must contain only digits"; exit 1; }
           [[ "$HOSTINGER_SSH_USER" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::HOSTINGER_SSH_USER contains unsupported characters"; exit 1; }
           [[ "$HOSTINGER_DEPLOY_PATH" =~ ^/home/[A-Za-z0-9._-]+/domains/surefarm\.io/public_html$ ]] || { echo "::error::HOSTINGER_DEPLOY_PATH does not match the SureFarm public_html path format"; exit 1; }
+          printf 'HOSTINGER_DEPLOY_PATH=%s\n' "$HOSTINGER_DEPLOY_PATH" >> "$GITHUB_ENV"
 
           ssh_options=(
             -i "$HOME/.ssh/id_ed25519"
