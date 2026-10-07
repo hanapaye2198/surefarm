@@ -129,12 +129,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          extensions: curl, dom, fileinfo, mbstring, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Install PHP dependencies for asset generation
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel build environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
       - name: Build production web assets
         run: |
