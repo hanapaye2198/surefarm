@@ -43,6 +43,37 @@ type Section = {
 };
 
 const TOKEN_KEY = 'surefarm.mobile.access-token';
+
+const getStoredToken = async (): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+        return typeof window === 'undefined'
+            ? null
+            : window.localStorage.getItem(TOKEN_KEY);
+    }
+
+    return SecureStore.getItemAsync(TOKEN_KEY);
+};
+
+const storeToken = async (token: string): Promise<void> => {
+    if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined')
+            window.localStorage.setItem(TOKEN_KEY, token);
+        return;
+    }
+
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+};
+
+const removeStoredToken = async (): Promise<void> => {
+    if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined')
+            window.localStorage.removeItem(TOKEN_KEY);
+        return;
+    }
+
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+};
+
 const API_FOREST = '#254d3a';
 const GREEN = '#477958';
 const CANVAS = '#f4f7f3';
@@ -302,9 +333,7 @@ function SureFarmApp() {
                 setPage(result);
             } catch (error) {
                 if (error instanceof ApiError && error.status === 401) {
-                    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(
-                        () => undefined,
-                    );
+                    await removeStoredToken().catch(() => undefined);
                     setToken(null);
                     setUser(null);
                 } else {
@@ -324,9 +353,7 @@ function SureFarmApp() {
     useEffect(() => {
         let mounted = true;
         void (async () => {
-            const saved = await SecureStore.getItemAsync(TOKEN_KEY).catch(
-                () => null,
-            );
+            const saved = await getStoredToken().catch(() => null);
             if (!mounted) return;
             if (!saved) {
                 setChecking(false);
@@ -343,9 +370,7 @@ function SureFarmApp() {
                     error instanceof ApiError &&
                     (error.status === 401 || error.status === 403)
                 ) {
-                    await SecureStore.deleteItemAsync(TOKEN_KEY).catch(
-                        () => undefined,
-                    );
+                    await removeStoredToken().catch(() => undefined);
                 } else if (mounted) {
                     setAuthError(
                         error instanceof Error
@@ -375,7 +400,7 @@ function SureFarmApp() {
     }, [page]);
 
     const finishSignIn = async (accessToken: string, account: User) => {
-        await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
+        await storeToken(accessToken);
         setToken(accessToken);
         setUser(account);
         setChallenge(null);
@@ -410,9 +435,11 @@ function SureFarmApp() {
                         email: email.trim(),
                         password,
                         device_name:
-                            Platform.OS === 'ios'
-                                ? 'SureFarm iOS'
-                                : 'SureFarm Android',
+                            Platform.OS === 'web'
+                                ? 'SureFarm Web'
+                                : Platform.OS === 'ios'
+                                  ? 'SureFarm iOS'
+                                  : 'SureFarm Android',
                     },
                 });
                 if (result.two_factor_required) {
@@ -441,7 +468,7 @@ function SureFarmApp() {
             await apiRequest('/logout', token, { method: 'DELETE' }).catch(
                 () => undefined,
             );
-        await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => undefined);
+        await removeStoredToken().catch(() => undefined);
         setToken(null);
         setUser(null);
         setPage(null);
@@ -768,6 +795,7 @@ function SureFarmApp() {
             ) : page?.component === 'dashboard' ? (
                 <Dashboard
                     page={page}
+                    user={user}
                     sections={sections}
                     onOpen={(item) => void navigate(item.path, item.title)}
                 />
@@ -797,6 +825,7 @@ function SureFarmApp() {
             <View style={styles.bottomBar}>
                 <BottomItem
                     label="Home"
+                    active={panel === 'page' && current.path === '/dashboard'}
                     glyph="⌂"
                     onPress={() => {
                         setPanel('page');
@@ -806,11 +835,16 @@ function SureFarmApp() {
                 />
                 <BottomItem
                     label="Features"
+                    active={panel === 'features'}
                     glyph="▦"
                     onPress={() => setPanel('features')}
                 />
                 <BottomItem
                     label="Account"
+                    active={
+                        panel === 'page' &&
+                        current.path.startsWith('/settings/')
+                    }
                     glyph="◉"
                     onPress={() =>
                         void navigate('/settings/profile', 'Profile settings')
@@ -963,49 +997,47 @@ function LoginScreen(props: {
 
 function Dashboard({
     page,
+    user,
     sections,
     onOpen,
 }: {
     page: Page;
+    user: User | null;
     sections: Section[];
     onOpen: (item: Section) => void;
 }) {
     const summary = page.data.summary ?? {};
     const stats = [
-        ['Farmers', summary.registered_farmers ?? 0],
-        ['Farms', summary.registered_farms ?? 0],
-        ['Pending verification', summary.pending_verification ?? 0],
-        ['Verified farms', summary.verified_farms ?? 0],
+        { label: 'Registered farmers', value: summary.registered_farmers ?? 0 },
+        { label: 'Registered farms', value: summary.registered_farms ?? 0 },
+        { label: 'Pending', value: summary.pending_verification ?? 0 },
+        { label: 'In progress', value: summary.in_progress ?? 0 },
+        { label: 'Verified', value: summary.verified_farms ?? 0 },
+        { label: 'Needs review', value: summary.needs_review ?? 0 },
     ];
+    const hour = new Date().getHours();
+    const greeting =
+        hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     return (
         <ScrollView style={styles.page} contentContainerStyle={styles.content}>
             <View style={styles.welcome}>
-                <Text style={styles.eyebrow}>SUREFARM OVERVIEW</Text>
-                <Text style={styles.welcomeTitle}>Your farm program</Text>
+                <Text style={styles.eyebrow}>
+                    SUREFARM · {ROLE_LABEL[user?.role ?? 'admin'].toUpperCase()}
+                </Text>
+                <Text style={styles.welcomeTitle}>
+                    {greeting}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
+                </Text>
                 <Text style={styles.welcomeBody}>
-                    Review registrations, field verification, harvest, and
-                    coffee inventory.
+                    Your live overview of farmer registrations, farm verification,
+                    and harvest activity.
                 </Text>
             </View>
-            <Heading title="At a glance" />
+            <Heading title="Program snapshot" />
             <View style={styles.stats}>
-                {stats.map(([label, value], i) => (
-                    <View
-                        key={String(label)}
-                        style={[
-                            styles.stat,
-                            {
-                                backgroundColor: [
-                                    '#e5f0e6',
-                                    '#e9efdf',
-                                    '#f5edd9',
-                                    '#e2efe9',
-                                ][i],
-                            },
-                        ]}
-                    >
+                {stats.map(({ label, value }) => (
+                    <View key={label} style={styles.stat}>
+                        <Text style={styles.statLabel}>{label}</Text>
                         <Text style={styles.statValue}>{String(value)}</Text>
-                        <Text style={styles.statLabel}>{String(label)}</Text>
                     </View>
                 ))}
             </View>
@@ -1026,7 +1058,10 @@ function Dashboard({
                     />
                 </View>
             )}
-            <Heading title="Workspaces" />
+            <View style={styles.sectionHeadingRow}>
+                <Heading title="Workspaces" />
+                <Text style={styles.sectionHint}>Open a workspace</Text>
+            </View>
             <View style={styles.quickGrid}>
                 {sections
                     .filter((s) => s.key !== 'dashboard')
@@ -2218,16 +2253,34 @@ function Empty({ title, detail }: { title: string; detail: string }) {
 function BottomItem({
     label,
     glyph,
+    active,
     onPress,
 }: {
     label: string;
     glyph: string;
+    active: boolean;
     onPress: () => void;
 }) {
     return (
-        <Pressable onPress={onPress} style={styles.bottomItem}>
-            <Text style={styles.bottomGlyph}>{glyph}</Text>
-            <Text style={styles.bottomLabel}>{label}</Text>
+        <Pressable
+            onPress={onPress}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            style={styles.bottomItem}
+        >
+            <View style={[styles.bottomIcon, active && styles.bottomIconActive]}>
+                <Text
+                    style={[
+                        styles.bottomGlyph,
+                        active && styles.bottomGlyphActive,
+                    ]}
+                >
+                    {glyph}
+                </Text>
+            </View>
+            <Text style={[styles.bottomLabel, active && styles.bottomLabelActive]}>
+                {label}
+            </Text>
         </Pressable>
     );
 }
@@ -2516,16 +2569,25 @@ const styles = StyleSheet.create({
         marginTop: 21,
         marginBottom: 10,
     },
+    sectionHeadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    sectionHint: { color: MUTED, fontSize: 10, marginTop: 11 },
     stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
     stat: {
         width: '48%',
-        minHeight: 84,
+        minHeight: 82,
         padding: 13,
         borderRadius: 16,
         justifyContent: 'center',
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e5eae5',
     },
-    statValue: { color: INK, fontSize: 22, fontWeight: '800' },
-    statLabel: { color: MUTED, fontSize: 10, marginTop: 4, fontWeight: '600' },
+    statValue: { color: API_FOREST, fontSize: 23, fontWeight: '800', marginTop: 5 },
+    statLabel: { color: MUTED, fontSize: 10, fontWeight: '600' },
     quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
     quickCard: {
         width: '48%',
@@ -2633,17 +2695,36 @@ const styles = StyleSheet.create({
         backgroundColor: '#e8f0e8',
     },
     bottomBar: {
-        height: 60,
+        minHeight: 68,
+        paddingTop: 4,
+        paddingBottom: 4,
         borderTopWidth: 1,
         borderTopColor: '#e5eae5',
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        justifyContent: 'space-evenly',
         alignItems: 'center',
         backgroundColor: '#ffffff',
     },
-    bottomItem: { width: 85, alignItems: 'center' },
-    bottomGlyph: { color: API_FOREST, fontSize: 21, lineHeight: 24 },
-    bottomLabel: { color: MUTED, marginTop: 1, fontSize: 9, fontWeight: '600' },
+    bottomItem: {
+        minWidth: 76,
+        minHeight: 54,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+    },
+    bottomIcon: {
+        minWidth: 50,
+        height: 31,
+        paddingHorizontal: 13,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    bottomIconActive: { backgroundColor: '#e8f0e8' },
+    bottomGlyph: { color: MUTED, fontSize: 19, lineHeight: 23 },
+    bottomGlyphActive: { color: API_FOREST },
+    bottomLabel: { color: MUTED, marginTop: 1, fontSize: 10, fontWeight: '600' },
+    bottomLabelActive: { color: API_FOREST, fontWeight: '800' },
     primary: {
         minHeight: 47,
         marginTop: 10,
