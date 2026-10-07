@@ -173,12 +173,25 @@ jobs:
           printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
 
+      - name: Verify Hostinger SSH connection
+        run: |
+          set -euo pipefail
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -p "$HOSTINGER_SSH_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+            -o ConnectTimeout=10
+          )
+          ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" 'echo "Hostinger SSH authentication succeeded"'
+
       - name: Upload Laravel source and built assets
         run: |
           set -euo pipefail
-          [[ "$HOSTINGER_SSH_PORT" =~ ^[0-9]+$ ]]
-          [[ "$HOSTINGER_SSH_USER" =~ ^[A-Za-z0-9._-]+$ ]]
-          [[ "$HOSTINGER_DEPLOY_PATH" =~ ^/home/[A-Za-z0-9._-]+/domains/surefarm\.io/public_html$ ]]
+          [[ "$HOSTINGER_SSH_PORT" =~ ^[0-9]+$ ]] || { echo "::error::HOSTINGER_SSH_PORT must contain only digits"; exit 1; }
+          [[ "$HOSTINGER_SSH_USER" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::HOSTINGER_SSH_USER contains unsupported characters"; exit 1; }
+          [[ "$HOSTINGER_DEPLOY_PATH" =~ ^/home/[A-Za-z0-9._-]+/domains/surefarm\.io/public_html$ ]] || { echo "::error::HOSTINGER_DEPLOY_PATH does not match the SureFarm public_html path format"; exit 1; }
 
           ssh_options=(
             -i "$HOME/.ssh/id_ed25519"
