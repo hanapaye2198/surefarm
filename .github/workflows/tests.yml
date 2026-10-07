@@ -51,8 +51,23 @@ jobs:
       - name: Build Laravel web assets
         run: npm run build
 
-      - name: Run Laravel checks
-        run: composer ci:check
+      - name: Check frontend code
+        run: npm run check
+
+      - name: Run initial PHPStan analysis
+        run: composer run-script types:check
+
+      - name: Clear Laravel config before tests
+        run: php artisan config:clear --ansi
+
+      - name: Check PHP formatting
+        run: composer run-script lint:check
+
+      - name: Run PHPStan analysis
+        run: composer run-script types:check
+
+      - name: Run Laravel tests
+        run: php artisan test
 
   mobile-ci:
     name: Mobile typecheck and web export
