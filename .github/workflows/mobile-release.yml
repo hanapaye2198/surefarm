@@ -1,0 +1,62 @@
+name: Mobile release build
+
+on:
+  push:
+    tags:
+      - 'mobile-v*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platforms to build
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  eas-build:
+    name: Build mobile app with EAS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EAS_PLATFORM: ${{ github.event.inputs.platform || 'all' }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      - name: Check mobile types and web export
+        working-directory: mobile
+        run: |
+          npm run typecheck
+          npx expo export --platform web
+
+      - name: Link or create the EAS project
+        working-directory: mobile
+        run: |
+          test -n "$EXPO_TOKEN" || { echo "Add the EXPO_TOKEN repository secret before building releases"; exit 1; }
+          npx --yes eas-cli@latest init --force --non-interactive
+
+      - name: Start production build
+        working-directory: mobile
+        run: npx --yes eas-cli@latest build --platform "$EAS_PLATFORM" --profile production --non-interactive --no-wait
