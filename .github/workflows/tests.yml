@@ -48,6 +48,9 @@ jobs:
       - name: Install root web dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Install mobile dependencies for frontend checks
+        run: npm ci --prefix mobile --no-audit --no-fund
+
       - name: Build Laravel web assets
         run: npm run build
 
