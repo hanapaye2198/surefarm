@@ -160,17 +160,15 @@ jobs:
       - name: Configure SSH
         env:
           HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: |
           test -n "$HOSTINGER_SSH_PRIVATE_KEY" || { echo "Missing production secret HOSTINGER_SSH_PRIVATE_KEY"; exit 1; }
-          test -n "$HOSTINGER_KNOWN_HOSTS" || { echo "Missing production secret HOSTINGER_KNOWN_HOSTS"; exit 1; }
           test -n "$HOSTINGER_SSH_HOST" || { echo "Set repository variable HOSTINGER_SSH_HOST"; exit 1; }
           test -n "$HOSTINGER_SSH_PORT" || { echo "Set repository variable HOSTINGER_SSH_PORT"; exit 1; }
           test -n "$HOSTINGER_SSH_USER" || { echo "Set repository variable HOSTINGER_SSH_USER"; exit 1; }
           test -n "$HOSTINGER_DEPLOY_PATH" || { echo "Set repository variable HOSTINGER_DEPLOY_PATH"; exit 1; }
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
-          printf '%s\n' "$HOSTINGER_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          install -m 600 .github/hostinger_known_hosts "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
 
       - name: Verify Hostinger SSH connection
@@ -185,7 +183,7 @@ jobs:
               use_host_key_alias=true
             else
               known_hosts_entries="$(awk 'NF >= 2 { print $1 }' "$HOME/.ssh/known_hosts" | paste -sd ', ' -)"
-              echo "::error::HOSTINGER_KNOWN_HOSTS has no entry for $known_host or $HOSTINGER_SSH_HOST (entries present: ${known_hosts_entries:-none})"
+              echo "::error::.github/hostinger_known_hosts has no entry for $known_host or $HOSTINGER_SSH_HOST (entries present: ${known_hosts_entries:-none})"
               exit 1
             fi
           fi
