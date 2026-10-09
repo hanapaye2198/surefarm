@@ -1,12 +1,25 @@
 import { Link, usePage } from '@inertiajs/react';
 import { MapPinned } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    CircleMarker,
+    MapContainer,
+    TileLayer,
+    Tooltip,
+    useMap,
+} from 'react-leaflet';
 import { EmptyState } from '@/components/empty-state';
+import { GoogleBasemap } from '@/components/google-basemap';
+import { Button } from '@/components/ui/button';
 import { FarmerStatusBadge, StatusBadge } from '@/components/status-badge';
 import type { FarmStatus, FarmerRecordStatus } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { userCanAccess } from '@/lib/access';
+import {
+    useGoogleMapsApiKey,
+    type GoogleMapType,
+} from '@/lib/google-maps';
 import { show } from '@/routes/farms';
+import 'leaflet/dist/leaflet.css';
 
 export type FarmLocation = {
     id: number;
@@ -22,11 +35,11 @@ export type FarmLocation = {
 };
 
 const markerColors: Record<FarmStatus, string> = {
-    pending: 'oklch(0.52 0.02 145)',
-    in_progress: 'oklch(0.55 0.1 200)',
-    verified: 'oklch(0.42 0.09 152)',
-    needs_review: 'oklch(0.48 0.07 55)',
-    failed: 'oklch(0.55 0.18 27)',
+    pending: '#737373',
+    in_progress: '#0e7490',
+    verified: '#166534',
+    needs_review: '#b45309',
+    failed: '#b91c1c',
 };
 
 const areaFormatter = new Intl.NumberFormat('en-US', {
@@ -34,51 +47,35 @@ const areaFormatter = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
 });
 
-type Point = FarmLocation & {
-    x: number;
-    y: number;
-};
+function FitLocations({
+    focusKey,
+    positions,
+}: {
+    focusKey: string;
+    positions: [number, number][];
+}) {
+    const map = useMap();
+    const fitted = useRef('');
 
-function project(locations: FarmLocation[]): Point[] {
-    const width = 800;
-    const height = 460;
-    const padding = 48;
+    useEffect(() => {
+        map.invalidateSize();
 
-    if (locations.length === 1) {
-        return [
-            {
-                ...locations[0],
-                x: width / 2,
-                y: height / 2,
-            },
-        ];
-    }
+        if (positions.length === 0 || fitted.current === focusKey) {
+            return;
+        }
 
-    const latitudes = locations.map((location) => location.latitude);
-    const longitudes = locations.map((location) => location.longitude);
-    const minLatitude = Math.min(...latitudes);
-    const maxLatitude = Math.max(...latitudes);
-    const minLongitude = Math.min(...longitudes);
-    const maxLongitude = Math.max(...longitudes);
-    const latitudeSpan = Math.max(maxLatitude - minLatitude, 0.01);
-    const longitudeSpan = Math.max(maxLongitude - minLongitude, 0.01);
+        fitted.current = focusKey;
 
-    return locations.map((location, index) => {
-        const x =
-            padding +
-            ((location.longitude - minLongitude) / longitudeSpan) *
-                (width - padding * 2);
-        const y =
-            padding +
-            (1 - (location.latitude - minLatitude) / latitudeSpan) *
-                (height - padding * 2);
+        if (positions.length === 1) {
+            map.setView(positions[0], 15);
 
-        return {
-            ...location,
-            x: x + (index % 3) * 0.01,
-            y,
-        };
-    });
+            return;
+        }
+
+        map.fitBounds(positions, { padding: [36, 36], maxZoom: 14 });
+    }, [focusKey, map, positions]);
+
+    return null;
 }
 
 export function FarmLocationMap({
@@ -95,12 +92,37 @@ export function FarmLocationMap({
         'operations',
         'field_verifier',
     ]);
-    const points = project(locations);
+    const googleApiKey = useGoogleMapsApiKey();
     const [selectedId, setSelectedId] = useState<number | null>(
         locations[0]?.id ?? null,
     );
+    const [mapType, setMapType] = useState<GoogleMapType>('roadmap');
+    const [googleReady, setGoogleReady] = useState(false);
+    const [googleFailed, setGoogleFailed] = useState(false);
+    const googleHost = useRef<HTMLDivElement>(null);
+    const markGoogleReady = useCallback(() => setGoogleReady(true), []);
+    const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
+    const positions = useMemo(
+        () =>
+            locations.map(
+                (location) =>
+                    [location.latitude, location.longitude] as [number, number],
+            ),
+        [locations],
+    );
+    const focusKey = useMemo(
+        () =>
+            locations
+                .map(
+                    ({ id, latitude, longitude }) =>
+                        `${id}:${latitude}:${longitude}`,
+                )
+                .join('|'),
+        [locations],
+    );
     const selected =
-        points.find((point) => point.id === selectedId) ?? points[0];
+        locations.find((location) => location.id === selectedId) ??
+        locations[0];
 
     if (locations.length === 0 || selected === undefined) {
         return (
@@ -113,66 +135,111 @@ export function FarmLocationMap({
     }
 
     return (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17rem]">
-            <div className="relative min-h-80 overflow-hidden rounded-lg border bg-[oklch(0.97_0.015_145)]">
-                <svg
-                    viewBox="0 0 800 460"
-                    className="h-full min-h-80 w-full"
-                    role="img"
-                    aria-label="Farm locations plotted from recorded coordinates"
-                >
-                    {[80, 160, 240, 320, 400].map((line) => (
-                        <g key={line} className="text-primary/15">
-                            <line
-                                x1="24"
-                                x2="776"
-                                y1={line}
-                                y2={line}
-                                stroke="currentColor"
-                                strokeWidth="1"
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="relative overflow-hidden rounded-xl border">
+                {googleApiKey !== '' && googleReady && (
+                    <div className="absolute top-3 right-3 z-[2] flex overflow-hidden rounded-md border bg-background shadow-sm">
+                        <button
+                            type="button"
+                            className={`px-2.5 py-1 text-xs font-medium ${mapType === 'roadmap' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                            onClick={() => setMapType('roadmap')}
+                        >
+                            Road
+                        </button>
+                        <button
+                            type="button"
+                            className={`px-2.5 py-1 text-xs font-medium ${mapType === 'hybrid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                            onClick={() => setMapType('hybrid')}
+                        >
+                            Satellite
+                        </button>
+                    </div>
+                )}
+                {(googleApiKey === '' || googleFailed) && (
+                    <div className="absolute top-3 left-3 z-[2] rounded-md border bg-background/95 px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
+                        {googleFailed
+                            ? 'Google Maps unavailable; showing OpenStreetMap'
+                            : 'OpenStreetMap'}
+                    </div>
+                )}
+                <div className="h-80 sm:h-[28rem]">
+                    <div
+                        ref={googleHost}
+                        className="pointer-events-none absolute inset-0 z-0"
+                        aria-hidden={googleReady ? undefined : true}
+                    />
+                    <MapContainer
+                        center={positions[0]}
+                        zoom={12}
+                        className="relative z-[1] h-full w-full"
+                        style={{ background: 'transparent' }}
+                        scrollWheelZoom
+                    >
+                        {googleApiKey !== '' && !googleFailed && (
+                            <GoogleBasemap
+                                host={googleHost}
+                                apiKey={googleApiKey}
+                                mapType={mapType}
+                                onReady={markGoogleReady}
+                                onError={markGoogleFailed}
                             />
-                            <line
-                                y1="24"
-                                y2="436"
-                                x1={line + 80}
-                                x2={line + 80}
-                                stroke="currentColor"
-                                strokeWidth="1"
+                        )}
+                        {(googleApiKey === '' ||
+                            googleFailed ||
+                            !googleReady) && (
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                        </g>
-                    ))}
-                    {points.map((point) => {
-                        const active = point.id === selected.id;
+                        )}
+                        <FitLocations
+                            focusKey={focusKey}
+                            positions={positions}
+                        />
+                        {locations.map((location) => {
+                            const active = location.id === selected.id;
 
-                        return (
-                            <g key={point.id}>
-                                <circle
-                                    cx={point.x}
-                                    cy={point.y}
-                                    r={active ? 11 : 7}
-                                    fill={
-                                        markerColors[point.verification_status]
-                                    }
-                                    stroke="white"
-                                    strokeWidth={active ? 3 : 2}
-                                    className="cursor-pointer"
-                                    onClick={() => setSelectedId(point.id)}
+                            return (
+                                <CircleMarker
+                                    key={location.id}
+                                    center={[
+                                        location.latitude,
+                                        location.longitude,
+                                    ]}
+                                    radius={active ? 10 : 7}
+                                    eventHandlers={{
+                                        click: () =>
+                                            setSelectedId(location.id),
+                                    }}
+                                    pathOptions={{
+                                        color: '#ffffff',
+                                        weight: active ? 3 : 2,
+                                        fillColor:
+                                            markerColors[
+                                                location.verification_status
+                                            ],
+                                        fillOpacity: 1,
+                                    }}
                                 >
-                                    <title>
-                                        {point.farm_id} · {point.farm_name}
-                                    </title>
-                                </circle>
-                            </g>
-                        );
-                    })}
-                </svg>
-                <p className="absolute right-3 bottom-3 left-3 max-w-md rounded-md border bg-card/95 px-3 py-2 text-xs text-muted-foreground">
-                    Markers show recorded coordinates. A location marker does
-                    not mean the farm is verified.
+                                    <Tooltip direction="top" offset={[0, -8]}>
+                                        <span className="font-medium">
+                                            {location.farm_id}
+                                        </span>
+                                        <br />
+                                        {location.farm_name}
+                                    </Tooltip>
+                                </CircleMarker>
+                            );
+                        })}
+                    </MapContainer>
+                </div>
+                <p className="absolute right-3 bottom-3 left-3 z-[2] max-w-md rounded-md border bg-background/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
+                    Markers use recorded farm coordinates. Location does not
+                    indicate verification.
                 </p>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+            <div className="flex min-h-80 flex-col gap-4 rounded-xl border bg-card p-4">
                 <div className="space-y-2">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                         {selected.farm_id}
@@ -211,7 +278,7 @@ export function FarmLocationMap({
                         <dt className="text-xs text-muted-foreground">
                             Coordinates
                         </dt>
-                        <dd>
+                        <dd className="font-mono text-xs">
                             {selected.latitude}, {selected.longitude}
                         </dd>
                     </div>
@@ -221,15 +288,42 @@ export function FarmLocationMap({
                         <Link href={show(selected.id)}>Open farm</Link>
                     </Button>
                 )}
-                <div className="mt-auto flex flex-col gap-2 border-t pt-3">
-                    <p className="text-xs font-medium text-muted-foreground">
-                        Marker color is verification status
+
+                <div className="mt-auto border-t pt-3">
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        {locations.length} mapped{' '}
+                        {locations.length === 1 ? 'farm' : 'farms'}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                        <StatusBadge status="pending" />
-                        <StatusBadge status="verified" />
-                        <StatusBadge status="needs_review" />
-                    </div>
+                    <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                        {locations.map((location) => (
+                            <li key={location.id}>
+                                <button
+                                    type="button"
+                                    className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors ${location.id === selected.id ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+                                    onClick={() => setSelectedId(location.id)}
+                                >
+                                    <span
+                                        className="size-2.5 shrink-0 rounded-full ring-2 ring-white"
+                                        style={{
+                                            backgroundColor:
+                                                markerColors[
+                                                    location.verification_status
+                                                ],
+                                        }}
+                                    />
+                                    <span className="min-w-0 truncate">
+                                        {location.farm_name}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t pt-3">
+                    <StatusBadge status="pending" />
+                    <StatusBadge status="verified" />
+                    <StatusBadge status="needs_review" />
+                    <StatusBadge status="failed" />
                 </div>
             </div>
         </div>

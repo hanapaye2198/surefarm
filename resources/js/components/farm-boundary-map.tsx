@@ -22,7 +22,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { GoogleMapType } from '@/lib/google-maps';
+import {
+    useGoogleMapsApiKey,
+    type GoogleMapType,
+} from '@/lib/google-maps';
 import { sphericalPolygonHectares } from '@/lib/spherical-polygon-area';
 import { destroy, store, update } from '@/routes/farms/boundary';
 import 'leaflet/dist/leaflet.css';
@@ -204,7 +207,7 @@ export function FarmBoundaryMap({
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
     const googleHost = useRef<HTMLDivElement>(null);
-    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+    const googleApiKey = useGoogleMapsApiKey();
     const markGoogleReady = useCallback(() => setGoogleReady(true), []);
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
     const form = useForm<{ boundary_geojson: BoundaryGeoJson | null }>({
@@ -578,6 +581,7 @@ export function FarmBoundaryMap({
                         center={[center.latitude, center.longitude]}
                         zoom={location ? 16 : DEFAULT_VIEW.zoom}
                         className="relative z-[1] h-full w-full"
+                        style={{ background: 'transparent' }}
                         scrollWheelZoom
                     >
                         {googleApiKey !== '' && !googleFailed && (

@@ -12,6 +12,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            google_maps_api_key: string;
             [key: string]: unknown;
         };
     }

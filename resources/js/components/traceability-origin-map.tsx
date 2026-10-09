@@ -7,7 +7,10 @@ import {
     useMap,
 } from 'react-leaflet';
 import { GoogleBasemap } from '@/components/google-basemap';
-import type { GoogleMapType } from '@/lib/google-maps';
+import {
+    useGoogleMapsApiKey,
+    type GoogleMapType,
+} from '@/lib/google-maps';
 import 'leaflet/dist/leaflet.css';
 
 type Boundary = {
@@ -72,7 +75,7 @@ export function TraceabilityOriginMap({
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
     const googleHost = useRef<HTMLDivElement>(null);
-    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+    const googleApiKey = useGoogleMapsApiKey();
     const markGoogleReady = useCallback(() => setGoogleReady(true), []);
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
 
@@ -116,6 +119,7 @@ export function TraceabilityOriginMap({
                     center={positions[0]}
                     zoom={16}
                     className="relative z-[1] h-full w-full"
+                    style={{ background: 'transparent' }}
                     scrollWheelZoom={false}
                 >
                     {googleApiKey !== '' && !googleFailed && (

@@ -38,6 +38,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'google_maps_api_key' => config('services.google_maps.browser_api_key'),
             'auth' => [
                 'user' => $request->user(),
             ],
