@@ -22,10 +22,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    useGoogleMapsApiKey,
-    type GoogleMapType,
-} from '@/lib/google-maps';
+import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import { sphericalPolygonHectares } from '@/lib/spherical-polygon-area';
 import { destroy, store, update } from '@/routes/farms/boundary';
 import 'leaflet/dist/leaflet.css';

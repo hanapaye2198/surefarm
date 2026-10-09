@@ -7,10 +7,7 @@ import {
     useMap,
 } from 'react-leaflet';
 import { GoogleBasemap } from '@/components/google-basemap';
-import {
-    useGoogleMapsApiKey,
-    type GoogleMapType,
-} from '@/lib/google-maps';
+import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import 'leaflet/dist/leaflet.css';
 
 type Boundary = {

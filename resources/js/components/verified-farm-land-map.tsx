@@ -6,10 +6,7 @@ import { EmptyState } from '@/components/empty-state';
 import { GoogleBasemap } from '@/components/google-basemap';
 import { Button } from '@/components/ui/button';
 import { userCanAccess } from '@/lib/access';
-import {
-    useGoogleMapsApiKey,
-    type GoogleMapType,
-} from '@/lib/google-maps';
+import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 

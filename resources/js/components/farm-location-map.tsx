@@ -14,10 +14,7 @@ import { Button } from '@/components/ui/button';
 import { FarmerStatusBadge, StatusBadge } from '@/components/status-badge';
 import type { FarmStatus, FarmerRecordStatus } from '@/components/status-badge';
 import { userCanAccess } from '@/lib/access';
-import {
-    useGoogleMapsApiKey,
-    type GoogleMapType,
-} from '@/lib/google-maps';
+import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 
@@ -208,8 +205,7 @@ export function FarmLocationMap({
                                     ]}
                                     radius={active ? 10 : 7}
                                     eventHandlers={{
-                                        click: () =>
-                                            setSelectedId(location.id),
+                                        click: () => setSelectedId(location.id),
                                     }}
                                     pathOptions={{
                                         color: '#ffffff',
