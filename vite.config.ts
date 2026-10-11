@@ -22,6 +22,7 @@ export default defineConfig({
         react(),
         babel({
             presets: [reactCompilerPreset()],
+            sourceMap: false,
         }),
         tailwindcss(),
         wayfinder({
