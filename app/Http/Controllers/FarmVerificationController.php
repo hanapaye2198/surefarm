@@ -9,12 +9,15 @@ use App\FarmVerificationResult;
 use App\FarmVerificationStatus;
 use App\Http\Requests\DecideFarmVerificationRequest;
 use App\Http\Requests\StartFarmVerificationRequest;
+use App\Http\Requests\StoreFarmVerificationInspectionRequest;
 use App\Models\Farm;
 use App\Models\FarmVerification;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,8 +34,12 @@ class FarmVerificationController extends Controller
         $crop = $request->string('crop')->trim()->toString();
         $province = $request->string('province')->trim()->toString();
         $municipality = $request->string('municipality')->trim()->toString();
+        $verifierId = $request->user()?->role === \App\UserRole::FieldVerifier
+            ? $request->user()->id
+            : null;
 
         $farms = Farm::query()
+            ->when($verifierId !== null, fn ($query) => $query->where('assigned_verifier_id', $verifierId))
             ->with(['farmer', 'boundary'])
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
@@ -80,27 +87,30 @@ class FarmVerificationController extends Controller
                 'municipality' => $municipality,
             ],
             'summary' => [
-                'pending' => $this->statusCount(FarmVerificationStatus::Pending),
-                'in_progress' => $this->statusCount(FarmVerificationStatus::InProgress),
-                'verified' => $this->statusCount(FarmVerificationStatus::Verified),
-                'failed' => $this->statusCount(FarmVerificationStatus::Failed),
-                'needs_review' => $this->statusCount(FarmVerificationStatus::NeedsReview),
+                'pending' => $this->statusCount(FarmVerificationStatus::Pending, $verifierId),
+                'in_progress' => $this->statusCount(FarmVerificationStatus::InProgress, $verifierId),
+                'verified' => $this->statusCount(FarmVerificationStatus::Verified, $verifierId),
+                'failed' => $this->statusCount(FarmVerificationStatus::Failed, $verifierId),
+                'needs_review' => $this->statusCount(FarmVerificationStatus::NeedsReview, $verifierId),
             ],
             'verificationStatuses' => $this->statusOptions(),
             'crops' => $this->cropOptions(),
-            'provinces' => $this->locationOptions('province'),
-            'municipalities' => $this->locationOptions('municipality'),
+            'provinces' => $this->locationOptions('province', $verifierId),
+            'municipalities' => $this->locationOptions('municipality', $verifierId),
         ]);
     }
 
-    public function show(Farm $farm): Response
+    public function show(Request $request, Farm $farm): Response
     {
+        $this->authorizeAssignedFarm($request->user(), $farm);
         $farm->load([
             'farmer',
             'boundary.creator:id,name',
             'boundary.editor:id,name',
             'verifications.verifier:id,name',
+            'verifications.photos.uploader:id,name',
         ]);
+        $openVerification = $farm->verifications->first(fn (FarmVerification $verification): bool => $verification->result === null);
 
         $comparison = $this->areas->calculate(
             $farm->declared_area_hectares,
@@ -150,6 +160,11 @@ class FarmVerificationController extends Controller
                 ->map(fn (FarmVerification $verification): array => $verification->present())
                 ->values()
                 ->all(),
+            'inspection' => $openVerification === null ? null : [
+                'checklist' => $openVerification->inspection_checklist ?? [],
+                'photos' => $openVerification->photos->map(fn ($photo): array => $photo->present())->values()->all(),
+            ],
+            'google_maps_api_key' => config('services.google_maps.browser_api_key'),
         ]);
     }
 
@@ -215,6 +230,56 @@ class FarmVerificationController extends Controller
         return to_route('farm-verification.show', $farm);
     }
 
+    public function inspection(StoreFarmVerificationInspectionRequest $request, Farm $farm): RedirectResponse
+    {
+        $verification = $farm->verifications()->whereNull('result')->latest('id')->first();
+
+        if ($verification === null) {
+            throw ValidationException::withMessages([
+                'verification' => 'Start the verification before saving inspection evidence.',
+            ]);
+        }
+
+        $photo = $request->file('evidence_photo');
+        $path = $photo?->store('farm-verifications/evidence', 'local');
+
+        if (! is_string($path)) {
+            return back()->withErrors(['evidence_photo' => 'The evidence photo could not be saved.']);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $verification, $photo, $path): void {
+                $verification->update([
+                    'inspection_checklist' => [
+                        'farm_identified' => (bool) $request->validated('farm_identified'),
+                        'boundary_walked' => (bool) $request->validated('boundary_walked'),
+                        'farmer_or_representative_met' => (bool) $request->validated('farmer_or_representative_met'),
+                    ],
+                ]);
+                $verification->photos()->create([
+                    'evidence_type' => 'field_inspection',
+                    'storage_path' => $path,
+                    'original_name' => $photo->getClientOriginalName(),
+                    'mime_type' => $photo->getMimeType() ?? 'application/octet-stream',
+                    'file_size' => $photo->getSize() ?? 0,
+                    'captured_at' => now(),
+                    'latitude' => $request->validated('latitude'),
+                    'longitude' => $request->validated('longitude'),
+                    'uploaded_by' => $request->user()?->id,
+                ]);
+            });
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($path);
+            report($exception);
+
+            return back()->withErrors(['evidence_photo' => 'The inspection evidence could not be saved. Please try again.']);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Inspection checklist and evidence saved.']);
+
+        return to_route('farm-verification.show', $farm);
+    }
+
     /**
      * @return array{
      *     id: int,
@@ -252,9 +317,10 @@ class FarmVerificationController extends Controller
         ];
     }
 
-    private function statusCount(FarmVerificationStatus $status): int
+    private function statusCount(FarmVerificationStatus $status, ?int $verifierId): int
     {
         return Farm::query()
+            ->when($verifierId !== null, fn ($query) => $query->where('assigned_verifier_id', $verifierId))
             ->where('verification_status', $status)
             ->count();
     }
@@ -310,9 +376,10 @@ class FarmVerificationController extends Controller
     /**
      * @return list<string>
      */
-    private function locationOptions(string $column): array
+    private function locationOptions(string $column, ?int $verifierId): array
     {
         $options = Farm::query()
+            ->when($verifierId !== null, fn ($query) => $query->where('assigned_verifier_id', $verifierId))
             ->whereNotNull($column)
             ->where($column, '!=', '')
             ->distinct()
@@ -321,5 +388,12 @@ class FarmVerificationController extends Controller
             ->all();
 
         return array_values($options);
+    }
+
+    private function authorizeAssignedFarm(mixed $user, Farm $farm): void
+    {
+        if ($user instanceof User && $user->role === \App\UserRole::FieldVerifier) {
+            abort_unless($farm->assigned_verifier_id === $user->id, 404);
+        }
     }
 }

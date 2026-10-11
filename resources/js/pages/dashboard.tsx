@@ -3,6 +3,7 @@ import {
     BadgeCheck,
     Clock,
     Leaf,
+    LockKeyhole,
     ListChecks,
     MapPinned,
     Users,
@@ -115,6 +116,7 @@ type RecentHarvest = {
 };
 
 export default function Dashboard({
+    mobile_dashboard_mode,
     summary,
     area_summary,
     locations,
@@ -125,7 +127,10 @@ export default function Dashboard({
     inventory_summary,
     traceability_summary,
     recent_lots,
+    farmer,
 }: {
+    mobile_dashboard_mode?: string;
+    farmer?: { name: string; farmer_id: string };
     summary: DashboardSummary;
     area_summary: AreaSummary;
     locations: FarmLocation[];
@@ -149,6 +154,80 @@ export default function Dashboard({
         farm: { farm_name: string } | null;
     }[];
 }) {
+    if (mobile_dashboard_mode === 'farmer_account_not_linked') {
+        return (
+            <>
+                <Head title="Farmer dashboard" />
+                <div className="flex flex-col gap-5 sm:gap-6">
+                    <PageHeader
+                        title="Farmer dashboard"
+                        description="Your SureFarm account is ready."
+                    />
+                    <Card className="max-w-2xl shadow-sm">
+                        <CardHeader>
+                            <div className="mb-2 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                                <LockKeyhole className="size-6" />
+                            </div>
+                            <CardTitle>Finish setting up your farm access</CardTitle>
+                            <CardDescription>
+                                Your account is not linked to a farmer profile yet. Contact your cooperative or SureFarm administrator to connect your sign-in to your farmer record.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground">
+                            Farm details will appear here after your account is linked. This keeps each farmer’s records private.
+                        </CardContent>
+                    </Card>
+                </div>
+            </>
+        );
+    }
+
+    if (
+        mobile_dashboard_mode === 'farmer_dashboard' ||
+        mobile_dashboard_mode === 'verifier_dashboard'
+    ) {
+        const isFarmer = mobile_dashboard_mode === 'farmer_dashboard';
+        const rows = isFarmer
+            ? [
+                  ['My farms', summary.registered_farms],
+                  ['Pending', summary.pending_verification],
+                  ['In progress', summary.in_progress],
+                  ['Verified', summary.verified_farms],
+                  ['Needs review', summary.needs_review],
+              ]
+            : [
+                  ['Assigned farms', summary.registered_farms],
+                  ['Pending', summary.pending_verification],
+                  ['In progress', summary.in_progress],
+                  ['Verified', summary.verified_farms],
+                  ['Needs review', summary.needs_review],
+              ];
+
+        return (
+            <>
+                <Head title={isFarmer ? 'Farmer dashboard' : 'Field verifier dashboard'} />
+                <div className="flex flex-col gap-5 sm:gap-6">
+                    <PageHeader
+                        title={isFarmer ? `Welcome, ${farmer?.name ?? 'farmer'}` : 'Field verification'}
+                        description={isFarmer
+                            ? `Your own farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`
+                            : 'Counts include only farms assigned to your verifier account.'}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {rows.map(([label, value]) => (
+                            <Card key={label} className="shadow-sm">
+                                <CardContent className="flex items-center justify-between gap-4 py-5">
+                                    <span className="text-sm text-muted-foreground">{label}</span>
+                                    <span className="text-2xl font-semibold tabular-nums">{countFormatter.format(Number(value ?? 0))}</span>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     const kpis: {
         label: string;
         value: string;

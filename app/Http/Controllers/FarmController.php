@@ -16,11 +16,11 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
+use App\Models\User;
 use App\Models\FarmHarvest;
 use App\Models\FarmInsurance;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
-use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
@@ -91,6 +91,7 @@ class FarmController extends Controller
             ->through(fn (Farm $farm): array => [
                 'id' => $farm->id,
                 'farm_id' => $farm->farm_id,
+                'assigned_verifier_id' => $farm->assigned_verifier_id === null ? '' : (string) $farm->assigned_verifier_id,
                 'farm_name' => $farm->displayName(),
                 'farmer_name' => $farm->farmer->fullName(),
                 'crop_label' => $farm->crop_type->label(),
@@ -176,6 +177,9 @@ class FarmController extends Controller
                 'latitude' => $farm->latitude ?? '',
                 'longitude' => $farm->longitude ?? '',
                 'status' => $farm->status->value,
+                'assigned_verifier_id' => $farm->assigned_verifier_id === null
+                    ? ''
+                    : (string) $farm->assigned_verifier_id,
                 'current_stage' => $farm->current_stage?->value ?? '',
                 'number_of_hills' => $farm->number_of_hills === null ? '' : (string) $farm->number_of_hills,
                 'data_validated' => match ($farm->data_validated) {
@@ -197,6 +201,17 @@ class FarmController extends Controller
                 ],
             ],
             ...$this->portfolio->filterOptions(),
+            'verifiers' => User::query()
+                ->where('role', UserRole::FieldVerifier)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(fn (User $verifier): array => [
+                    'value' => (string) $verifier->id,
+                    'label' => $verifier->name.' · '.$verifier->email,
+                ])
+                ->prepend(['value' => '', 'label' => 'Unassigned'])
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -239,6 +254,13 @@ class FarmController extends Controller
         ]);
 
         $user = $request->user();
+        $canManageCoverage = $user instanceof User && $user->canAccess(UserRole::Operations);
+        $reference = $this->portfolio->card($farm, 1, $farm->farmer->fullName());
+
+        if (! $canManageCoverage) {
+            unset($reference['contracted_value'], $reference['input_support'], $reference['financing_support']);
+        }
+
         $comparison = $this->areaComparison($farm);
 
         return Inertia::render('farms/show', [
@@ -285,7 +307,7 @@ class FarmController extends Controller
                     'farmer_id' => $farm->farmer->farmer_id,
                     'full_name' => $farm->farmer->fullName(),
                 ],
-                'reference' => $this->portfolio->card($farm, 1, $farm->farmer->fullName()),
+                'reference' => $reference,
                 'can_edit' => $user instanceof User && $user->canAccess(UserRole::Operations),
                 'can_record_activity' => $user instanceof User && $user->canAccess(UserRole::Operations),
                 'can_record_production' => $user instanceof User && $user->canAccess(UserRole::Operations),
@@ -295,18 +317,19 @@ class FarmController extends Controller
                 'production_summary' => $this->ledger->farmSummary($farm),
                 'productions' => $this->farmProductions($farm),
                 'harvests' => $this->farmHarvests($farm),
-                'can_manage_coverage' => $user instanceof User && $user->canAccess(UserRole::Operations),
-                'insurances' => $farm->insurances
+                'can_manage_coverage' => $canManageCoverage,
+                'insurances' => ! $canManageCoverage ? [] : $farm->insurances
                     ->map(fn (FarmInsurance $insurance): array => $insurance->present())
                     ->values()
                     ->all(),
-                'financings' => $farm->financings
+                'financings' => ! $canManageCoverage ? [] : $farm->financings
                     ->map(fn (FarmFinancing $financing): array => $financing->present())
                     ->values()
                     ->all(),
                 'inventory_summary' => $stock->balances($farm->id),
                 'traceability_lots' => $traceability->forFarm($farm->id),
             ],
+            'google_maps_api_key' => config('services.google_maps.browser_api_key'),
         ]);
     }
 

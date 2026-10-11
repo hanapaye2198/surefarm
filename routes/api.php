@@ -17,6 +17,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryDamageController;
 use App\Http\Controllers\InventoryProcessingController;
 use App\Http\Controllers\ModulePlaceholderController;
+use App\Http\Controllers\MobileFarmerController;
 use App\Http\Controllers\Settings\ActivityTypeController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -36,6 +37,15 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
                 ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports');
 
+            Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
+                Route::get('farms', [MobileFarmerController::class, 'farms']);
+                Route::get('farms/{farm}', [MobileFarmerController::class, 'showFarm']);
+                Route::get('activities', [MobileFarmerController::class, 'activities']);
+                Route::get('notifications', [MobileFarmerController::class, 'notifications']);
+                Route::post('notifications/{notification}/read', [MobileFarmerController::class, 'markNotificationRead']);
+                Route::get('profile', [MobileFarmerController::class, 'profile']);
+            });
+
             Route::middleware('role:operations')->group(function (): void {
                 Route::get('farmers/create', [FarmerController::class, 'create']);
                 Route::post('farmers', [FarmerController::class, 'store']);
@@ -46,8 +56,6 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::post('farmers/{farmer}/farms', [FarmController::class, 'store']);
                 Route::get('farms/{farm}/edit', [FarmController::class, 'edit']);
                 Route::put('farms/{farm}', [FarmController::class, 'update']);
-                Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
-                Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
 
                 Route::get('farm-activities/create', [FarmActivityController::class, 'create']);
                 Route::post('farm-activities', [FarmActivityController::class, 'store']);
@@ -94,7 +102,9 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::put('settings/activity-types/{activityType}', [ActivityTypeController::class, 'update']);
             });
 
-            Route::middleware('role:operations,field_verifier')->group(function (): void {
+            Route::middleware('role:operations')->group(function (): void {
+                Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
+                Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
                 Route::get('farmers', [FarmerController::class, 'index']);
                 Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo']);
                 Route::get('farmers/{farmer}', [FarmerController::class, 'show']);
@@ -116,9 +126,12 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             });
 
             Route::middleware('role:field_verifier')->group(function (): void {
+                Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
+                Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
                 Route::get('farm-verification', [FarmVerificationController::class, 'index']);
                 Route::get('farm-verification/{farm}', [FarmVerificationController::class, 'show']);
                 Route::post('farm-verification/{farm}', [FarmVerificationController::class, 'store']);
+                Route::post('farm-verification/{farm}/inspection', [FarmVerificationController::class, 'inspection']);
                 Route::put('farm-verification/{farm}', [FarmVerificationController::class, 'update']);
             });
 

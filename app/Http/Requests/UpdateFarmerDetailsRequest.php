@@ -28,6 +28,12 @@ class UpdateFarmerDetailsRequest extends FormRequest
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'government_id' => ['nullable', 'string', 'max:64'],
+            'user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('role', UserRole::Farmer->value),
+                Rule::unique('farmers', 'user_id')->ignore($this->route('farmer')?->id),
+            ],
             'has_bank_account' => ['boolean'],
             'bank_name' => [
                 Rule::excludeUnless($recordingBankAccount),
@@ -81,7 +87,7 @@ class UpdateFarmerDetailsRequest extends FormRequest
         $accountNumber = $this->string('account_number')->trim()->toString();
         $accountName = $this->string('account_name')->trim()->toString();
 
-        $this->merge([
+        $values = [
             'date_of_birth' => $dateOfBirth === '' ? null : $dateOfBirth,
             'government_id' => $governmentId === '' ? null : $governmentId,
             'has_bank_account' => $this->boolean('has_bank_account'),
@@ -91,6 +97,12 @@ class UpdateFarmerDetailsRequest extends FormRequest
             'bank_account_status' => $this->filled('bank_account_status')
                 ? $this->string('bank_account_status')->trim()->toString()
                 : BankAccountStatus::Unverified->value,
-        ]);
+        ];
+
+        if ($this->exists('user_id')) {
+            $values['user_id'] = $this->filled('user_id') ? $this->input('user_id') : null;
+        }
+
+        $this->merge($values);
     }
 }

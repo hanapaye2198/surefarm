@@ -25,6 +25,7 @@ type FarmForm = {
     latitude: string;
     longitude: string;
     status: string;
+    assigned_verifier_id: string;
     current_stage: string;
     number_of_hills: string;
     data_validated: string;
@@ -66,12 +67,14 @@ export default function EditFarm({
     statuses,
     stages,
     ownerships,
+    verifiers,
 }: {
     farm: FarmForm;
     crops: Option[];
     statuses: Option[];
     stages: Option[];
     ownerships: Option[];
+    verifiers: Option[];
 }) {
     const pageErrors = usePage().props.errors as
         | Record<string, string>
@@ -141,6 +144,32 @@ export default function EditFarm({
                         <CardTitle>Farm information</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
+                        <Field
+                            label="Assigned Farm Validator"
+                            htmlFor="assigned_verifier_id"
+                            error={form.errors.assigned_verifier_id}
+                        >
+                            <select
+                                id="assigned_verifier_id"
+                                value={form.data.assigned_verifier_id}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'assigned_verifier_id',
+                                        event.target.value,
+                                    )
+                                }
+                                className={selectClass}
+                            >
+                                {verifiers.map((verifier) => (
+                                    <option key={verifier.value} value={verifier.value}>
+                                        {verifier.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-muted-foreground">
+                                Only the assigned validator can run this farm’s mobile verification workflow.
+                            </p>
+                        </Field>
                         <Field
                             label="Farm Name"
                             htmlFor="farm_name"

@@ -8,17 +8,130 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\Farmer;
+use App\Models\User;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
 use App\Services\TraceabilitySummary;
+use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability): Response
+    public function index(Request $request, ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability): Response
     {
+        $user = $request->user();
+
+        if ($user instanceof User && $user->role === UserRole::FieldVerifier) {
+            $assignedFarms = Farm::query()->where('assigned_verifier_id', $user->id);
+            $declared = (float) (clone $assignedFarms)->sum('declared_area_hectares');
+            $coffee = (float) (clone $assignedFarms)
+                ->where('crop_type', CropType::Coffee)
+                ->sum('declared_area_hectares');
+            $verified = (float) (clone $assignedFarms)
+                ->where('verification_status', FarmVerificationStatus::Verified)
+                ->sum('verified_area_hectares');
+
+            return Inertia::render('dashboard', [
+                'mobile_dashboard_mode' => 'verifier_dashboard',
+                'summary' => [
+                    'registered_farms' => (clone $assignedFarms)->count(),
+                    'pending_verification' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
+                    'in_progress' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
+                    'verified_farms' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
+                    'needs_review' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
+                    'failed' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
+                ],
+                'area_summary' => [
+                    'total_declared_hectares' => round($declared, 2),
+                    'total_verified_hectares' => round($verified, 2),
+                    'coffee_hectares' => round($coffee, 2),
+                    'other_crop_hectares' => round($declared - $coffee, 2),
+                ],
+                'recent_activities' => [],
+                'recent_harvests' => [],
+                'recent_lots' => [],
+            ]);
+        }
+
+        // Farmer accounts are restricted to their linked farmer profile.
+        if ($user instanceof User && $user->role === UserRole::Farmer) {
+            $farmer = $user->farmer()->with('farms')->first();
+
+            if ($farmer !== null) {
+                $farms = $farmer->farms();
+
+                return Inertia::render('dashboard', [
+                    'mobile_dashboard_mode' => 'farmer_dashboard',
+                    'account' => ['name' => $user->name, 'email' => $user->email],
+                    'farmer' => ['name' => $farmer->fullName(), 'farmer_id' => $farmer->farmer_id],
+                    'summary' => [
+                        'registered_farms' => (clone $farms)->count(),
+                        'pending_verification' => (clone $farms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
+                        'in_progress' => (clone $farms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
+                        'verified_farms' => (clone $farms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
+                        'needs_review' => (clone $farms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
+                        'failed' => (clone $farms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
+                    ],
+                ]);
+            }
+
+            return Inertia::render('dashboard', [
+                'mobile_dashboard_mode' => 'farmer_account_not_linked',
+                'account' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+                // Keep the shared web dashboard's props shape while returning
+                // no aggregate or other-farmer data to this account.
+                'summary' => [
+                    'registered_farmers' => 0,
+                    'registered_farms' => 0,
+                    'total_coffee_farm_area_hectares' => 0,
+                    'verified_farms' => 0,
+                    'pending_verification' => 0,
+                    'in_progress' => 0,
+                    'needs_review' => 0,
+                    'failed' => 0,
+                ],
+                'area_summary' => [
+                    'total_declared_hectares' => 0,
+                    'total_verified_hectares' => 0,
+                    'coffee_hectares' => 0,
+                    'other_crop_hectares' => 0,
+                ],
+                'locations' => [],
+                'verified_lands' => [],
+                'recent_activities' => [],
+                'harvest_summary' => [
+                    'expected_label' => '0',
+                    'actual_label' => '0',
+                    'remaining_label' => '0',
+                    'exceeds' => false,
+                    'message' => null,
+                    'progress' => null,
+                    'has_records' => false,
+                    'harvesting_farms' => 0,
+                ],
+                'recent_harvests' => [],
+                'inventory_summary' => [
+                    'stages' => [],
+                    'total_label' => '0',
+                    'has_records' => false,
+                    'chart' => [],
+                ],
+                'traceability_summary' => [
+                    'active_lots' => 0,
+                    'green_bean_lots' => 0,
+                    'traced_label' => '0',
+                    'has_records' => false,
+                ],
+                'recent_lots' => [],
+            ]);
+        }
+
         $coffeeArea = $this->declaredHectares(CropType::Coffee);
         $totalDeclared = $this->declaredHectares();
 

@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'farm_id',
     'farmer_id',
+    'assigned_verifier_id',
     'farm_name',
     'crop_type',
     'declared_area_hectares',
@@ -85,6 +86,14 @@ class Farm extends Model
     public function farmer(): BelongsTo
     {
         return $this->belongsTo(Farmer::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function assignedVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_verifier_id');
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Requests\DestroyFarmBoundaryRequest;
 use App\Http\Requests\SaveFarmBoundaryRequest;
 use App\Models\Farm;
 use App\Services\FarmBoundaryGeometry;
+use App\UserRole;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -47,7 +48,9 @@ class FarmBoundaryController extends Controller
             'message' => 'Farm boundary removed.',
         ]);
 
-        return to_route('farms.show', $farm);
+        return $request->user()?->role === UserRole::FieldVerifier
+            ? to_route('farm-verification.show', $farm)
+            : to_route('farms.show', $farm);
     }
 
     private function persist(
@@ -93,6 +96,8 @@ class FarmBoundaryController extends Controller
                 : 'Farm boundary updated.',
         ]);
 
-        return to_route('farms.show', $farm);
+        return $request->user()?->role === UserRole::FieldVerifier
+            ? to_route('farm-verification.show', $farm)
+            : to_route('farms.show', $farm);
     }
 }

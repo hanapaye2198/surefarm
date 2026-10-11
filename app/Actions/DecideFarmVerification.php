@@ -7,6 +7,7 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmVerification;
 use App\Models\User;
+use App\Notifications\FarmVerificationStatusNotification;
 use App\Services\FarmAreaComparison;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,7 +25,7 @@ class DecideFarmVerification
      */
     public function handle(Farm $farm, User $verifier, FarmVerificationResult $result, ?string $remarks): FarmVerification
     {
-        return DB::transaction(function () use ($farm, $verifier, $result, $remarks): FarmVerification {
+        $verification = DB::transaction(function () use ($farm, $verifier, $result, $remarks): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');
 
@@ -41,7 +42,7 @@ class DecideFarmVerification
             }
 
             $comparison = $this->areas->calculate(
-                $locked->declared_area_hectares,
+                $open->declared_area_hectares,
                 $locked->boundary?->gps_measured_area_hectares,
             );
 
@@ -51,8 +52,13 @@ class DecideFarmVerification
                 ]);
             }
 
+            if ($open->inspection_checklist === null || ! $open->photos()->exists()) {
+                throw ValidationException::withMessages([
+                    'verification' => 'Complete the field inspection checklist and upload evidence before saving a result.',
+                ]);
+            }
+
             $open->update([
-                'declared_area_hectares' => $comparison['declared'],
                 'measured_area_hectares' => $comparison['measured'],
                 'difference_hectares' => $comparison['difference'],
                 'variance_percentage' => $comparison['variance'],
@@ -78,6 +84,19 @@ class DecideFarmVerification
 
             return $open->refresh();
         });
+
+        $farm->loadMissing('farmer.user');
+        $farm->farmer?->user?->notify(new FarmVerificationStatusNotification(
+            $farm,
+            $result->value,
+            match ($result) {
+                FarmVerificationResult::Verified => 'Your farm verification was marked verified.',
+                FarmVerificationResult::Failed => 'Your farm verification needs follow-up.',
+                FarmVerificationResult::NeedsReview => 'Your farm verification needs another review.',
+            },
+        ));
+
+        return $verification;
     }
 
     private function remarks(?string $remarks): ?string

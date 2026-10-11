@@ -112,6 +112,12 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'PUT',
                 path: `/farmers/${itemId}`,
                 fields: [
+                    {
+                        key: 'user_id',
+                        label: 'Farmer app login',
+                        kind: 'select',
+                        options: 'farmerAccounts',
+                    },
                     text('date_of_birth', 'Date of birth', { kind: 'date' }),
                     text('government_id', 'Government ID'),
                     {
@@ -213,6 +219,12 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'PUT',
                 path: `/farms/${itemId}`,
                 fields: [
+                    {
+                        key: 'assigned_verifier_id',
+                        label: 'Assigned field verifier',
+                        kind: 'select',
+                        options: 'verifiers',
+                    },
                     text('farm_name', 'Farm name'),
                     {
                         key: 'crop_type',
@@ -781,6 +793,39 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         ],
                     },
                     text('remarks', 'Remarks', { multiline: true }),
+                ],
+            };
+        case 'farm-verification/inspection':
+            return {
+                title: 'Field inspection',
+                method: 'POST',
+                path: `/farm-verification/${data.farmId}/inspection`,
+                fields: [
+                    {
+                        key: 'farm_identified',
+                        label: 'I confirmed this is the registered farm',
+                        kind: 'toggle',
+                        required: true,
+                    },
+                    {
+                        key: 'boundary_walked',
+                        label: 'I walked and checked the GPS boundary',
+                        kind: 'toggle',
+                        required: true,
+                    },
+                    {
+                        key: 'farmer_or_representative_met',
+                        label: 'I met the farmer or their representative',
+                        kind: 'toggle',
+                        required: true,
+                    },
+                    text('latitude', 'Evidence latitude', { kind: 'number' }),
+                    text('longitude', 'Evidence longitude', { kind: 'number' }),
+                    text('evidence_photo', 'Inspection evidence photo', {
+                        kind: 'image',
+                        required: true,
+                        hint: 'Take a farm photo or choose one from your device.',
+                    }),
                 ],
             };
         case 'farm-boundary/edit':

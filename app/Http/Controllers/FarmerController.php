@@ -15,10 +15,12 @@ use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmInsurance;
+use App\Models\User;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
 use App\Services\TraceabilitySummary;
+use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -113,6 +115,7 @@ class FarmerController extends Controller
                 'id' => $farmer->id,
                 'farmer_id' => $farmer->farmer_id,
                 'full_name' => $farmer->fullName(),
+                'user_id' => $farmer->user_id === null ? '' : (string) $farmer->user_id,
                 'date_of_birth' => $farmer->date_of_birth?->format('Y-m-d') ?? '',
                 'government_id' => $farmer->government_id ?? '',
                 'has_bank_account' => $account !== null,
@@ -121,6 +124,21 @@ class FarmerController extends Controller
                 'account_name' => $account?->account_name ?? $farmer->fullName(),
                 'bank_account_status' => $account?->status->value ?? BankAccountStatus::Unverified->value,
             ],
+            'farmerAccounts' => User::query()
+                ->where('role', UserRole::Farmer)
+                ->whereNotNull('email_verified_at')
+                ->where(function ($query) use ($farmer): void {
+                    $query->whereDoesntHave('farmer')->orWhere('id', $farmer->user_id);
+                })
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(fn (User $user): array => [
+                    'value' => (string) $user->id,
+                    'label' => $user->name.' · '.$user->email,
+                ])
+                ->prepend(['value' => '', 'label' => 'No mobile account linked'])
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -149,6 +167,9 @@ class FarmerController extends Controller
 
     public function show(Farmer $farmer, FarmPortfolio $portfolio, ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability): Response
     {
+        $user = request()->user();
+        $canViewSensitiveDetails = $user instanceof User && $user->canAccess(UserRole::Operations);
+
         $farmer->load([
             'spouse',
             'cooperative',
@@ -171,7 +192,7 @@ class FarmerController extends Controller
                 'middle_name' => $farmer->middle_name,
                 'last_name' => $farmer->last_name,
                 'date_of_birth' => $farmer->date_of_birth?->format('F j, Y'),
-                'government_id' => $farmer->government_id,
+                'government_id' => $canViewSensitiveDetails ? $farmer->government_id : null,
                 'address' => $farmer->addressLabel(),
                 'photo_url' => $farmer->photo_path !== null
                     ? route('farmers.photo', $farmer)
@@ -186,14 +207,14 @@ class FarmerController extends Controller
                 'cooperative' => $farmer->cooperative?->name,
                 'member_since' => $farmer->created_at?->format('Y'),
                 'registration_date' => $farmer->created_at?->format('F j, Y'),
-                'bank_account' => $farmer->bankAccount === null ? null : [
+                'bank_account' => ! $canViewSensitiveDetails || $farmer->bankAccount === null ? null : [
                     'bank_name' => $farmer->bankAccount->bank_name,
                     'account_number' => $farmer->bankAccount->maskedAccountNumber(),
                     'account_name' => $farmer->bankAccount->account_name,
                     'status' => $farmer->bankAccount->status->value,
                     'status_label' => $farmer->bankAccount->status->label(),
                 ],
-                'spouse' => $farmer->spouse === null ? null : [
+                'spouse' => ! $canViewSensitiveDetails || $farmer->spouse === null ? null : [
                     'first_name' => $farmer->spouse->first_name,
                     'middle_name' => $farmer->spouse->middle_name,
                     'last_name' => $farmer->spouse->last_name,
@@ -214,7 +235,7 @@ class FarmerController extends Controller
                 'production_summary' => $ledger->farmerSummary($farmer),
                 'inventory_summary' => $stock->balances(farmerId: $farmer->id),
                 'traceability_summary' => $traceability->metrics(farmerId: $farmer->id),
-                'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index): array {
+                'farm_coverage' => ! $canViewSensitiveDetails ? [] : $farms->values()->map(function (Farm $farm, int $index): array {
                     return [
                         'id' => $farm->id,
                         'number_label' => 'Farm '.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),

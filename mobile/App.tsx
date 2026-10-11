@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     BackHandler,
     Image,
+    Linking,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -20,7 +21,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ApiError, apiRequest, API_URL } from './src/api';
+import Svg, { Circle, Path, Polygon } from 'react-native-svg';
+import { ApiError, apiRequest, API_URL, SITE_URL } from './src/api';
 import {
     formForPage,
     initialFieldValues,
@@ -30,19 +32,70 @@ import {
 } from './src/forms';
 
 type Role = 'admin' | 'operations' | 'field_verifier' | 'farmer';
-type User = { id: number; name: string; email: string; role: Role };
+type User = { id: number; name: string; email: string; role: Role; farmer_profile_linked?: boolean };
 type Page = { component: string; data: Record<string, any> };
 type Screen = { path: string; title: string };
+const ICONS = {
+    dashboard: 'M3 3h8v8H3z M14 3h7v5h-7z M14 10h7v11h-7z M3 14h8v7H3z',
+    farmers:
+        'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+    farms: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z M12 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5',
+    verification: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
+    activities: 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01',
+    production:
+        'M12 22v-9 M12 13c-4 0-7-2.5-7-7 4.5 0 7 2.5 7 7 M12 13c0-4.5 2.5-7 7-7 0 4.5-2.5 7-7 7',
+    harvest:
+        'M12 22V2 M5 6c4 0 7 2 7 6 M19 6c-4 0-7 2-7 6 M4 12c4 0 8 2 8 6 M20 12c-4 0-8 2-8 6',
+    inventory: 'm12 3 9 5-9 5-9-5 9-5Z M3 8v9l9 5 9-5V8 M12 13v9 M7.5 5.5l9 5',
+    processing:
+        'M2 20h20 M4 20V11l5 3v-3l5 3V7l6 3v10 M7 7h.01 M7 4h.01 M17 14h.01 M17 17h.01',
+    traceability:
+        'M3 3h6v6H3z M15 3h6v6h-6z M3 15h6v6H3z M15 15h2v2h-2z M19 15h2v6h-2z M15 19h2v2h-2z',
+    cooperatives:
+        'M3 21h18 M5 21V7l7-4 7 4v14 M9 9h.01 M15 9h.01 M9 13h.01 M15 13h.01 M10 21v-4h4v4',
+    cropManagement:
+        'M20 4c-9 0-15 5-15 12a4 4 0 0 0 4 4c7 0 12-6 11-16Z M5 20c4-5 7-7 12-10',
+    finance:
+        'M12 8c-2.5 0-4 1.2-4 3s1.5 3 4 3 4 1.2 4 3-1.5 3-4 3m0-14v2m0 10v2 M6 10a6 6 0 1 1 0 4',
+    insurance: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11',
+    logistics:
+        'M3 7h11v10H3z M14 11h4l3 3v3h-7z M7 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3 M18 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3',
+    reports: 'M3 3v18h18 M7 14v3 M12 10v7 M17 6v11',
+    activityTypes:
+        'M9 6h12 M9 12h12 M9 18h12 M3 6l1 1 2-2 M3 12l1 1 2-2 M3 18l1 1 2-2',
+    home: 'm3 10 9-7 9 7 M5 9v12h14V9 M9 21v-7h6v7',
+    features: 'M3 3h8v8H3z M14 3h7v5h-7z M14 10h7v11h-7z M3 14h8v7H3z',
+    account: 'M20 21a8 8 0 0 0-16 0 M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
+    arrowRight: 'M5 12h14 M12 5l7 7-7 7',
+    chevronRight: 'm9 18 6-6-6-6',
+    empty: 'M9 3h6l2 2h3v16H4V5h3l2-2Z M9 11h6 M9 15h6 M9 19h6',
+    pending: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 6v6l4 2',
+    inProgress: 'M12 3a9 9 0 1 0 9 9 M12 7v5l3 2',
+    failed: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M15 9l-6 6 M9 9l6 6',
+    needsReview: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 8v4 M12 16h.01',
+    verified: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
+    back: 'm15 18-6-6 6-6 M20 12H9 M9 12l3-3 M9 12l3 3',
+    signOut: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+    search: 'M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16 M21 21l-4.35-4.35',
+    leaf: 'M20 4c-9 0-15 5-15 12a4 4 0 0 0 4 4c7 0 12-6 11-16Z M5 20c4-5 7-7 12-10',
+    location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z M12 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5',
+    calendar: 'M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z M8 14h.01 M12 14h.01 M16 14h.01 M8 18h.01 M12 18h.01',
+    shield: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
+    info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 11v5 M12 8h.01',
+    lock: 'M5 11h14v10H5z M8 11V7a4 4 0 1 1 8 0v4',
+} as const;
+type IconName = keyof typeof ICONS;
 type Section = {
     key: string;
     title: string;
     description: string;
     path: string;
-    glyph: string;
+    icon: IconName;
     roles?: Role[];
 };
 
 const TOKEN_KEY = 'surefarm.mobile.access-token';
+const LOGO_URL = `${SITE_URL}/surefarm-logo.png`;
 
 const getStoredToken = async (): Promise<string | null> => {
     if (Platform.OS === 'web') {
@@ -75,10 +128,34 @@ const removeStoredToken = async (): Promise<void> => {
 };
 
 const API_FOREST = '#254d3a';
-const GREEN = '#477958';
-const CANVAS = '#f4f7f3';
-const INK = '#25342b';
-const MUTED = '#738078';
+const GREEN = '#4b8a68';
+const CANVAS = '#f5f7f4';
+const INK = '#1f3027';
+const MUTED = '#748178';
+
+function AppIcon({
+    name,
+    size = 20,
+    color = API_FOREST,
+    strokeWidth = 2,
+}: {
+    name: IconName;
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+}) {
+    return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+            <Path
+                d={ICONS[name]}
+                stroke={color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </Svg>
+    );
+}
 
 const SECTIONS: Section[] = [
     {
@@ -86,7 +163,7 @@ const SECTIONS: Section[] = [
         title: 'Dashboard',
         description: 'Farm program overview and recent activity',
         path: '/dashboard',
-        glyph: '⌂',
+        icon: 'dashboard',
     },
     {
         key: 'farmers',
@@ -94,7 +171,39 @@ const SECTIONS: Section[] = [
         description: 'Farmer registry and farm portfolios',
         path: '/farmers',
         roles: ['operations', 'field_verifier'],
-        glyph: '♙',
+        icon: 'farmers',
+    },
+    {
+        key: 'farmer-farms',
+        title: 'My farms',
+        description: 'Farm status, GPS area, and verification progress',
+        path: '/farmer/farms',
+        roles: ['farmer'],
+        icon: 'farms',
+    },
+    {
+        key: 'farmer-activities',
+        title: 'Activities & harvest',
+        description: 'Recent farm work and harvest records',
+        path: '/farmer/activities',
+        roles: ['farmer'],
+        icon: 'activities',
+    },
+    {
+        key: 'farmer-notifications',
+        title: 'Notifications',
+        description: 'Updates about your farm verification',
+        path: '/farmer/notifications',
+        roles: ['farmer'],
+        icon: 'pending',
+    },
+    {
+        key: 'farmer-profile',
+        title: 'My profile',
+        description: 'Your registered farmer information',
+        path: '/farmer/profile',
+        roles: ['farmer'],
+        icon: 'account',
     },
     {
         key: 'farms',
@@ -102,7 +211,7 @@ const SECTIONS: Section[] = [
         description: 'Farm records, coordinates, and boundaries',
         path: '/farms',
         roles: ['operations', 'field_verifier'],
-        glyph: '⌖',
+        icon: 'farms',
     },
     {
         key: 'farm-verification',
@@ -110,7 +219,7 @@ const SECTIONS: Section[] = [
         description: 'Review and record field results',
         path: '/farm-verification',
         roles: ['field_verifier'],
-        glyph: '✓',
+        icon: 'verification',
     },
     {
         key: 'farm-activities',
@@ -118,7 +227,7 @@ const SECTIONS: Section[] = [
         description: 'Field work, costs, and history',
         path: '/farm-activities',
         roles: ['operations', 'field_verifier'],
-        glyph: '☷',
+        icon: 'activities',
     },
     {
         key: 'production',
@@ -126,7 +235,7 @@ const SECTIONS: Section[] = [
         description: 'Expected output and production periods',
         path: '/production',
         roles: ['operations', 'field_verifier'],
-        glyph: '♧',
+        icon: 'production',
     },
     {
         key: 'harvest',
@@ -134,7 +243,7 @@ const SECTIONS: Section[] = [
         description: 'Actual harvest records and receiving',
         path: '/harvest',
         roles: ['operations', 'field_verifier'],
-        glyph: '✳',
+        icon: 'harvest',
     },
     {
         key: 'inventory',
@@ -142,7 +251,7 @@ const SECTIONS: Section[] = [
         description: 'Coffee stock and inventory movements',
         path: '/inventory',
         roles: ['operations', 'field_verifier'],
-        glyph: '▤',
+        icon: 'inventory',
     },
     {
         key: 'processing',
@@ -150,7 +259,7 @@ const SECTIONS: Section[] = [
         description: 'Processing stages and movements',
         path: '/inventory/processing',
         roles: ['operations', 'field_verifier'],
-        glyph: '⚙',
+        icon: 'processing',
     },
     {
         key: 'traceability',
@@ -158,49 +267,49 @@ const SECTIONS: Section[] = [
         description: 'Coffee lots and journey history',
         path: '/traceability',
         roles: ['operations', 'field_verifier'],
-        glyph: '▦',
+        icon: 'traceability',
     },
     {
         key: 'cooperatives',
         title: 'Cooperatives',
         description: 'Cooperative directory',
         path: '/modules/cooperatives',
-        glyph: '♧',
+        icon: 'cooperatives',
     },
     {
         key: 'crop-management',
         title: 'Crop management',
         description: 'Crop program workspace',
         path: '/modules/crop-management',
-        glyph: '❧',
+        icon: 'cropManagement',
     },
     {
         key: 'finance',
         title: 'Finance',
         description: 'Farm financing workspace',
         path: '/modules/finance',
-        glyph: '₱',
+        icon: 'finance',
     },
     {
         key: 'insurance',
         title: 'Insurance',
         description: 'Farm insurance workspace',
         path: '/modules/insurance',
-        glyph: '◇',
+        icon: 'insurance',
     },
     {
         key: 'logistics-export',
         title: 'Logistics & export',
         description: 'Logistics workspace',
         path: '/modules/logistics-export',
-        glyph: '⇢',
+        icon: 'logistics',
     },
     {
         key: 'reports',
         title: 'Reports',
         description: 'Program reporting workspace',
         path: '/modules/reports',
-        glyph: '▥',
+        icon: 'reports',
     },
     {
         key: 'activity-types',
@@ -208,14 +317,14 @@ const SECTIONS: Section[] = [
         description: 'Configure farm activities',
         path: '/settings/activity-types',
         roles: ['admin'],
-        glyph: '☷',
+        icon: 'activityTypes',
     },
 ];
 
 const ROLE_LABEL: Record<Role, string> = {
     admin: 'Administrator',
     operations: 'Operations',
-    field_verifier: 'Field verifier',
+    field_verifier: 'Farm validator',
     farmer: 'Farmer',
 };
 const COLLECTION: Record<string, string> = {
@@ -229,6 +338,52 @@ const COLLECTION: Record<string, string> = {
     'inventory/processing': 'movements',
     'traceability/index': 'lots',
     'activity-types/index': 'activityTypes',
+};
+const COLLECTION_FILTERS: Record<
+    string,
+    { key: string; label: string; source: string }[]
+> = {
+    'farms/index': [
+        { key: 'verification_status', label: 'Verification', source: 'verificationStatuses' },
+        { key: 'status', label: 'Farm status', source: 'statuses' },
+    ],
+    'farm-verification/index': [
+        { key: 'verification_status', label: 'Verification', source: 'verificationStatuses' },
+        { key: 'crop', label: 'Crop', source: 'crops' },
+        { key: 'province', label: 'Province', source: 'provinces' },
+        { key: 'municipality', label: 'Municipality', source: 'municipalities' },
+    ],
+    'farm-activities/index': [
+        { key: 'farm', label: 'Farm', source: 'farms' },
+        { key: 'farmer', label: 'Farmer', source: 'farmers' },
+        { key: 'crop', label: 'Crop', source: 'crops' },
+        { key: 'activity_type', label: 'Activity', source: 'activityTypes' },
+        { key: 'status', label: 'Status', source: 'statuses' },
+    ],
+    'production/index': [
+        { key: 'farm', label: 'Farm', source: 'farms' },
+        { key: 'farmer', label: 'Farmer', source: 'farmers' },
+        { key: 'crop', label: 'Crop', source: 'crops' },
+        { key: 'period', label: 'Period', source: 'periods' },
+        { key: 'status', label: 'Status', source: 'statuses' },
+    ],
+    'harvest/index': [
+        { key: 'farm', label: 'Farm', source: 'farms' },
+        { key: 'farmer', label: 'Farmer', source: 'farmers' },
+        { key: 'crop', label: 'Crop', source: 'crops' },
+        { key: 'status', label: 'Status', source: 'statuses' },
+    ],
+    'inventory/index': [
+        { key: 'farmer', label: 'Farmer', source: 'farmers' },
+        { key: 'farm', label: 'Farm', source: 'farms' },
+        { key: 'stage', label: 'Stage', source: 'stages' },
+        { key: 'status', label: 'Status', source: 'statuses' },
+    ],
+    'traceability/index': [
+        { key: 'stage', label: 'Stage', source: 'stages' },
+        { key: 'crop', label: 'Crop', source: 'crops' },
+        { key: 'status', label: 'Status', source: 'statuses' },
+    ],
 };
 const TITLES: Record<string, string> = {
     dashboard: 'Dashboard',
@@ -314,10 +469,17 @@ function SureFarmApp() {
     const sections = useMemo(
         () =>
             SECTIONS.filter(
-                (item) =>
-                    !item.roles ||
-                    user?.role === 'admin' ||
-                    (user && item.roles.includes(user.role)),
+                (item) => {
+                    if (user?.role === 'farmer')
+                        return item.key === 'dashboard' || (user.farmer_profile_linked === true && item.roles?.includes('farmer') === true);
+                    if (user?.role === 'field_verifier')
+                        return ['dashboard', 'farm-verification'].includes(item.key);
+                    return (
+                        !item.roles ||
+                        user?.role === 'admin' ||
+                        (user && item.roles.includes(user.role))
+                    );
+                },
             ),
         [user?.role],
     );
@@ -478,7 +640,7 @@ function SureFarmApp() {
     const navigate = async (path: string, title = titleFor(path)) => {
         setStack((previous) => [...previous, { path, title }]);
         setPanel('page');
-        setSearch('');
+        if (!path.includes('search=')) setSearch('');
         setPage(null);
         await loadPage(path);
     };
@@ -501,8 +663,8 @@ function SureFarmApp() {
         }
         const previous = stack.slice(0, -1);
         setStack(previous);
-        setSearch('');
         const path = previous[previous.length - 1].path;
+        setSearch(new URLSearchParams(path.split('?')[1] ?? '').get('search') ?? '');
         if (!path.startsWith('local:')) await loadPage(path);
     };
 
@@ -724,15 +886,18 @@ function SureFarmApp() {
         >
             <View style={styles.header}>
                 <Pressable
-                    style={styles.backButton}
+                    style={[styles.backButton, stack.length === 1 && styles.brandButton]}
                     onPress={() => void back()}
                 >
                     {stack.length > 1 ? (
-                        <Text style={styles.backGlyph}>‹</Text>
+                        <AppIcon name="back" size={22} color={API_FOREST} />
                     ) : (
-                        <View style={styles.logo}>
-                            <Text style={styles.logoText}>S</Text>
-                        </View>
+                        <Image
+                            source={{ uri: LOGO_URL }}
+                            style={styles.headerLogo}
+                            resizeMode="contain"
+                            accessibilityLabel="SureFarm logo"
+                        />
                     )}
                 </Pressable>
                 <View style={styles.headerCopy}>
@@ -747,7 +912,7 @@ function SureFarmApp() {
                     onPress={() => void signOut()}
                     style={styles.signOut}
                 >
-                    <Text style={styles.signOutText}>↗</Text>
+                    <AppIcon name="signOut" size={18} color={API_FOREST} />
                 </Pressable>
             </View>
 
@@ -826,26 +991,47 @@ function SureFarmApp() {
                 <BottomItem
                     label="Home"
                     active={panel === 'page' && current.path === '/dashboard'}
-                    glyph="⌂"
+                    icon="home"
                     onPress={() => {
                         setPanel('page');
                         setStack([{ path: '/dashboard', title: 'Dashboard' }]);
                         void loadPage('/dashboard');
                     }}
                 />
-                <BottomItem
-                    label="Features"
-                    active={panel === 'features'}
-                    glyph="▦"
-                    onPress={() => setPanel('features')}
-                />
+                {user.role === 'farmer' && user.farmer_profile_linked ? (
+                    <BottomItem
+                        label="My farms"
+                        active={
+                            panel === 'page' &&
+                            current.path === '/farmer/farms'
+                        }
+                        icon="farms"
+                        onPress={() =>
+                            void navigate('/farmer/farms', 'My farms')
+                        }
+                    />
+                ) : user.role === 'farmer' ? (
+                    <BottomItem
+                        label="Security"
+                        active={panel === 'page' && current.path === '/settings/security'}
+                        icon="lock"
+                        onPress={() => void navigate('/settings/security', 'Security settings')}
+                    />
+                ) : (
+                    <BottomItem
+                        label="Features"
+                        active={panel === 'features'}
+                        icon="features"
+                        onPress={() => setPanel('features')}
+                    />
+                )}
                 <BottomItem
                     label="Account"
                     active={
                         panel === 'page' &&
                         current.path.startsWith('/settings/')
                     }
-                    glyph="◉"
+                    icon="account"
                     onPress={() =>
                         void navigate('/settings/profile', 'Profile settings')
                     }
@@ -881,13 +1067,15 @@ function LoginScreen(props: {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.loginBrand}>
-                        <View style={styles.loginLogo}>
-                            <Text style={styles.loginLogoText}>S</Text>
+                        <Image
+                            source={{ uri: LOGO_URL }}
+                            style={styles.loginLogoImage}
+                            resizeMode="contain"
+                            accessibilityLabel="SureFarm logo"
+                        />
+                        <View style={styles.loginBrandCopy}>
+                            <Text style={styles.loginTagline}>Coffee farm operations</Text>
                         </View>
-                        <Text style={styles.loginName}>SureFarm</Text>
-                        <Text style={styles.loginTagline}>
-                            Coffee farm operations
-                        </Text>
                     </View>
                     <View style={styles.loginCard}>
                         <Text style={styles.loginHeading}>
@@ -1006,15 +1194,118 @@ function Dashboard({
     sections: Section[];
     onOpen: (item: Section) => void;
 }) {
+    if (page.data.mobile_dashboard_mode === 'farmer_account_not_linked') {
+        return (
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <View style={styles.welcome}>
+                    <View style={styles.welcomeOrb} />
+                    <Text style={styles.eyebrow}>SUREFARM · FARMER PORTAL</Text>
+                    <Text style={styles.welcomeTitle}>
+                        Welcome, {user?.name?.split(' ')[0] ?? 'farmer'}
+                    </Text>
+                    <Text style={styles.welcomeBody}>
+                        Your account is signed in. Your farm records will appear
+                        here once the SureFarm team links your account to your
+                        farmer profile.
+                    </Text>
+                </View>
+                <View style={styles.setupCard}>
+                    <View style={styles.setupIcon}>
+                        <AppIcon name="farmers" size={22} color={GREEN} />
+                    </View>
+                    <Text style={styles.cardTitle}>Finish setting up your farm access</Text>
+                    <Text style={styles.muted}>
+                        To protect farmer records, the app only shows farms
+                        assigned to your account. Contact your cooperative or
+                        SureFarm administrator and ask them to link this login
+                        to your farmer record.
+                    </Text>
+                    <View style={styles.accountInfo}>
+                        <AppIcon name="account" size={16} color={GREEN} />
+                        <Text style={styles.accountInfoText}>
+                            {page.data.account?.email ?? user?.email}
+                        </Text>
+                    </View>
+                    <View style={styles.setupNote}>
+                        <AppIcon name="lock" size={15} color={API_FOREST} />
+                        <Text style={styles.setupNoteText}>
+                            Your sign-in is active. No other farmer’s information
+                            is shown on this screen.
+                        </Text>
+                    </View>
+                </View>
+            </ScrollView>
+        );
+    }
+
+    if (page.data.mobile_dashboard_mode === 'farmer_dashboard') {
+        const summary = page.data.summary ?? {};
+        const farmsSection = sections.find((section) => section.key === 'farmer-farms');
+        const activitySection = sections.find((section) => section.key === 'farmer-activities');
+
+        return (
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <View style={styles.welcome}>
+                    <Text style={styles.eyebrow}>SUREFARM · FARMER PORTAL</Text>
+                    <Text style={styles.welcomeTitle}>Hello, {(page.data.farmer?.name ?? user?.name)?.split(' ')[0] ?? 'farmer'}</Text>
+                    <Text style={styles.welcomeBody}>Your farms and verification updates, in one place.</Text>
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Farm verification</Text>
+                    <SummaryRow label="My farms" value={summary.registered_farms ?? 0} />
+                    <SummaryRow label="Pending" value={summary.pending_verification ?? 0} />
+                    <SummaryRow label="In progress" value={summary.in_progress ?? 0} />
+                    <SummaryRow label="Verified" value={summary.verified_farms ?? 0} />
+                    <SummaryRow label="Needs review" value={summary.needs_review ?? 0} />
+                </View>
+                {farmsSection && <Primary title="View my farms" onPress={() => onOpen(farmsSection)} />}
+                {activitySection && <Secondary title="Activities & harvest" onPress={() => onOpen(activitySection)} />}
+            </ScrollView>
+        );
+    }
+
     const summary = page.data.summary ?? {};
-    const stats = [
-        { label: 'Registered farmers', value: summary.registered_farmers ?? 0 },
-        { label: 'Registered farms', value: summary.registered_farms ?? 0 },
-        { label: 'Pending', value: summary.pending_verification ?? 0 },
-        { label: 'In progress', value: summary.in_progress ?? 0 },
-        { label: 'Verified', value: summary.verified_farms ?? 0 },
-        { label: 'Needs review', value: summary.needs_review ?? 0 },
+    const operationsStats: { icon: IconName; label: string; value: string | number }[] = [
+        {
+            icon: 'farmers',
+            label: 'Farmers',
+            value: summary.registered_farmers ?? 0,
+        },
+        { icon: 'farms', label: 'Farms', value: summary.registered_farms ?? 0 },
+        {
+            icon: 'pending',
+            label: 'Pending',
+            value: summary.pending_verification ?? 0,
+        },
+        {
+            icon: 'inProgress',
+            label: 'In progress',
+            value: summary.in_progress ?? 0,
+        },
+        {
+            icon: 'verified',
+            label: 'Verified',
+            value: summary.verified_farms ?? 0,
+        },
+        {
+            icon: 'needsReview',
+            label: 'Needs review',
+            value: summary.needs_review ?? 0,
+        },
+        {
+            icon: 'failed',
+            label: 'Failed',
+            value: summary.failed ?? 0,
+        },
     ];
+    const verifierStats: { icon: IconName; label: string; value: string | number }[] = [
+        { icon: 'pending', label: 'Pending', value: summary.pending_verification ?? 0 },
+        { icon: 'inProgress', label: 'In progress', value: summary.in_progress ?? 0 },
+        { icon: 'verified', label: 'Verified', value: summary.verified_farms ?? 0 },
+        { icon: 'needsReview', label: 'Needs review', value: summary.needs_review ?? 0 },
+        { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
+    ];
+    const stats = user?.role === 'field_verifier' ? verifierStats : operationsStats;
     const hour = new Date().getHours();
     const greeting =
         hour < 12
@@ -1022,9 +1313,19 @@ function Dashboard({
             : hour < 18
               ? 'Good afternoon'
               : 'Good evening';
+    const verificationWorkspace = sections.find(
+        (section) => section.key === 'farm-verification',
+    );
+    const today = new Date().toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+    });
     return (
         <ScrollView style={styles.page} contentContainerStyle={styles.content}>
             <View style={styles.welcome}>
+                <View style={styles.welcomeOrb} />
+                <View style={styles.welcomeOrbSmall} />
                 <Text style={styles.eyebrow}>
                     SUREFARM · {ROLE_LABEL[user?.role ?? 'admin'].toUpperCase()}
                 </Text>
@@ -1033,15 +1334,49 @@ function Dashboard({
                     {user?.name ? `, ${user.name.split(' ')[0]}` : ''}
                 </Text>
                 <Text style={styles.welcomeBody}>
-                    Your live overview of farmer registrations, farm
-                    verification, and harvest activity.
+                    {user?.role === 'field_verifier'
+                        ? 'Review current farm verification records, saved boundaries, and the progress of each farm.'
+                        : 'Your live overview of farmer registrations, farm verification, and harvest activity.'}
                 </Text>
+                {verificationWorkspace && (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onOpen(verificationWorkspace)}
+                        style={({ pressed }) => [
+                            styles.heroAction,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <Text style={styles.heroActionText}>
+                            Review farm verification
+                        </Text>
+                        <AppIcon name="arrowRight" size={17} color={GREEN} />
+                    </Pressable>
+                )}
             </View>
-            <Heading title="Program snapshot" />
+            <View style={styles.dashboardHeading}>
+                <View>
+                    <Text style={styles.dashboardTitle}>
+                        {user?.role === 'field_verifier'
+                            ? 'Farm verification'
+                            : 'Program overview'}
+                    </Text>
+                    <Text style={styles.dashboardDate}>{today}</Text>
+                </View>
+                <View style={styles.livePill}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>LIVE API</Text>
+                </View>
+            </View>
             <View style={styles.stats}>
-                {stats.map(({ label, value }) => (
+                {stats.map(({ icon, label, value }) => (
                     <View key={label} style={styles.stat}>
-                        <Text style={styles.statLabel}>{label}</Text>
+                        <View style={styles.statTop}>
+                            <View style={styles.statCode}>
+                                <AppIcon name={icon} size={15} color={GREEN} />
+                            </View>
+                            <Text style={styles.statLabel}>{label}</Text>
+                        </View>
                         <Text style={styles.statValue}>{String(value)}</Text>
                     </View>
                 ))}
@@ -1064,8 +1399,13 @@ function Dashboard({
                 </View>
             )}
             <View style={styles.sectionHeadingRow}>
-                <Heading title="Workspaces" />
-                <Text style={styles.sectionHint}>Open a workspace</Text>
+                <View>
+                    <Text style={styles.dashboardTitle}>Workspaces</Text>
+                    <Text style={styles.dashboardDate}>
+                        Tools for your day-to-day work
+                    </Text>
+                </View>
+                <Text style={styles.sectionHint}>SHORTCUTS</Text>
             </View>
             <View style={styles.quickGrid}>
                 {sections
@@ -1075,12 +1415,20 @@ function Dashboard({
                         <Pressable
                             key={item.key}
                             onPress={() => onOpen(item)}
-                            style={styles.quickCard}
+                            style={({ pressed }) => [
+                                styles.quickCard,
+                                pressed && styles.pressed,
+                            ]}
                         >
-                            <View style={styles.quickIcon}>
-                                <Text style={styles.quickGlyph}>
-                                    {item.glyph}
-                                </Text>
+                            <View style={styles.quickCardTop}>
+                                <View style={styles.quickIcon}>
+                                    <AppIcon name={item.icon} size={20} />
+                                </View>
+                                <AppIcon
+                                    name="chevronRight"
+                                    size={16}
+                                    color={GREEN}
+                                />
                             </View>
                             <Text style={styles.quickTitle}>{item.title}</Text>
                             <Text style={styles.quickDescription}>
@@ -1116,7 +1464,7 @@ function Dashboard({
                             key: 'harvest',
                             title,
                             path,
-                            glyph: '✳',
+                            icon: 'harvest',
                             description: '',
                         })
                     }
@@ -1132,7 +1480,7 @@ function Dashboard({
                             key: 'traceability',
                             title,
                             path,
-                            glyph: '▦',
+                            icon: 'traceability',
                             description: '',
                         })
                     }
@@ -1160,10 +1508,13 @@ function FeatureList({
                     <Pressable
                         key={item.key}
                         onPress={() => onOpen(item)}
-                        style={styles.featureCard}
+                        style={({ pressed }) => [
+                            styles.featureCard,
+                            pressed && styles.pressed,
+                        ]}
                     >
                         <View style={styles.featureIcon}>
-                            <Text style={styles.quickGlyph}>{item.glyph}</Text>
+                            <AppIcon name={item.icon} size={20} />
                         </View>
                         <View style={styles.flex}>
                             <Text style={styles.recordTitle}>{item.title}</Text>
@@ -1171,7 +1522,11 @@ function FeatureList({
                                 {item.description}
                             </Text>
                         </View>
-                        <Text style={styles.chevron}>›</Text>
+                        <AppIcon
+                            name="chevronRight"
+                            size={18}
+                            color="#97a39a"
+                        />
                     </Pressable>
                 ))}
             </View>
@@ -1195,6 +1550,12 @@ function DataPage(props: {
     busy: boolean;
 }) {
     const { page } = props;
+    const [filterValues, setFilterValues] = useState<Record<string, any>>(
+        page.data.filters ?? {},
+    );
+    useEffect(() => {
+        setFilterValues(page.data.filters ?? {});
+    }, [page.component, page.data.filters]);
     const collectionName = COLLECTION[page.component];
     const collection = collectionName ? page.data[collectionName] : null;
     const rows: any[] = Array.isArray(collection)
@@ -1203,7 +1564,122 @@ function DataPage(props: {
           ? collection.data
           : [];
 
+    if (page.component === 'mobile/farmer-farms') {
+        const farms: any[] = page.data.farms ?? [];
+        return (
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>My registered farms</Text>
+                    <Text style={styles.mutedSmall}>Declared, GPS measured, and verified area are shown separately.</Text>
+                </View>
+                {farms.length === 0 ? <EmptyState title="No farms linked yet" message="Your registered farms will appear here." /> : farms.map((farm) => (
+                    <Pressable key={farm.id} onPress={() => props.onOpen(`/farmer/farms/${farm.id}`, farm.farm_name)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+                        <Text style={styles.recordTitle}>{farm.farm_name}</Text>
+                        <Text style={styles.recordCode}>{farm.farm_id} · {farm.crop}</Text>
+                        <SummaryRow label="Declared" value={farm.declared_area} />
+                        <SummaryRow label="GPS measured" value={farm.measured_area ?? 'Not measured'} />
+                        <SummaryRow label="Verified area" value={farm.verified_area ?? 'Not verified'} />
+                        <VerificationProgress status={farm.verification_status} />
+                        <Text style={styles.mutedSmall}>{farm.location}</Text>
+                    </Pressable>
+                ))}
+            </ScrollView>
+        );
+    }
+
+    if (page.component === 'mobile/farmer-farm') {
+        const farm = page.data.farm ?? {};
+        return (
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <View style={styles.card}>
+                    <Text style={styles.recordTitle}>{farm.farm_name}</Text>
+                    <Text style={styles.recordCode}>{farm.farm_id} · {farm.crop}</Text>
+                    <Text style={styles.muted}>{farm.location}</Text>
+                    <VerificationProgress status={farm.verification_status} />
+                    <SummaryRow label="Declared area" value={farm.declared_area} />
+                    <SummaryRow label="GPS measured area" value={farm.measured_area ?? 'Not measured'} />
+                    <SummaryRow label="Verified area" value={farm.verified_area ?? 'Not verified'} />
+                </View>
+                {page.data.comparison && <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Area comparison</Text>
+                    <SummaryRow label="Declared" value={page.data.comparison.declared} />
+                    <SummaryRow label="Measured" value={page.data.comparison.measured} />
+                    <SummaryRow label="Difference" value={page.data.comparison.difference} />
+                </View>}
+                {page.data.boundary && <BoundaryCard boundary={page.data.boundary} apiKey={page.data.google_maps_api_key} />}
+                <Related title="Verification history" rows={page.data.history ?? []} />
+            </ScrollView>
+        );
+    }
+
+    if (page.component === 'mobile/farmer-activities') {
+        const activities: any[] = page.data.activities ?? [];
+        const harvests: any[] = page.data.harvests ?? [];
+        return (
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <Text style={styles.cardTitle}>Farm activities</Text>
+                {activities.length ? activities.map((item) => <View key={`activity-${item.id}`} style={styles.card}>
+                    <Text style={styles.recordTitle}>{item.activity ?? item.description ?? 'Farm activity'}</Text>
+                    <Text style={styles.mutedSmall}>{item.farm_name} · {item.activity_date ?? ''}</Text>
+                    <Text style={styles.muted}>{item.status_label ?? item.status}</Text>
+                </View>) : <EmptyState title="No activities yet" message="Farm activity records will appear here." />}
+                <Text style={[styles.cardTitle, { marginTop: 12 }]}>Harvest</Text>
+                {harvests.length ? harvests.map((item) => <View key={`harvest-${item.id}`} style={styles.card}>
+                    <Text style={styles.recordTitle}>{item.farm_name}</Text>
+                    <SummaryRow label="Harvested" value={item.quantity_label ?? item.quantity} />
+                    <Text style={styles.mutedSmall}>{item.harvest_date ?? ''} · {item.status_label ?? item.status}</Text>
+                </View>) : <EmptyState title="No harvest records yet" message="Harvest records will appear here." />}
+            </ScrollView>
+        );
+    }
+
+    if (page.component === 'mobile/farmer-notifications') {
+        const notifications: any[] = page.data.notifications ?? [];
+        return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            {notifications.length ? notifications.map((item) => <Pressable key={item.id} onPress={async () => {
+                if (item.read) return;
+                await apiRequest(`/farmer/notifications/${item.id}/read`, props.token, { method: 'POST' });
+                props.onOpen('/farmer/notifications', 'Notifications');
+            }} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+                <Text style={styles.recordTitle}>{item.title}{item.read ? '' : ' · New'}</Text>
+                <Text style={styles.muted}>{item.message}</Text>
+                {item.farm_name ? <Text style={styles.mutedSmall}>{item.farm_name} · {item.status ?? ''}</Text> : null}
+                <Text style={styles.mutedSmall}>{item.created_at}</Text>
+            </Pressable>) : <EmptyState title="No updates yet" message="Verification updates will appear here." />}
+        </ScrollView>;
+    }
+
+    if (page.component === 'mobile/farmer-profile') {
+        const farmer = page.data.farmer ?? {};
+        return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <View style={styles.card}>
+                <Text style={styles.cardTitle}>Farmer profile</Text>
+                <SummaryRow label="Name" value={farmer.name} />
+                <SummaryRow label="Farmer ID" value={farmer.farmer_id} />
+                <SummaryRow label="Email" value={farmer.email ?? 'Not provided'} />
+                <SummaryRow label="Mobile" value={farmer.mobile_number ?? 'Not provided'} />
+                <SummaryRow label="Address" value={farmer.address ?? 'Not provided'} />
+                <SummaryRow label="Cooperative" value={farmer.cooperative ?? 'Not linked'} />
+            </View>
+        </ScrollView>;
+    }
+
     if (collectionName) {
+        const filterControls = (COLLECTION_FILTERS[page.component] ?? [])
+            .map((filter) => ({
+                ...filter,
+                options: optionList(page.data[filter.source], page.data),
+            }))
+            .filter((filter) => filter.options.length > 0);
+        const applyFilter = (key: string, value: string) => {
+            const next = { ...filterValues, [key]: value };
+            if (key === 'province') next.municipality = '';
+            setFilterValues(next);
+            props.onOpen(
+                withCollectionQuery(props.path, props.search, next),
+                titleFor(props.path),
+            );
+        };
         const createPaths: Record<string, string> = {
             'farmers/index': '/farmers/create',
             'farm-activities/index': '/farm-activities/create',
@@ -1219,6 +1695,23 @@ function DataPage(props: {
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="handled"
             >
+                <View style={styles.collectionHeader}>
+                    <View style={styles.collectionHeaderIcon}>
+                        <AppIcon
+                            name={collectionIcon(page.component)}
+                            size={22}
+                            color={API_FOREST}
+                        />
+                    </View>
+                    <View style={styles.flex}>
+                        <Text style={styles.collectionTitle}>
+                            {TITLES[page.component] ?? 'Records'}
+                        </Text>
+                        <Text style={styles.mutedSmall}>
+                            {collectionDescription(page.component)}
+                        </Text>
+                    </View>
+                </View>
                 {page.data.summary && (
                     <View style={styles.summaryStrip}>
                         {Object.entries(page.data.summary)
@@ -1247,23 +1740,52 @@ function DataPage(props: {
                             onChangeText={props.onSearch}
                             onSubmitEditing={() =>
                                 props.onOpen(
-                                    withSearch(props.path, props.search),
+                                    withCollectionQuery(props.path, props.search, filterValues),
                                     titleFor(props.path),
                                 )
                             }
                             returnKeyType="search"
                         />
                         <Pressable
-                            style={styles.searchBtn}
+                            style={({ pressed }) => [
+                                styles.searchBtn,
+                                pressed && styles.pressed,
+                            ]}
                             onPress={() =>
                                 props.onOpen(
-                                    withSearch(props.path, props.search),
+                                    withCollectionQuery(props.path, props.search, filterValues),
                                     titleFor(props.path),
                                 )
                             }
                         >
+                            <AppIcon
+                                name="search"
+                                size={15}
+                                color={API_FOREST}
+                            />
                             <Text style={styles.searchText}>Search</Text>
                         </Pressable>
+                    </View>
+                )}
+                {page.data.filters && filterControls.length > 0 && (
+                    <View style={styles.filterGrid}>
+                        {filterControls.map((filter) => (
+                            <View key={filter.key} style={styles.filterField}>
+                                <Text style={styles.filterLabel}>{filter.label}</Text>
+                                <View style={styles.filterPicker}>
+                                    <Picker
+                                        selectedValue={String(filterValues[filter.key] ?? '')}
+                                        onValueChange={(value) => applyFilter(filter.key, String(value))}
+                                        style={styles.filterPickerControl}
+                                    >
+                                        <Picker.Item label={`All ${filter.label.toLowerCase()}`} value="" />
+                                        {filter.options.map((option, index) => (
+                                            <Picker.Item key={`${option.value}-${index}`} label={option.label} value={option.value} />
+                                        ))}
+                                    </Picker>
+                                </View>
+                            </View>
+                        ))}
                     </View>
                 )}
                 {createPath && props.isOperations && (
@@ -1293,8 +1815,12 @@ function DataPage(props: {
                     )}
                 {rows.length === 0 ? (
                     <Empty
-                        title="No records found"
-                        detail="Try changing your search or filters."
+                        title={props.search.trim() ? 'No matching records' : 'No records yet'}
+                        detail={
+                            props.search.trim()
+                                ? 'Try a different name, farm ID, or search term.'
+                                : emptyCollectionDescription(page.component)
+                        }
                     />
                 ) : (
                     rows.map((row, index) => {
@@ -1309,20 +1835,43 @@ function DataPage(props: {
                                         detailTitle(page.component),
                                     )
                                 }
-                                style={styles.recordCard}
+                                style={({ pressed }) => [
+                                    styles.recordCard,
+                                    pressed && path && styles.pressed,
+                                ]}
                             >
                                 <View style={styles.recordTop}>
-                                    <Text style={styles.recordTitle}>
-                                        {recordTitle(row)}
-                                    </Text>
-                                    <Text style={styles.chevron}>›</Text>
+                                    <View style={styles.rowIdentity}>
+                                        <View style={styles.rowIcon}>
+                                            <AppIcon
+                                                name={collectionIcon(page.component)}
+                                                size={16}
+                                                color={GREEN}
+                                            />
+                                        </View>
+                                        <View style={styles.flex}>
+                                            <Text style={styles.recordTitle}>
+                                                {recordTitle(row)}
+                                            </Text>
+                                            {row.farm_id || row.farmer_id || row.lot_code ? (
+                                                <Text style={styles.recordCode}>
+                                                    {String(row.farm_id ?? row.farmer_id ?? row.lot_code)}
+                                                </Text>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                    <AppIcon
+                                        name="chevronRight"
+                                        size={18}
+                                        color="#97a39a"
+                                    />
                                 </View>
                                 <Text style={styles.mutedSmall}>
                                     {recordSubtitle(row)}
                                 </Text>
                                 {(row.status_label ||
                                     row.verification_status) && (
-                                    <Text style={styles.status}>
+                                    <Text style={[styles.status, statusStyle(String(row.status_label ?? row.verification_status))]}>
                                         {String(
                                             row.status_label ??
                                                 row.verification_status,
@@ -1350,6 +1899,16 @@ function DataPage(props: {
 
     if (page.component === 'farm-verification/show') {
         const farm = page.data.farm ?? {};
+        const canVerifierManageBoundary =
+            props.user.role === 'field_verifier' &&
+            farm.verification_status === 'in_progress';
+        const inspection = page.data.inspection;
+        const hasInspection = Boolean(
+            inspection?.checklist?.farm_identified &&
+            inspection?.checklist?.boundary_walked &&
+            inspection?.checklist?.farmer_or_representative_met &&
+            inspection?.photos?.length,
+        );
         return (
             <ScrollView
                 style={styles.page}
@@ -1359,6 +1918,14 @@ function DataPage(props: {
                     data={farm}
                     title={farm.farm_name ?? 'Farm verification'}
                 />
+                <FarmLocationCard farm={farm} />
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Verification progress</Text>
+                    <VerificationProgress status={farm.verification_status} />
+                    <Text style={styles.mutedSmall}>
+                        Start the visit, capture the farm perimeter, complete the inspection, then submit a result.
+                    </Text>
+                </View>
                 {page.data.comparison && (
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>Area comparison</Text>
@@ -1376,15 +1943,15 @@ function DataPage(props: {
                         />
                     </View>
                 )}
-                {page.data.boundary && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>
-                            Saved farm boundary
-                        </Text>
-                        <Text style={styles.mutedSmall}>
-                            {page.data.boundary.gps_measured_area_hectares}{' '}
-                            hectares · {page.data.boundary.captured_at}
-                        </Text>
+                {page.data.boundary ? (
+                    <BoundaryCard boundary={page.data.boundary} apiKey={page.data.google_maps_api_key} />
+                ) : (
+                    <View style={styles.noticeCard}>
+                        <AppIcon name="location" size={18} color={GREEN} />
+                        <View style={styles.flex}>
+                            <Text style={styles.recordTitle}>No GPS boundary saved</Text>
+                            <Text style={styles.mutedSmall}>Capture the farm perimeter to calculate its measured area.</Text>
+                        </View>
                     </View>
                 )}
                 {props.isOperations && (
@@ -1399,50 +1966,124 @@ function DataPage(props: {
                         }
                     />
                 )}
-                {(props.user.role === 'field_verifier' ||
-                    props.user.role === 'admin') &&
-                    farm.verification_status === 'pending' && (
+                {canVerifierManageBoundary && (
+                    page.data.boundary ? (
+                        <Secondary
+                            title="Update GPS boundary"
+                            onPress={() =>
+                                props.onLocalForm('farm-boundary/edit', {
+                                    farmId: farm.id,
+                                    hasBoundary: true,
+                                    boundary: page.data.boundary,
+                                })
+                            }
+                        />
+                    ) : (
+                        <Primary
+                            title="Capture GPS boundary"
+                            onPress={() =>
+                                props.onLocalForm('farm-boundary/edit', {
+                                    farmId: farm.id,
+                                    hasBoundary: false,
+                                })
+                            }
+                        />
+                    )
+                )}
+                {props.user.role === 'field_verifier' &&
+                    farm.verification_status === 'verified' && (
+                        <View style={styles.noticeCard}>
+                            <AppIcon name="lock" size={17} color={API_FOREST} />
+                            <Text style={[styles.mutedSmall, styles.flex]}>
+                                This verified boundary is read-only. Ask operations to open a new verification if it needs review.
+                            </Text>
+                        </View>
+                    )}
+                {props.user.role === 'field_verifier' &&
+                    ['pending', 'needs_review'].includes(farm.verification_status) && (
                         <Primary
                             title="Start verification"
                             busy={props.busy}
                             onPress={() => props.onStartVerification(farm.id)}
                         />
                     )}
-                {(props.user.role === 'field_verifier' ||
-                    props.user.role === 'admin') &&
+                {props.user.role === 'field_verifier' &&
                     farm.verification_status === 'in_progress' && (
-                        <Primary
-                            title="Record verification result"
-                            onPress={() =>
-                                props.onLocalForm(
-                                    'farm-verification/decision',
-                                    { farmId: farm.id },
-                                )
-                            }
-                        />
+                        <>
+                            {page.data.boundary && !hasInspection && props.user.role === 'field_verifier' && (
+                                <Primary
+                                    title="Complete inspection & add evidence"
+                                    onPress={() => props.onLocalForm('farm-verification/inspection', {
+                                        farmId: farm.id,
+                                        farmName: farm.farm_name,
+                                        farmCode: farm.farm_id,
+                                        farmerName: farm.farmer_name,
+                                        declaredArea: page.data.comparison?.declared_area,
+                                        measuredArea: page.data.comparison?.measured_area,
+                                    })}
+                                />
+                            )}
+                            {page.data.boundary && hasInspection && (
+                                <Primary
+                                    title="Record verification result"
+                                    onPress={() => props.onLocalForm('farm-verification/decision', {
+                                        farmId: farm.id,
+                                        farmName: farm.farm_name,
+                                        farmCode: farm.farm_id,
+                                        farmerName: farm.farmer_name,
+                                        declaredArea: page.data.comparison?.declared_area,
+                                        measuredArea: page.data.comparison?.measured_area,
+                                    })}
+                                />
+                            )}
+                            {inspection && (
+                                <View style={styles.card}>
+                                    <Text style={styles.cardTitle}>Field inspection</Text>
+                                    <SummaryRow label="Farm identified" value={inspection.checklist?.farm_identified ? 'Complete' : 'Incomplete'} />
+                                    <SummaryRow label="Boundary walked" value={inspection.checklist?.boundary_walked ? 'Complete' : 'Incomplete'} />
+                                    <SummaryRow label="Farmer / representative met" value={inspection.checklist?.farmer_or_representative_met ? 'Complete' : 'Incomplete'} />
+                                    {(inspection.photos ?? []).map((photo: any) => <Text key={photo.id} style={styles.mutedSmall}>Evidence: {photo.name}{photo.captured_at ? ` · ${photo.captured_at}` : ''}</Text>)}
+                                </View>
+                            )}
+                        </>
                     )}
-                {page.data.history?.length > 0 && (
-                    <Related
-                        title="Verification history"
-                        rows={page.data.history}
-                    />
-                )}
+                <Related title="Verification history" rows={page.data.history ?? []} />
             </ScrollView>
         );
     }
 
     if (page.component === 'modules/placeholder')
         return (
-            <View style={styles.center}>
-                <Text style={styles.emptyGlyph}>⌑</Text>
-                <Text style={styles.heading}>
-                    {page.data.title ?? 'Workspace'}
-                </Text>
-                <Text style={styles.muted}>
-                    {page.data.description ??
-                        'This workspace is part of the SureFarm program.'}
-                </Text>
-            </View>
+            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+                <View style={styles.moduleHero}>
+                    <View style={styles.moduleIcon}>
+                        <AppIcon name={moduleIcon(page.data.module)} size={28} color={API_FOREST} />
+                    </View>
+                    <Text style={styles.moduleEyebrow}>SUREFARM WORKSPACE</Text>
+                    <Text style={styles.moduleTitle}>{page.data.title ?? 'Workspace'}</Text>
+                    <Text style={styles.muted}>
+                        {page.data.description ?? 'This workspace is part of the SureFarm program.'}
+                    </Text>
+                    <View style={styles.comingSoonPill}>
+                        <View style={styles.comingSoonDot} />
+                        <Text style={styles.comingSoonText}>In development</Text>
+                    </View>
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>What you can do now</Text>
+                    <Text style={styles.muted}>
+                        This workspace does not have working record screens yet. SureFarm will show live tools here when they are ready.
+                    </Text>
+                    {['finance', 'insurance'].includes(page.data.module) && (
+                        <>
+                            <Text style={[styles.muted, { marginTop: 10 }]}>
+                                Existing farm financing and insurance records can be reviewed from a farm profile.
+                            </Text>
+                            <Primary title="Browse farm records" onPress={() => props.onOpen('/farms', 'Farms & map')} />
+                        </>
+                    )}
+                </View>
+            </ScrollView>
         );
 
     const key = entityKey(page.component, page.data);
@@ -1458,6 +2099,44 @@ function DataPage(props: {
                     title={recordTitle(entity)}
                     token={props.token}
                 />
+                {page.component === 'farmers/show' && page.data.farmer?.farm_summary && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Farm portfolio</Text>
+                        <SummaryRow label="Registered farms" value={page.data.farmer.farm_summary.registered_farms} />
+                        <SummaryRow label="Declared area" value={`${page.data.farmer.farm_summary.declared_area_hectares} ha`} />
+                        <SummaryRow label="Verified area" value={`${page.data.farmer.farm_summary.total_verified_hectares} ha`} />
+                        <SummaryRow label="Verified farms" value={page.data.farmer.farm_summary.verified_farms} />
+                        <SummaryRow label="Pending verification" value={page.data.farmer.farm_summary.pending_verification} />
+                    </View>
+                )}
+                {page.component === 'farmers/show' && page.data.farmer?.spouse && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Spouse</Text>
+                        <SummaryRow label="Name" value={page.data.farmer.spouse.full_name} />
+                    </View>
+                )}
+                {page.component === 'farmers/show' && page.data.farmer?.bank_account && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Bank account</Text>
+                        <SummaryRow label="Bank" value={page.data.farmer.bank_account.bank_name} />
+                        <SummaryRow label="Account name" value={page.data.farmer.bank_account.account_name} />
+                        <SummaryRow label="Account number" value={page.data.farmer.bank_account.account_number} />
+                        <SummaryRow label="Verification" value={page.data.farmer.bank_account.status_label} />
+                    </View>
+                )}
+                {page.component === 'inventory/show' && entity.stage && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Current processing stage</Text>
+                        <SummaryRow label="Stage" value={entity.stage.name} />
+                        <SummaryRow label="Stage code" value={entity.stage.code} />
+                    </View>
+                )}
+                {page.component !== 'farms/show' && entity.farm?.id && (
+                    <LinkedRecord row={entity.farm} kind="farm" onOpen={props.onOpen} />
+                )}
+                {page.component !== 'farmers/show' && entity.farmer?.id && (
+                    <LinkedRecord row={entity.farmer} kind="farmer" onOpen={props.onOpen} />
+                )}
                 {detailActions(
                     page.component,
                     page.data,
@@ -1478,54 +2157,64 @@ function DataPage(props: {
                         }
                     />
                 ))}
-                {page.component === 'farmers/show' &&
-                    page.data.farmer?.farms?.length > 0 && (
+                {page.component === 'farms/show' && page.data.farm?.farmer && (
+                    <LinkedFarmer farmer={page.data.farm.farmer} onOpen={props.onOpen} />
+                )}
+                {page.component === 'farms/show' && (
+                    <FarmLocationCard farm={page.data.farm} />
+                )}
+                {page.component === 'farms/show' && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Area records</Text>
+                        <SummaryRow label="Declared area" value={`${page.data.farm.declared_area_hectares} ha`} />
+                        <SummaryRow label="GPS measured" value={page.data.farm.measured_area ?? 'Not yet measured'} />
+                        <SummaryRow label="Verified area" value={page.data.farm.verified_area ?? 'Not yet verified'} />
+                        <SummaryRow label="Difference" value={page.data.farm.difference ?? '—'} />
+                        <SummaryRow label="Variance" value={page.data.farm.variance ?? '—'} />
+                    </View>
+                )}
+                {page.component === 'farmers/show' && (
                         <RelatedLinks
                             title="Farms"
-                            rows={page.data.farmer.farms}
+                            rows={page.data.farmer?.farms ?? []}
                             pathFor={(row) => `/farms/${row.id}`}
                             onOpen={props.onOpen}
                         />
                     )}
-                {page.component === 'farmers/show' &&
-                    page.data.farmer?.recent_activities?.length > 0 && (
+                {page.component === 'farmers/show' && (
                         <Related
                             title="Recent activities"
-                            rows={page.data.farmer.recent_activities}
+                            rows={page.data.farmer?.recent_activities ?? []}
                         />
                     )}
-                {page.component === 'farms/show' &&
-                    page.data.farm?.activities?.length > 0 && (
+                {page.component === 'farms/show' && (
                         <RelatedLinks
                             title="Farm activities"
-                            rows={page.data.farm.activities}
+                            rows={page.data.farm?.activities ?? []}
                             pathFor={(row) => `/farm-activities/${row.id}`}
                             onOpen={props.onOpen}
                         />
                     )}
-                {page.component === 'farms/show' &&
-                    page.data.farm?.productions?.length > 0 && (
+                {page.component === 'farms/show' && (
                         <RelatedLinks
                             title="Production records"
-                            rows={page.data.farm.productions}
+                            rows={page.data.farm?.productions ?? []}
                             pathFor={(row) => `/production/${row.id}`}
                             onOpen={props.onOpen}
                         />
                     )}
-                {page.component === 'farms/show' &&
-                    page.data.farm?.harvests?.length > 0 && (
+                {page.component === 'farms/show' && (
                         <RelatedLinks
                             title="Harvest records"
-                            rows={page.data.farm.harvests}
+                            rows={page.data.farm?.harvests ?? []}
                             pathFor={(row) => `/harvest/${row.id}`}
                             onOpen={props.onOpen}
                         />
                     )}
-                {page.component === 'farms/show' &&
-                    page.data.farm?.traceability_lots?.length > 0 && (
+                {page.component === 'farms/show' && (
                         <RelatedLinks
                             title="Traceability lots"
-                            rows={page.data.farm.traceability_lots}
+                            rows={page.data.farm?.traceability_lots ?? []}
                             pathFor={(row) => `/traceability/${row.id}`}
                             onOpen={props.onOpen}
                         />
@@ -1568,16 +2257,19 @@ function DataPage(props: {
                         rows={page.data.harvests}
                     />
                 )}
+                {page.data.movements && (
+                    <Related title="Inventory movements" rows={page.data.movements} />
+                )}
                 {page.data.events && (
                     <Related title="Lot journey" rows={page.data.events} />
                 )}
-                {page.data.farm_coverage?.length > 0 && (
+                {props.isOperations && page.data.farm_coverage?.length > 0 && (
                     <CoverageActions
                         rows={page.data.farm_coverage}
                         onOpen={props.onOpen}
                     />
                 )}
-                {page.component === 'farms/show' && page.data.farm && (
+                {page.component === 'farms/show' && page.data.farm?.can_manage_coverage && (
                     <CoverageActions
                         rows={[
                             {
@@ -1588,15 +2280,8 @@ function DataPage(props: {
                         onOpen={props.onOpen}
                     />
                 )}
-                {page.data.boundary?.boundary_geojson && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Farm boundary</Text>
-                        <Text style={styles.mutedSmall}>
-                            Measured area:{' '}
-                            {page.data.boundary.gps_measured_area_hectares}{' '}
-                            hectares
-                        </Text>
-                    </View>
+                {(page.data.boundary ?? page.data.farm?.boundary)?.geojson && (
+                    <BoundaryCard boundary={page.data.boundary ?? page.data.farm.boundary} apiKey={page.data.google_maps_api_key} />
                 )}
             </ScrollView>
         );
@@ -1610,6 +2295,217 @@ function DataPage(props: {
                 <KeyRows data={page.data} />
             </View>
         </ScrollView>
+    );
+}
+
+function VerificationProgress({ status = 'pending' }: { status?: string }) {
+    const completed = ['verified', 'failed', 'needs_review'].includes(status);
+    const activeStep = status === 'pending' ? 0 : completed ? 2 : 1;
+    const labels = ['Pending', 'Field visit', 'Result'];
+    return (
+        <View style={styles.progressTrack}>
+            {labels.map((label, index) => {
+                const done = index < activeStep || (completed && index === activeStep);
+                const active = index === activeStep && !completed;
+                return (
+                    <View key={label} style={styles.progressStep}>
+                        <View style={[styles.progressDot, done && styles.progressDotDone, active && styles.progressDotActive]}>
+                            {done ? <AppIcon name="verified" size={13} color="#ffffff" /> : <Text style={[styles.progressNumber, active && styles.progressNumberActive]}>{index + 1}</Text>}
+                        </View>
+                        <Text style={[styles.progressLabel, (done || active) && styles.progressLabelActive]}>{label}</Text>
+                    </View>
+                );
+            })}
+        </View>
+    );
+}
+
+function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
+    const hasCoordinates = farm.latitude !== null && farm.latitude !== undefined && farm.longitude !== null && farm.longitude !== undefined;
+    const address = farm.location ?? [farm.purok_sitio, farm.barangay, farm.municipality, farm.province]
+        .filter((part) => typeof part === 'string' && part.trim())
+        .join(', ');
+    const openMap = async () => {
+        if (!hasCoordinates) return;
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${farm.latitude},${farm.longitude}`)}`;
+        try {
+            await Linking.openURL(url);
+        } catch {
+            Alert.alert('Could not open map', 'Check that a maps app or browser is available.');
+        }
+    };
+
+    return (
+        <View style={styles.locationCard}>
+            <View style={styles.locationTitleRow}>
+                <View style={styles.locationIcon}><AppIcon name="location" size={18} color={API_FOREST} /></View>
+                <View style={styles.flex}>
+                    <Text style={styles.recordTitle}>Farm location</Text>
+                    <Text style={styles.mutedSmall}>{address || 'Location not provided'}</Text>
+                </View>
+            </View>
+            {hasCoordinates ? (
+                <>
+                    <Text style={styles.coordinateText}>Lat {farm.latitude}  ·  Lng {farm.longitude}</Text>
+                    <Secondary title="Open directions in Maps" onPress={() => void openMap()} />
+                </>
+            ) : (
+                <Text style={styles.gpsAccuracy}>GPS coordinates have not been recorded.</Text>
+            )}
+        </View>
+    );
+}
+
+function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; apiKey?: string }) {
+    const mapHost = useRef<HTMLDivElement | null>(null);
+    const geometry = useMemo(() => {
+        try {
+            const parsed = typeof boundary.geojson === 'string' ? JSON.parse(boundary.geojson) : boundary.geojson;
+            if (parsed?.type === 'Polygon') return parsed.coordinates?.[0];
+            if (parsed?.type === 'MultiPolygon') return parsed.coordinates?.[0]?.[0];
+        } catch {
+            return null;
+        }
+        return null;
+    }, [boundary.geojson]);
+    const points = useMemo(
+        () => Array.isArray(geometry)
+            ? geometry.filter((point: any) => Array.isArray(point) && Number.isFinite(Number(point[0])) && Number.isFinite(Number(point[1])))
+            : [],
+        [geometry],
+    );
+    const openPoints = useMemo(
+        () => points.length > 1 && points[0][0] === points[points.length - 1][0] && points[0][1] === points[points.length - 1][1]
+            ? points.slice(0, -1)
+            : points,
+        [points],
+    );
+    const previewPoints = (() => {
+        if (openPoints.length < 3) return '';
+        const xs = openPoints.map((point: any) => Number(point[0]));
+        const ys = openPoints.map((point: any) => Number(point[1]));
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const width = maxX - minX || 1;
+        const height = maxY - minY || 1;
+        const scale = Math.min(250 / width, 105 / height);
+        const offsetX = (320 - width * scale) / 2;
+        const offsetY = (140 - height * scale) / 2;
+        return openPoints.map((point: any) => `${(offsetX + (Number(point[0]) - minX) * scale).toFixed(1)},${(offsetY + 8 + (maxY - Number(point[1])) * scale).toFixed(1)}`).join(' ');
+    })();
+
+    useEffect(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined' || !apiKey || openPoints.length < 3 || !mapHost.current) return;
+
+        const browserWindow = window as any;
+        let cancelled = false;
+        const renderMap = () => {
+            if (cancelled || !mapHost.current || !browserWindow.google?.maps) return;
+            const map = new browserWindow.google.maps.Map(mapHost.current, {
+                mapTypeId: 'hybrid',
+                mapTypeControl: true,
+                streetViewControl: false,
+                fullscreenControl: true,
+                gestureHandling: 'greedy',
+            });
+            const path = openPoints.map((point: any) => ({ lat: Number(point[1]), lng: Number(point[0]) }));
+            const polygon = new browserWindow.google.maps.Polygon({
+                paths: path,
+                strokeColor: '#17613d',
+                strokeOpacity: 0.95,
+                strokeWeight: 3,
+                fillColor: '#70b83b',
+                fillOpacity: 0.28,
+            });
+            polygon.setMap(map);
+            const bounds = new browserWindow.google.maps.LatLngBounds();
+            path.forEach((point: any) => bounds.extend(point));
+            map.fitBounds(bounds, 24);
+        };
+
+        if (browserWindow.google?.maps) {
+            renderMap();
+        } else {
+            let script = document.querySelector<HTMLScriptElement>('#surefarm-google-maps');
+            if (!script) {
+                script = document.createElement('script');
+                script.id = 'surefarm-google-maps';
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly`;
+                script.async = true;
+                script.defer = true;
+                document.head.appendChild(script);
+            }
+            script.addEventListener('load', renderMap);
+        }
+
+        return () => { cancelled = true; };
+    }, [apiKey, openPoints]);
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.sectionHeadingRow}>
+                <View>
+                    <Text style={styles.cardTitle}>Saved GPS boundary</Text>
+                    <Text style={styles.mutedSmall}>{Platform.OS === 'web' && apiKey ? 'Google satellite map · saved GPS boundary' : 'Boundary outline preview'}</Text>
+                </View>
+                <View style={styles.boundaryIcon}><AppIcon name="location" size={17} color={API_FOREST} /></View>
+            </View>
+            {Platform.OS === 'web' && apiKey && openPoints.length >= 3
+                ? createElement('div', { ref: mapHost, style: { width: '100%', height: 220, borderRadius: 14, overflow: 'hidden' } })
+                : <View style={styles.boundaryPreview}>
+                <Svg width="100%" height={140} viewBox="0 0 320 140">
+                    <Path d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140" stroke="#e6eee7" strokeWidth={1} />
+                    {previewPoints ? <Polygon points={previewPoints} fill="#88b89555" stroke={GREEN} strokeWidth={3} strokeLinejoin="round" /> : <Circle cx={160} cy={70} r={5} fill={GREEN} />}
+                </Svg>
+                </View>}
+            <View style={styles.boundaryFacts}>
+                <View style={styles.boundaryFact}>
+                    <Text style={styles.boundaryValue}>{boundary.gps_measured_area_hectares ?? '—'}</Text>
+                    <Text style={styles.mutedSmall}>Measured ha</Text>
+                </View>
+                <View style={styles.boundaryFact}>
+                    <Text style={styles.boundaryValue}>{openPoints.length || '—'}</Text>
+                    <Text style={styles.mutedSmall}>GPS points</Text>
+                </View>
+                <View style={styles.boundaryFact}>
+                    <Text style={styles.boundaryValue}>{boundary.captured_at ?? '—'}</Text>
+                    <Text style={styles.mutedSmall}>Captured</Text>
+                </View>
+            </View>
+        </View>
+    );
+}
+
+function LinkedFarmer({ farmer, onOpen }: { farmer: Record<string, any>; onOpen: (path: string, title: string) => void }) {
+    return (
+        <Pressable onPress={() => onOpen(`/farmers/${farmer.id}`, 'Farmer details')} style={({ pressed }) => [styles.linkedFarmer, pressed && styles.pressed]}>
+            <View style={styles.linkedFarmerIcon}><AppIcon name="farmers" size={18} color={API_FOREST} /></View>
+            <View style={styles.flex}>
+                <Text style={styles.mutedSmall}>REGISTERED FARMER</Text>
+                <Text style={styles.recordTitle}>{farmer.full_name ?? 'Farmer profile'}</Text>
+                <Text style={styles.recordCode}>{farmer.farmer_id}</Text>
+            </View>
+            <AppIcon name="chevronRight" size={18} color={GREEN} />
+        </Pressable>
+    );
+}
+
+function LinkedRecord({ row, kind, onOpen }: { row: Record<string, any>; kind: 'farm' | 'farmer'; onOpen: (path: string, title: string) => void }) {
+    const farmer = kind === 'farmer';
+    const title = farmer ? (row.full_name ?? row.name ?? 'Farmer profile') : (row.farm_name ?? 'Farm profile');
+    const code = farmer ? row.farmer_id : row.farm_id;
+    return (
+        <Pressable onPress={() => onOpen(`/${farmer ? 'farmers' : 'farms'}/${row.id}`, farmer ? 'Farmer details' : 'Farm details')} style={({ pressed }) => [styles.linkedFarmer, pressed && styles.pressed]}>
+            <View style={styles.linkedFarmerIcon}>
+                <AppIcon name={farmer ? 'farmers' : 'farms'} size={18} color={API_FOREST} />
+            </View>
+            <View style={styles.flex}>
+                <Text style={styles.mutedSmall}>{farmer ? 'FARMER PROFILE' : 'FARM RECORD'}</Text>
+                <Text style={styles.recordTitle}>{title}</Text>
+                {code ? <Text style={styles.recordCode}>{String(code)}</Text> : null}
+            </View>
+            <AppIcon name="chevronRight" size={18} color={GREEN} />
+        </Pressable>
     );
 }
 
@@ -1628,6 +2524,7 @@ function FormView(props: {
     const [boundaryPoints, setBoundaryPoints] = useState<[number, number][]>(
         [],
     );
+    const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
     const boundaryField = props.spec.fields.find(
         (field) => field.kind === 'geojson',
     );
@@ -1649,6 +2546,7 @@ function FormView(props: {
             const position = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
             });
+            setGpsAccuracy(position.coords.accuracy);
             const point: [number, number] = [
                 position.coords.longitude,
                 position.coords.latitude,
@@ -1762,10 +2660,24 @@ function FormView(props: {
                 contentContainerStyle={styles.formContent}
                 keyboardShouldPersistTaps="handled"
             >
-                <Text style={styles.muted}>
-                    Enter the record details. Laravel will validate them before
-                    saving.
-                </Text>
+                <View style={styles.formIntro}>
+                    <Text style={styles.formTitle}>{props.spec.title}</Text>
+                    <Text style={styles.muted}>
+                        Complete the fields below. SureFarm checks the values before saving.
+                    </Text>
+                </View>
+                {props.spec.path.includes('/farm-verification/') && (
+                    <View style={styles.reviewCard}>
+                        <View style={styles.reviewHeading}>
+                            <AppIcon name="shield" size={17} color={API_FOREST} />
+                            <Text style={styles.recordTitle}>Verification review</Text>
+                        </View>
+                        <SummaryRow label="Farmer" value={props.data.farmerName ?? '—'} />
+                        <SummaryRow label="Farm" value={props.data.farmName ?? props.data.farmCode ?? '—'} />
+                        {props.data.declaredArea && <SummaryRow label="Declared area" value={props.data.declaredArea} />}
+                        {props.data.measuredArea && <SummaryRow label="GPS measured" value={props.data.measuredArea} />}
+                    </View>
+                )}
                 {hasCoordinates && (
                     <View style={styles.locationCard}>
                         <Text style={styles.recordTitle}>Farm location</Text>
@@ -1777,6 +2689,11 @@ function FormView(props: {
                             title="Use current location"
                             onPress={() => void captureLocation()}
                         />
+                        {gpsAccuracy !== null && (
+                            <Text style={styles.gpsAccuracy}>
+                                Last GPS reading accuracy: about {Math.round(gpsAccuracy)} m
+                            </Text>
+                        )}
                     </View>
                 )}
                 {boundaryField && (
@@ -1800,6 +2717,11 @@ function FormView(props: {
                             {boundaryPoints.length} new GPS point
                             {boundaryPoints.length === 1 ? '' : 's'} recorded
                         </Text>
+                        {gpsAccuracy !== null && (
+                            <Text style={styles.gpsAccuracy}>
+                                Last point accuracy: about {Math.round(gpsAccuracy)} m
+                            </Text>
+                        )}
                     </View>
                 )}
                 {props.spec.fields.map((field) => {
@@ -2002,6 +2924,8 @@ function Entity({
 }) {
     const image = data.photo_url ?? data.drone_image_url;
     const imageUrl = typeof image === 'string' ? toImageApiUrl(image) : null;
+    const status = data.verification_status ?? data.status_label ?? data.status;
+    const recordCode = data.farm_id ?? data.farmer_id ?? data.lot_code;
     return (
         <View style={styles.entity}>
             {imageUrl && (
@@ -2016,7 +2940,15 @@ function Entity({
                     resizeMode="cover"
                 />
             )}
-            <Text style={styles.entityTitle}>{title}</Text>
+            <View style={styles.entityTitleRow}>
+                <Text style={styles.entityTitle}>{title}</Text>
+                {status ? (
+                    <Text style={[styles.status, statusStyle(String(status))]}>
+                        {String(status).replaceAll('_', ' ')}
+                    </Text>
+                ) : null}
+            </View>
+            {recordCode ? <Text style={styles.recordCode}>{String(recordCode)}</Text> : null}
             <KeyRows
                 data={data}
                 skip={[
@@ -2028,6 +2960,24 @@ function Entity({
                     'farm_filters',
                     'recent_activities',
                     'farm_coverage',
+                    'verifications',
+                    'activities',
+                    'productions',
+                    'harvests',
+                    'traceability_lots',
+                    'insurances',
+                    'financings',
+                    'boundary',
+                    'farmer',
+                    'reference',
+                    'farm',
+                    'comparison',
+                    'history',
+                    'spouse',
+                    'bank_account',
+                    'status',
+                    'status_label',
+                    'verification_status',
                 ]}
             />
         </View>
@@ -2053,8 +3003,8 @@ function KeyRows({
         <View>
             {rows.map(([key, value]) => (
                 <View key={key} style={styles.keyRow}>
-                    <Text style={styles.keyLabel}>{pretty(key)}</Text>
-                    <Text style={styles.keyValue}>{String(value)}</Text>
+                    <Text style={styles.keyLabel}>{fieldLabel(key)}</Text>
+                    <Text style={styles.keyValue}>{displayValue(key, value)}</Text>
                 </View>
             ))}
         </View>
@@ -2064,8 +3014,10 @@ function KeyRows({
 function Related({ title, rows }: { title: string; rows: any[] }) {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>{title}</Text>
-            {rows.map((item, i) => (
+            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
+            {rows.length === 0 ? (
+                <Text style={styles.inlineEmpty}>Nothing has been recorded here yet.</Text>
+            ) : rows.map((item, i) => (
                 <View key={item.id ?? i} style={styles.relatedRow}>
                     <Text style={styles.recordTitle}>{recordTitle(item)}</Text>
                     <Text style={styles.mutedSmall}>
@@ -2073,6 +3025,16 @@ function Related({ title, rows }: { title: string; rows: any[] }) {
                     </Text>
                 </View>
             ))}
+        </View>
+    );
+}
+
+function EmptyState({ title, message }: { title: string; message: string }) {
+    return (
+        <View style={styles.card}>
+            <AppIcon name="empty" size={22} color={API_FOREST} />
+            <Text style={styles.recordTitle}>{title}</Text>
+            <Text style={styles.muted}>{message}</Text>
         </View>
     );
 }
@@ -2090,8 +3052,10 @@ function RelatedLinks({
 }) {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>{title}</Text>
-            {rows.map((row, index) => (
+            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
+            {rows.length === 0 ? (
+                <Text style={styles.inlineEmpty}>No records are linked to this item yet.</Text>
+            ) : rows.map((row, index) => (
                 <Pressable
                     key={row.id ?? index}
                     onPress={() => onOpen(pathFor(row), recordTitle(row))}
@@ -2192,9 +3156,6 @@ function CoverageActions({
     );
 }
 
-function Heading({ title }: { title: string }) {
-    return <Text style={styles.sectionTitle}>{title}</Text>;
-}
 function Label({ text }: { text: string }) {
     return <Text style={styles.fieldLabel}>{text}</Text>;
 }
@@ -2241,7 +3202,13 @@ function Primary({
 }
 function Secondary({ title, onPress }: { title: string; onPress: () => void }) {
     return (
-        <Pressable onPress={onPress} style={styles.secondary}>
+        <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [
+                styles.secondary,
+                pressed && styles.pressed,
+            ]}
+        >
             <Text style={styles.secondaryText}>{title}</Text>
         </Pressable>
     );
@@ -2249,7 +3216,7 @@ function Secondary({ title, onPress }: { title: string; onPress: () => void }) {
 function Empty({ title, detail }: { title: string; detail: string }) {
     return (
         <View style={styles.empty}>
-            <Text style={styles.emptyGlyph}>⌑</Text>
+            <AppIcon name="empty" size={36} color="#9aab9d" />
             <Text style={styles.heading}>{title}</Text>
             <Text style={styles.muted}>{detail}</Text>
         </View>
@@ -2257,12 +3224,12 @@ function Empty({ title, detail }: { title: string; detail: string }) {
 }
 function BottomItem({
     label,
-    glyph,
+    icon,
     active,
     onPress,
 }: {
     label: string;
-    glyph: string;
+    icon: IconName;
     active: boolean;
     onPress: () => void;
 }) {
@@ -2271,19 +3238,20 @@ function BottomItem({
             onPress={onPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={styles.bottomItem}
+            style={({ pressed }) => [
+                styles.bottomItem,
+                pressed && styles.pressed,
+            ]}
         >
             <View
                 style={[styles.bottomIcon, active && styles.bottomIconActive]}
             >
-                <Text
-                    style={[
-                        styles.bottomGlyph,
-                        active && styles.bottomGlyphActive,
-                    ]}
-                >
-                    {glyph}
-                </Text>
+                <AppIcon
+                    name={icon}
+                    size={18}
+                    color={active ? API_FOREST : MUTED}
+                    strokeWidth={active ? 2.2 : 1.8}
+                />
             </View>
             <Text
                 style={[styles.bottomLabel, active && styles.bottomLabelActive]}
@@ -2302,6 +3270,104 @@ function titleFor(path: string) {
         clean.split('/').map(pretty).join(' · ')
     );
 }
+function collectionIcon(component: string): IconName {
+    const icons: Record<string, IconName> = {
+        'farmers/index': 'farmers',
+        'farms/index': 'farms',
+        'farm-verification/index': 'verification',
+        'farm-activities/index': 'activities',
+        'production/index': 'production',
+        'harvest/index': 'harvest',
+        'inventory/index': 'inventory',
+        'inventory/processing': 'processing',
+        'traceability/index': 'traceability',
+        'activity-types/index': 'activityTypes',
+    };
+    return icons[component] ?? 'dashboard';
+}
+function collectionDescription(component: string) {
+    const descriptions: Record<string, string> = {
+        'farmers/index': 'Farmer profiles and registered farm portfolios',
+        'farms/index': 'Registered land, declared area, and verification status',
+        'farm-verification/index': 'Field assignments and farm verification status',
+        'farm-activities/index': 'Recorded work across registered farms',
+        'production/index': 'Expected crop output by farm and season',
+        'harvest/index': 'Harvest quantities, dates, and receiving status',
+        'inventory/index': 'Coffee stock and its current processing stage',
+        'inventory/processing': 'Processing activity and coffee movements',
+        'traceability/index': 'Coffee lots and their traceable journeys',
+        'activity-types/index': 'Configured activities available to field teams',
+    };
+    return descriptions[component] ?? 'Live records from SureFarm';
+}
+function emptyCollectionDescription(component: string) {
+    const messages: Record<string, string> = {
+        'farmers/index': 'No farmer profiles match this view. Register a farmer to start a portfolio.',
+        'farms/index': 'No farm records match this view. Farms appear after they are registered.',
+        'farm-verification/index': 'There are no farms in this verification queue right now.',
+        'farm-activities/index': 'Farm activities will appear here after a field record is saved.',
+        'production/index': 'Production records will appear here after they are added to a farm.',
+        'harvest/index': 'Harvest records will appear here after a harvest is recorded.',
+        'inventory/index': 'Inventory lots will appear here after harvest is received or coffee is processed.',
+        'inventory/processing': 'Processing movements will appear here when coffee is processed.',
+        'traceability/index': 'Traceability lots will appear here after a lot is created.',
+        'activity-types/index': 'No activity types are available in this view.',
+    };
+    return messages[component] ?? 'There are no records to show in this view.';
+}
+function moduleIcon(module: string): IconName {
+    const icons: Record<string, IconName> = {
+        'crop-management': 'cropManagement',
+        finance: 'finance',
+        insurance: 'insurance',
+        'logistics-export': 'logistics',
+        cooperatives: 'cooperatives',
+        reports: 'reports',
+    };
+    return icons[module] ?? 'features';
+}
+function statusStyle(status: string) {
+    const key = status.toLowerCase().replaceAll(' ', '_');
+    if (['verified', 'active', 'completed', 'approved', 'received'].includes(key)) return styles.statusPositive;
+    if (['failed', 'inactive', 'rejected', 'damaged'].includes(key)) return styles.statusNegative;
+    if (['needs_review', 'in_progress', 'pending', 'processing', 'draft'].includes(key)) return styles.statusAttention;
+    return styles.statusNeutral;
+}
+function fieldLabel(key: string) {
+    const labels: Record<string, string> = {
+        farmer_id: 'Farmer ID',
+        farm_id: 'Farm ID',
+        lot_code: 'Lot code',
+        full_name: 'Full name',
+        crop_label: 'Crop',
+        crop_type: 'Crop',
+        declared_area_hectares: 'Declared area (ha)',
+        gps_measured_area_hectares: 'GPS measured area (ha)',
+        verified_area_hectares: 'Verified area (ha)',
+        verified_area: 'Verified area',
+        measured_area: 'GPS measured area',
+        activity_date: 'Activity date',
+        harvest_date: 'Harvest date',
+        production_period: 'Production period',
+        mobile_number: 'Mobile number',
+        government_id: 'Government ID',
+        purok_sitio: 'Purok / sitio',
+        current_stage_name: 'Processing stage',
+        verification_status: 'Verification status',
+        status_label: 'Status',
+        registered_at: 'Registered',
+        updated_at: 'Last updated',
+    };
+    return labels[key] ?? pretty(key);
+}
+function displayValue(key: string, value: unknown) {
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'number' && key.endsWith('_hectares')) return `${value.toLocaleString()} ha`;
+    if (typeof value === 'string' && ['status', 'verification_status', 'result', 'quality_grade', 'property_ownership'].includes(key)) {
+        return value.replaceAll('_', ' ');
+    }
+    return String(value);
+}
 function pretty(value: string) {
     return value
         .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -2314,35 +3380,54 @@ function recordTitle(row: Record<string, any>) {
             row.full_name ??
             row.farm_name ??
             row.farmer_name ??
+            row.activity_type ??
             row.activity ??
             row.lot_code ??
-            row.farm_id ??
-            row.farmer_id ??
-            row.id ??
+            row.production_period ??
+            (row.harvest_date ? `Harvest · ${row.harvest_date}` : null) ??
+            (row.farm_id ? `Farm ${row.farm_id}` : null) ??
+            (row.farmer_id ? `Farmer ${row.farmer_id}` : null) ??
+            (row.id ? `Record #${row.id}` : null) ??
             'Record',
     );
 }
 function recordSubtitle(row: Record<string, any>) {
     return [
-        row.farmer_name,
+        row.farmer_name ?? row.farmer?.name ?? row.farmer?.full_name,
+        row.farm_name ?? row.farm?.farm_name,
         row.cooperative,
         row.location,
         row.crop_label,
+        row.declared_area,
+        row.measured_area,
+        row.variance,
+        row.activity_type,
         row.quantity_label,
         row.production_period,
         row.harvest_date,
+        row.received_date,
         row.activity_date,
-        row.lot_code,
+        row.status_label,
     ]
         .filter((x) => x !== undefined && x !== null && x !== '')
         .map(String)
         .join(' · ');
 }
-function withSearch(path: string, search: string) {
+function withCollectionQuery(
+    path: string,
+    search: string,
+    filters: Record<string, any>,
+) {
     const clean = path.split('?')[0];
-    return search.trim()
-        ? `${clean}?search=${encodeURIComponent(search.trim())}`
-        : clean;
+    const query = new URLSearchParams();
+    if (search.trim()) query.set('search', search.trim());
+    Object.entries(filters).forEach(([key, value]) => {
+        if (key !== 'search' && value !== '' && value !== null && value !== undefined) {
+            query.set(key, String(value));
+        }
+    });
+    const serialized = query.toString();
+    return serialized ? `${clean}?${serialized}` : clean;
 }
 function nextPath(url: string) {
     try {
@@ -2493,14 +3578,16 @@ function detailActions(
             title: 'Receive into inventory',
             path: `/harvest/${id}/receive`,
         });
-    if (component === 'inventory/show' && id && operations)
+    if (component === 'inventory/show' && id && operations && data.can_manage)
         actions.push(
             { title: 'Adjust inventory', path: `/inventory/${id}/adjust` },
             { title: 'Record damage', path: `/inventory/${id}/damage` },
-            {
-                title: 'Process coffee',
-                path: `/inventory/process/create?inventory=${id}`,
-            },
+            ...(data.can_process
+                ? [{ title: 'Process coffee', path: `/inventory/process/create?inventory=${id}` }]
+                : []),
+            ...(data.can_trace
+                ? [{ title: 'Create traceability lot', path: `/traceability/create?inventory=${id}` }]
+                : []),
         );
     if (component === 'traceability/show' && id && operations)
         actions.push({
@@ -2521,106 +3608,209 @@ const styles = StyleSheet.create({
         backgroundColor: CANVAS,
     },
     header: {
-        height: 64,
-        paddingHorizontal: 14,
-        backgroundColor: API_FOREST,
+        minHeight: 70,
+        paddingHorizontal: 17,
+        backgroundColor: '#ffffff',
         flexDirection: 'row',
         alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e9eeea',
     },
-    backButton: { width: 42, justifyContent: 'center' },
-    backGlyph: { color: '#ffffff', fontSize: 35, lineHeight: 39 },
+    backButton: { width: 42, justifyContent: 'center', minHeight: 48 },
+    brandButton: { width: 126 },
+    headerLogo: { width: 120, height: 36, alignSelf: 'flex-start' },
     logo: {
-        width: 34,
-        height: 34,
-        borderRadius: 11,
-        backgroundColor: '#dcebdd',
+        width: 39,
+        height: 39,
+        borderRadius: 14,
+        backgroundColor: API_FOREST,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    logoText: { color: API_FOREST, fontWeight: '800', fontSize: 20 },
-    headerCopy: { flex: 1, marginLeft: 4 },
-    headerTitle: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-    headerSub: { color: '#cad9cd', fontSize: 10, marginTop: 3 },
+    logoText: { color: '#ffffff', fontWeight: '800', fontSize: 20 },
+    headerCopy: { flex: 1, marginLeft: 5 },
+    headerTitle: { color: INK, fontSize: 16, fontWeight: '800' },
+    headerSub: { color: MUTED, fontSize: 10, marginTop: 3 },
     signOut: {
         width: 40,
         height: 40,
-        borderRadius: 13,
-        backgroundColor: '#ffffff1e',
+        borderRadius: 14,
+        backgroundColor: '#f0f4f0',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    signOutText: { color: '#ffffff', fontSize: 20, fontWeight: '700' },
     page: { flex: 1, backgroundColor: CANVAS },
-    content: { padding: 16, paddingBottom: 25 },
-    welcome: { padding: 18, borderRadius: 20, backgroundColor: API_FOREST },
+    content: {
+        width: '100%',
+        maxWidth: 720,
+        alignSelf: 'center',
+        paddingHorizontal: 18,
+        paddingTop: 18,
+        paddingBottom: 30,
+    },
+    welcome: {
+        position: 'relative',
+        overflow: 'hidden',
+        padding: 20,
+        borderRadius: 24,
+        backgroundColor: API_FOREST,
+        shadowColor: '#17392b',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.13,
+        shadowRadius: 16,
+        elevation: 4,
+    },
+    welcomeOrb: {
+        position: 'absolute',
+        pointerEvents: 'none',
+        top: -66,
+        right: -28,
+        width: 178,
+        height: 178,
+        borderRadius: 90,
+        backgroundColor: '#ffffff10',
+        borderWidth: 1,
+        borderColor: '#ffffff18',
+    },
+    welcomeOrbSmall: {
+        position: 'absolute',
+        pointerEvents: 'none',
+        top: 33,
+        right: 35,
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        backgroundColor: '#ffffff08',
+        borderWidth: 1,
+        borderColor: '#ffffff12',
+    },
     eyebrow: {
-        color: '#b8d0bd',
-        letterSpacing: 1.3,
+        color: '#c0d9c8',
+        letterSpacing: 1.5,
         fontSize: 10,
         fontWeight: '700',
     },
     welcomeTitle: {
         color: '#ffffff',
-        marginTop: 10,
-        fontSize: 23,
-        fontWeight: '700',
+        marginTop: 12,
+        fontSize: 26,
+        lineHeight: 32,
+        fontWeight: '800',
     },
     welcomeBody: {
-        color: '#d0dfd2',
-        marginTop: 6,
-        fontSize: 12,
-        lineHeight: 18,
+        maxWidth: 290,
+        color: '#d4e3d8',
+        marginTop: 8,
+        fontSize: 13,
+        lineHeight: 20,
     },
-    sectionTitle: {
-        color: INK,
-        fontSize: 15,
-        fontWeight: '700',
-        marginTop: 21,
-        marginBottom: 10,
+    heroAction: {
+        minHeight: 45,
+        marginTop: 17,
+        paddingHorizontal: 14,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#ffffff',
+    },
+    heroActionText: { color: API_FOREST, fontSize: 12, fontWeight: '800' },
+    dashboardHeading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 23,
+        marginBottom: 12,
+    },
+    dashboardTitle: { color: INK, fontSize: 17, fontWeight: '800' },
+    dashboardDate: { color: MUTED, fontSize: 11, marginTop: 4 },
+    livePill: {
+        minHeight: 28,
+        paddingHorizontal: 9,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: '#e8f2e9',
+    },
+    liveDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: GREEN,
+    },
+    liveText: { color: API_FOREST, fontSize: 9, fontWeight: '800' },
+    statTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    statCode: {
+        width: 29,
+        height: 29,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#edf4ee',
+    },
+    quickCardTop: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     sectionHeadingRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    sectionHint: { color: MUTED, fontSize: 10, marginTop: 11 },
-    stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    sectionHint: {
+        color: GREEN,
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.8,
+    },
+    stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     stat: {
         width: '48%',
-        minHeight: 82,
-        padding: 13,
-        borderRadius: 16,
+        minHeight: 96,
+        padding: 12,
+        borderRadius: 18,
         justifyContent: 'center',
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e8ede8',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.035,
+        shadowRadius: 8,
+        elevation: 1,
     },
     statValue: {
-        color: API_FOREST,
-        fontSize: 23,
-        fontWeight: '800',
-        marginTop: 5,
+        color: INK,
+        fontSize: 25,
+        fontWeight: '900',
+        marginTop: 9,
     },
-    statLabel: { color: MUTED, fontSize: 10, fontWeight: '600' },
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    statLabel: { flex: 1, color: MUTED, fontSize: 10, fontWeight: '700' },
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     quickCard: {
         width: '48%',
-        minHeight: 127,
-        padding: 12,
-        borderRadius: 16,
+        minHeight: 136,
+        padding: 14,
+        borderRadius: 19,
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e8ede8',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.035,
+        shadowRadius: 8,
+        elevation: 1,
     },
     quickIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 11,
-        backgroundColor: '#e8f0e8',
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        backgroundColor: '#edf4ee',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    quickGlyph: { color: API_FOREST, fontSize: 19, fontWeight: '700' },
     quickTitle: { color: INK, marginTop: 9, fontSize: 12, fontWeight: '700' },
     quickDescription: {
         color: MUTED,
@@ -2630,13 +3820,19 @@ const styles = StyleSheet.create({
     },
     card: {
         marginBottom: 12,
-        padding: 15,
-        borderRadius: 16,
+        padding: 16,
+        borderRadius: 19,
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e8ede8',
         backgroundColor: '#ffffff',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.035,
+        shadowRadius: 8,
+        elevation: 1,
     },
-    cardTitle: { color: INK, fontSize: 15, fontWeight: '700', marginBottom: 8 },
+    cardTitle: { color: INK, fontSize: 15, fontWeight: '800', marginBottom: 8 },
+    sectionCount: { color: MUTED, fontSize: 11, fontWeight: '600' },
     keyRow: {
         minHeight: 39,
         paddingVertical: 8,
@@ -2661,22 +3857,27 @@ const styles = StyleSheet.create({
         borderBottomColor: '#edf0ed',
     },
     recordTitle: { color: INK, fontSize: 13, fontWeight: '700' },
+    recordCode: { color: MUTED, fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginTop: 3 },
     mutedSmall: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 4 },
     muted: { color: MUTED, fontSize: 12, lineHeight: 18 },
     recordCard: {
         marginTop: 9,
-        padding: 14,
-        borderRadius: 15,
+        padding: 15,
+        borderRadius: 18,
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e8ede8',
         backgroundColor: '#ffffff',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.035,
+        shadowRadius: 8,
+        elevation: 1,
     },
     recordTop: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    chevron: { color: '#97a39a', fontSize: 24 },
     status: {
         alignSelf: 'flex-start',
         paddingHorizontal: 9,
@@ -2689,24 +3890,38 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         textTransform: 'capitalize',
     },
+    statusPositive: { color: '#1f6541', backgroundColor: '#e6f3e9' },
+    statusAttention: { color: '#805d12', backgroundColor: '#fbf2d9' },
+    statusNegative: { color: '#9a3c35', backgroundColor: '#fbe9e7' },
+    statusNeutral: { color: '#58655c', backgroundColor: '#edf0ed' },
     featureCard: {
-        minHeight: 70,
-        padding: 12,
+        minHeight: 76,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 11,
-        borderRadius: 15,
+        borderRadius: 18,
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e8ede8',
         backgroundColor: '#ffffff',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.035,
+        shadowRadius: 8,
+        elevation: 1,
     },
+    collectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+    collectionHeaderIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center' },
+    collectionTitle: { color: INK, fontSize: 19, fontWeight: '800' },
+    rowIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    rowIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
     featureIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 13,
+        width: 43,
+        height: 43,
+        borderRadius: 15,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e8f0e8',
+        backgroundColor: '#edf4ee',
     },
     bottomBar: {
         minHeight: 68,
@@ -2735,8 +3950,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     bottomIconActive: { backgroundColor: '#e8f0e8' },
-    bottomGlyph: { color: MUTED, fontSize: 19, lineHeight: 23 },
-    bottomGlyphActive: { color: API_FOREST },
     bottomLabel: {
         color: MUTED,
         marginTop: 1,
@@ -2790,6 +4003,8 @@ const styles = StyleSheet.create({
         borderColor: '#edf0ed',
     },
     summaryNumber: { color: API_FOREST, fontSize: 17, fontWeight: '800' },
+    inlineEmpty: { color: MUTED, fontSize: 11, lineHeight: 17, paddingVertical: 10 },
+    noticeCard: { marginBottom: 12, padding: 13, borderRadius: 15, backgroundColor: '#edf4ee', flexDirection: 'row', alignItems: 'center', gap: 10 },
     searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2801,18 +4016,33 @@ const styles = StyleSheet.create({
         minHeight: 44,
         paddingHorizontal: 14,
         borderRadius: 12,
+        flexDirection: 'row',
+        gap: 7,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#e6efe6',
     },
     searchText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
+    filterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+    filterField: { width: '48%', minWidth: 145 },
+    filterLabel: { color: MUTED, fontSize: 9, fontWeight: '800', marginBottom: 4 },
+    filterPicker: { minHeight: 43, overflow: 'hidden', borderWidth: 1, borderColor: '#dfe6df', borderRadius: 11, backgroundColor: '#ffffff', justifyContent: 'center' },
+    filterPickerControl: { height: 45, color: INK, fontSize: 11 },
     formContent: { padding: 16, paddingBottom: 30 },
+    formIntro: { padding: 15, marginBottom: 3, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ede8' },
+    reviewCard: { marginTop: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#dce8dd', backgroundColor: '#f0f6f1' },
+    reviewHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
+    formTitle: { color: INK, fontSize: 18, fontWeight: '800', marginBottom: 4 },
+    gpsAccuracy: { color: API_FOREST, fontSize: 10, fontWeight: '700', marginTop: 6 },
     locationCard: {
         marginTop: 13,
         padding: 13,
         borderRadius: 14,
         backgroundColor: '#e9f0e9',
     },
+    locationTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+    locationIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+    coordinateText: { color: MUTED, fontSize: 10, fontWeight: '600', marginTop: 8 },
     field: { marginTop: 13 },
     fieldLabel: {
         color: '#34443a',
@@ -2879,6 +4109,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginBottom: 5,
     },
+    entityTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     entityPhoto: {
         width: '100%',
         height: 170,
@@ -2887,32 +4118,85 @@ const styles = StyleSheet.create({
         backgroundColor: '#e6ece6',
     },
     empty: { alignItems: 'center', padding: 40 },
-    emptyGlyph: { color: '#9aab9d', fontSize: 36 },
+    setupCard: { marginTop: 17, padding: 19, borderRadius: 22, borderWidth: 1, borderColor: '#e5ebe5', backgroundColor: '#ffffff' },
+    setupIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#eaf2eb', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    accountInfo: { minHeight: 44, paddingHorizontal: 11, marginTop: 15, borderRadius: 13, backgroundColor: '#f5f8f5', flexDirection: 'row', alignItems: 'center', gap: 9 },
+    accountInfoText: { color: INK, fontSize: 12, fontWeight: '700' },
+    setupNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#edf0ed' },
+    setupNoteText: { flex: 1, color: MUTED, fontSize: 10, lineHeight: 15 },
+    moduleHero: { alignItems: 'center', padding: 22, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ede8' },
+    moduleIcon: { width: 66, height: 66, borderRadius: 22, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+    moduleEyebrow: { color: GREEN, fontSize: 9, fontWeight: '800', letterSpacing: 1.4 },
+    moduleTitle: { color: INK, fontSize: 22, fontWeight: '800', textAlign: 'center', marginTop: 8, marginBottom: 7 },
+    comingSoonPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 15, backgroundColor: '#f1f3ee', marginTop: 15 },
+    comingSoonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#a58d44' },
+    comingSoonText: { color: '#71663d', fontSize: 10, fontWeight: '800' },
+    progressTrack: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 12 },
+    progressStep: { flex: 1, alignItems: 'center', gap: 6 },
+    progressDot: { width: 27, height: 27, borderRadius: 14, borderWidth: 1, borderColor: '#dce5dc', backgroundColor: '#f5f7f4', alignItems: 'center', justifyContent: 'center' },
+    progressDotDone: { backgroundColor: API_FOREST, borderColor: API_FOREST },
+    progressDotActive: { backgroundColor: '#e8f0e8', borderColor: GREEN },
+    progressNumber: { color: MUTED, fontSize: 10, fontWeight: '700' },
+    progressNumberActive: { color: API_FOREST },
+    progressLabel: { color: MUTED, fontSize: 9 },
+    progressLabelActive: { color: API_FOREST, fontWeight: '800' },
+    boundaryIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    boundaryPreview: { overflow: 'hidden', marginTop: 10, borderRadius: 14, backgroundColor: '#f7faf7' },
+    boundaryFacts: { flexDirection: 'row', paddingTop: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#edf0ed' },
+    boundaryFact: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+    boundaryValue: { color: INK, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+    linkedFarmer: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, marginBottom: 12, borderRadius: 16, borderWidth: 1, borderColor: '#e5eae5', backgroundColor: '#ffffff' },
+    linkedFarmerIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
     heading: { color: INK, fontSize: 18, fontWeight: '700', marginBottom: 6 },
-    loginSafe: { flex: 1, backgroundColor: API_FOREST },
-    loginWrap: { flexGrow: 1, justifyContent: 'center', padding: 20 },
-    loginBrand: { alignItems: 'center', marginBottom: 25 },
+    loginSafe: { flex: 1, backgroundColor: CANVAS },
+    loginWrap: {
+        width: '100%',
+        maxWidth: 470,
+        flexGrow: 1,
+        alignSelf: 'center',
+        justifyContent: 'center',
+        padding: 22,
+    },
+    loginBrand: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 13,
+        marginBottom: 18,
+        paddingHorizontal: 3,
+    },
     loginLogo: {
-        width: 56,
-        height: 56,
-        borderRadius: 18,
+        width: 52,
+        height: 52,
+        borderRadius: 17,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e0ede1',
+        backgroundColor: API_FOREST,
     },
-    loginLogoText: { color: API_FOREST, fontSize: 32, fontWeight: '800' },
+    loginLogoText: { color: '#ffffff', fontSize: 30, fontWeight: '800' },
+    loginLogoImage: { width: 176, height: 48 },
+    loginBrandCopy: { flex: 1 },
     loginName: {
-        color: '#ffffff',
-        fontSize: 26,
+        color: INK,
+        fontSize: 22,
         fontWeight: '800',
-        marginTop: 12,
     },
-    loginTagline: { color: '#cad9cd', fontSize: 12, marginTop: 3 },
-    loginCard: { padding: 18, borderRadius: 21, backgroundColor: '#ffffff' },
-    loginHeading: { color: INK, fontSize: 19, fontWeight: '700' },
+    loginTagline: { color: MUTED, fontSize: 11, marginTop: 3 },
+    loginCard: {
+        padding: 22,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: '#e8ede8',
+        backgroundColor: '#ffffff',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.07,
+        shadowRadius: 18,
+        elevation: 3,
+    },
+    loginHeading: { color: INK, fontSize: 21, fontWeight: '800' },
     loginHelp: { color: MUTED, fontSize: 12, marginTop: 6, marginBottom: 8 },
     loginFoot: {
-        color: '#cad9cd',
+        color: MUTED,
         textAlign: 'center',
         marginTop: 17,
         fontSize: 10,

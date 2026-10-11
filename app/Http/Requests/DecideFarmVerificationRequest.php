@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\FarmVerificationResult;
 use App\Models\User;
 use App\UserRole;
+use App\FarmVerificationStatus;
+use App\Models\Farm;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,10 +15,13 @@ class DecideFarmVerificationRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $farm = $this->route('farm');
 
         return $user instanceof User
-            && $user->role !== UserRole::Farmer
-            && $user->canAccess(UserRole::FieldVerifier);
+            && $user->role === UserRole::FieldVerifier
+            && $farm instanceof Farm
+            && $farm->assigned_verifier_id === $user->id
+            && $farm->verification_status === FarmVerificationStatus::InProgress;
     }
 
     /**

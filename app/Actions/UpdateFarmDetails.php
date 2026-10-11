@@ -33,7 +33,7 @@ class UpdateFarmDetails
                     }
                 }
 
-                $farm->update([
+                $attributes = [
                     'farm_name' => $data['farm_name'] ?? null,
                     'crop_type' => $data['crop_type'],
                     'declared_area_hectares' => $data['declared_area_hectares'],
@@ -53,7 +53,13 @@ class UpdateFarmDetails
                     'financing_support_amount' => $data['financing_support_amount'] ?? null,
                     'drone_image_path' => $storedPath ?? $previousImage,
                     'notes' => $data['notes'] ?? null,
-                ]);
+                ];
+
+                if (array_key_exists('assigned_verifier_id', $data)) {
+                    $attributes['assigned_verifier_id'] = $data['assigned_verifier_id'];
+                }
+
+                $farm->update($attributes);
 
                 if (is_string($storedPath) && is_string($previousImage)) {
                     Storage::delete($previousImage);

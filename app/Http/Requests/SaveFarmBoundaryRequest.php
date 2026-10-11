@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\FarmVerificationStatus;
+use App\Models\Farm;
 use App\Models\User;
 use App\Services\FarmBoundaryGeometry;
 use App\UserRole;
@@ -14,8 +16,19 @@ class SaveFarmBoundaryRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $farm = $this->route('farm');
 
-        return $user instanceof User && $user->canAccess(UserRole::Operations);
+        if (! $user instanceof User || ! $farm instanceof Farm) {
+            return false;
+        }
+
+        if ($user->canAccess(UserRole::Operations)) {
+            return true;
+        }
+
+        return $user->role === UserRole::FieldVerifier
+            && $farm->assigned_verifier_id === $user->id
+            && $farm->verification_status === FarmVerificationStatus::InProgress;
     }
 
     /**

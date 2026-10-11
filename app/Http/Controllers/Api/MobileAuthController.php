@@ -128,7 +128,7 @@ class MobileAuthController extends Controller
         ]);
     }
 
-    /** @return array{id: int, name: string, email: string, role: string} */
+    /** @return array{id: int, name: string, email: string, role: string, farmer_profile_linked: bool} */
     private function presentUser(User $user): array
     {
         return [
@@ -136,6 +136,7 @@ class MobileAuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role->value,
+            'farmer_profile_linked' => $user->role->value === 'farmer' && $user->farmer()->exists(),
         ];
     }
 }

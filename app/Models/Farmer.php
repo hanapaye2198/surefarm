@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'mobile_number',
     'email',
     'cooperative_id',
+    'user_id',
     'status',
 ])]
 class Farmer extends Model
@@ -70,6 +71,14 @@ class Farmer extends Model
     public function cooperative(): BelongsTo
     {
         return $this->belongsTo(Cooperative::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

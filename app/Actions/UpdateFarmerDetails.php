@@ -14,10 +14,16 @@ class UpdateFarmerDetails
     public function handle(Farmer $farmer, array $data): Farmer
     {
         return DB::transaction(function () use ($farmer, $data): Farmer {
-            $farmer->update([
+            $attributes = [
                 'date_of_birth' => $data['date_of_birth'] ?? null,
                 'government_id' => $data['government_id'] ?? null,
-            ]);
+            ];
+
+            if (array_key_exists('user_id', $data)) {
+                $attributes['user_id'] = $data['user_id'];
+            }
+
+            $farmer->update($attributes);
 
             $hasBankAccount = filter_var($data['has_bank_account'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
