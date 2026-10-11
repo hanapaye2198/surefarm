@@ -157,6 +157,23 @@ jobs:
           npm ci --no-audit --no-fund
           npm run build
 
+      - name: Set up Node.js for Expo web export
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Export Expo app for the /mobile path
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_SUREFARM_URL: https://surefarm.io
+        run: |
+          npm ci --no-audit --no-fund
+          npx expo export --platform web
+          mkdir -p ../public/mobile
+          cp -a dist/. ../public/mobile/
+
       - name: Configure SSH
         env:
           HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}

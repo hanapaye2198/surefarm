@@ -30,6 +30,19 @@ npx expo start
 
 Open the QR code with Expo Go for development, or use an EAS build for an installable app.
 
+## Open the app in a browser
+
+The Expo web version is published at `https://surefarm.io/mobile/` by the main-branch Hostinger deployment workflow. It uses the same Laravel mobile API and requires an internet connection and a modern browser.
+
+To export it locally, from this directory run:
+
+```sh
+npm ci
+npx expo export --platform web
+```
+
+The export is configured for the `/mobile` path so its static assets load from the deployed subdirectory.
+
 ## Deploy the Laravel API changes
 
 Deploy the Laravel project changes in the repository root before signing in from the app. In the Laravel project directory on Hostinger, install the locked production dependencies and run the new Sanctum token migration:

@@ -35,6 +35,9 @@
             "package": "io.surefarm.mobile",
             "softwareKeyboardLayoutMode": "resize",
             "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+        },
+        "experiments": {
+            "baseUrl": "/mobile"
         }
     }
 }
