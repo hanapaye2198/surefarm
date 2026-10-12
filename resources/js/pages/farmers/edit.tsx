@@ -146,13 +146,18 @@ export default function EditFarmerDetails({
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             >
                                 {farmerAccounts.map((account) => (
-                                    <option key={account.value} value={account.value}>
+                                    <option
+                                        key={account.value}
+                                        value={account.value}
+                                    >
                                         {account.label}
                                     </option>
                                 ))}
                             </select>
                             <p className="text-xs text-muted-foreground">
-                                Link this farmer record to a verified farmer login so the farmer can see their farms in the mobile app.
+                                Link this farmer record to a verified farmer
+                                login so the farmer can see their farms in the
+                                mobile app.
                             </p>
                         </Field>
                         <Field

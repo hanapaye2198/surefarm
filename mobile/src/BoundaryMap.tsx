@@ -1,4 +1,10 @@
-import React, { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+    createElement,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 
@@ -36,7 +42,13 @@ export default function BoundaryMap({ points, height = 210, apiKey }: Props) {
     const polygonPoints = plotPoints.map(({ x, y }) => `${x},${y}`).join(' ');
 
     useEffect(() => {
-        if (Platform.OS !== 'web' || !apiKey || points.length < 3 || !mapHost.current) return;
+        if (
+            Platform.OS !== 'web' ||
+            !apiKey ||
+            points.length < 3 ||
+            !mapHost.current
+        )
+            return;
 
         const browserWindow = window as any;
         let cancelled = false;
@@ -44,10 +56,12 @@ export default function BoundaryMap({ points, height = 210, apiKey }: Props) {
         const previousAuthFailure = browserWindow.gm_authFailure;
         const handleAuthFailure = () => {
             if (!cancelled) setMapUnavailable(true);
-            if (typeof previousAuthFailure === 'function') previousAuthFailure();
+            if (typeof previousAuthFailure === 'function')
+                previousAuthFailure();
         };
         const renderMap = () => {
-            if (cancelled || !mapHost.current || !browserWindow.google?.maps) return;
+            if (cancelled || !mapHost.current || !browserWindow.google?.maps)
+                return;
             try {
                 const map = new browserWindow.google.maps.Map(mapHost.current, {
                     mapTypeId: 'hybrid',
@@ -56,7 +70,10 @@ export default function BoundaryMap({ points, height = 210, apiKey }: Props) {
                     fullscreenControl: true,
                     gestureHandling: 'greedy',
                 });
-                const path = points.map((point) => ({ lat: point.latitude, lng: point.longitude }));
+                const path = points.map((point) => ({
+                    lat: point.latitude,
+                    lng: point.longitude,
+                }));
                 new browserWindow.google.maps.Polygon({
                     paths: path,
                     strokeColor: '#17613d',
@@ -80,7 +97,9 @@ export default function BoundaryMap({ points, height = 210, apiKey }: Props) {
         if (browserWindow.google?.maps) {
             renderMap();
         } else {
-            let script = document.querySelector<HTMLScriptElement>('#surefarm-google-maps');
+            let script = document.querySelector<HTMLScriptElement>(
+                '#surefarm-google-maps',
+            );
             if (!script) {
                 script = document.createElement('script');
                 script.id = 'surefarm-google-maps';
@@ -97,24 +116,77 @@ export default function BoundaryMap({ points, height = 210, apiKey }: Props) {
         return () => {
             cancelled = true;
             if (timeout) clearTimeout(timeout);
-            document.querySelector<HTMLScriptElement>('#surefarm-google-maps')?.removeEventListener('load', renderMap);
-            document.querySelector<HTMLScriptElement>('#surefarm-google-maps')?.removeEventListener('error', handleScriptError);
-            if (browserWindow.gm_authFailure === handleAuthFailure) browserWindow.gm_authFailure = previousAuthFailure;
+            document
+                .querySelector<HTMLScriptElement>('#surefarm-google-maps')
+                ?.removeEventListener('load', renderMap);
+            document
+                .querySelector<HTMLScriptElement>('#surefarm-google-maps')
+                ?.removeEventListener('error', handleScriptError);
+            if (browserWindow.gm_authFailure === handleAuthFailure)
+                browserWindow.gm_authFailure = previousAuthFailure;
         };
     }, [apiKey, points]);
 
-    if (Platform.OS === 'web' && apiKey && points.length >= 3 && !mapUnavailable) {
-        return createElement('div', { ref: mapHost, style: { width: '100%', height, borderRadius: 14, overflow: 'hidden' } });
+    if (
+        Platform.OS === 'web' &&
+        apiKey &&
+        points.length >= 3 &&
+        !mapUnavailable
+    ) {
+        return createElement('div', {
+            ref: mapHost,
+            style: {
+                width: '100%',
+                height,
+                borderRadius: 14,
+                overflow: 'hidden',
+            },
+        });
     }
 
     return (
-        <View style={{ width: '100%', height, overflow: 'hidden', borderRadius: 14, backgroundColor: '#f5f7f4' }}>
-            <Svg width="100%" height="100%" viewBox="0 0 320 140" preserveAspectRatio="xMidYMid meet">
-                <Path d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140" stroke="#e6eee7" strokeWidth={1} />
-                {polygonPoints ? <Polygon points={polygonPoints} fill="#88b89555" stroke="#17613d" strokeWidth={3} strokeLinejoin="round" /> : null}
+        <View
+            style={{
+                width: '100%',
+                height,
+                overflow: 'hidden',
+                borderRadius: 14,
+                backgroundColor: '#f5f7f4',
+            }}
+        >
+            <Svg
+                width="100%"
+                height="100%"
+                viewBox="0 0 320 140"
+                preserveAspectRatio="xMidYMid meet"
+            >
+                <Path
+                    d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140"
+                    stroke="#e6eee7"
+                    strokeWidth={1}
+                />
+                {polygonPoints ? (
+                    <Polygon
+                        points={polygonPoints}
+                        fill="#88b89555"
+                        stroke="#17613d"
+                        strokeWidth={3}
+                        strokeLinejoin="round"
+                    />
+                ) : null}
                 {points.map((point, index) => {
                     const projected = plotPoints[index] ?? { x: 160, y: 70 };
-                    return <Circle key={`${point.latitude}-${point.longitude}-${index}`} cx={projected.x} cy={projected.y} r={4} fill="#17613d" stroke="#fff" strokeWidth={2} />;
+                    return (
+                        <Circle
+                            key={`${point.latitude}-${point.longitude}-${index}`}
+                            cx={projected.x}
+                            cy={projected.y}
+                            r={4}
+                            fill="#17613d"
+                            stroke="#fff"
+                            strokeWidth={2}
+                        />
+                    );
                 })}
             </Svg>
         </View>

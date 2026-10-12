@@ -168,13 +168,19 @@ export default function Dashboard({
                             <div className="mb-2 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                                 <LockKeyhole className="size-6" />
                             </div>
-                            <CardTitle>Finish setting up your farm access</CardTitle>
+                            <CardTitle>
+                                Finish setting up your farm access
+                            </CardTitle>
                             <CardDescription>
-                                Your account is not linked to a farmer profile yet. Contact your cooperative or SureFarm administrator to connect your sign-in to your farmer record.
+                                Your account is not linked to a farmer profile
+                                yet. Contact your cooperative or SureFarm
+                                administrator to connect your sign-in to your
+                                farmer record.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="text-sm text-muted-foreground">
-                            Farm details will appear here after your account is linked. This keeps each farmer’s records private.
+                            Farm details will appear here after your account is
+                            linked. This keeps each farmer’s records private.
                         </CardContent>
                     </Card>
                 </div>
@@ -205,20 +211,38 @@ export default function Dashboard({
 
         return (
             <>
-                <Head title={isFarmer ? 'Farmer dashboard' : 'Field verifier dashboard'} />
+                <Head
+                    title={
+                        isFarmer
+                            ? 'Farmer dashboard'
+                            : 'Field verifier dashboard'
+                    }
+                />
                 <div className="flex flex-col gap-5 sm:gap-6">
                     <PageHeader
-                        title={isFarmer ? `Welcome, ${farmer?.name ?? 'farmer'}` : 'Field verification'}
-                        description={isFarmer
-                            ? `Your own farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`
-                            : 'Counts include only farms assigned to your verifier account.'}
+                        title={
+                            isFarmer
+                                ? `Welcome, ${farmer?.name ?? 'farmer'}`
+                                : 'Field verification'
+                        }
+                        description={
+                            isFarmer
+                                ? `Your own farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`
+                                : 'Counts include only farms assigned to your verifier account.'
+                        }
                     />
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {rows.map(([label, value]) => (
                             <Card key={label} className="shadow-sm">
                                 <CardContent className="flex items-center justify-between gap-4 py-5">
-                                    <span className="text-sm text-muted-foreground">{label}</span>
-                                    <span className="text-2xl font-semibold tabular-nums">{countFormatter.format(Number(value ?? 0))}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {label}
+                                    </span>
+                                    <span className="text-2xl font-semibold tabular-nums">
+                                        {countFormatter.format(
+                                            Number(value ?? 0),
+                                        )}
+                                    </span>
                                 </CardContent>
                             </Card>
                         ))}

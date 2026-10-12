@@ -161,13 +161,17 @@ export default function EditFarm({
                                 className={selectClass}
                             >
                                 {verifiers.map((verifier) => (
-                                    <option key={verifier.value} value={verifier.value}>
+                                    <option
+                                        key={verifier.value}
+                                        value={verifier.value}
+                                    >
                                         {verifier.label}
                                     </option>
                                 ))}
                             </select>
                             <p className="text-xs text-muted-foreground">
-                                Only the assigned validator can run this farm’s mobile verification workflow.
+                                Only the assigned validator can run this farm’s
+                                mobile verification workflow.
                             </p>
                         </Field>
                         <Field

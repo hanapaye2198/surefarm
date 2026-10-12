@@ -1,4 +1,12 @@
-import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import {
+    createElement,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ComponentProps,
+} from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -34,7 +42,13 @@ import {
 } from './src/forms';
 
 type Role = 'admin' | 'operations' | 'field_verifier' | 'farmer';
-type User = { id: number; name: string; email: string; role: Role; farmer_profile_linked?: boolean };
+type User = {
+    id: number;
+    name: string;
+    email: string;
+    role: Role;
+    farmer_profile_linked?: boolean;
+};
 type Page = { component: string; data: Record<string, any> };
 type Screen = { path: string; title: string };
 const ICONS = {
@@ -89,11 +103,21 @@ type Section = {
 const APP_FONT_FAMILY = 'Proxima Nova';
 
 function Text(props: ComponentProps<typeof NativeText>) {
-    return <NativeText {...props} style={[{ fontFamily: APP_FONT_FAMILY }, props.style]} />;
+    return (
+        <NativeText
+            {...props}
+            style={[{ fontFamily: APP_FONT_FAMILY }, props.style]}
+        />
+    );
 }
 
 function TextInput(props: ComponentProps<typeof NativeTextInput>) {
-    return <NativeTextInput {...props} style={[{ fontFamily: APP_FONT_FAMILY }, props.style]} />;
+    return (
+        <NativeTextInput
+            {...props}
+            style={[{ fontFamily: APP_FONT_FAMILY }, props.style]}
+        />
+    );
 }
 
 const TOKEN_KEY = 'surefarm.mobile.access-token';
@@ -144,7 +168,9 @@ function AppIcon({
     size?: number;
     color?: string;
 }) {
-    return <MaterialCommunityIcons name={ICONS[name]} size={size} color={color} />;
+    return (
+        <MaterialCommunityIcons name={ICONS[name]} size={size} color={color} />
+    );
 }
 
 const SECTIONS: Section[] = [
@@ -334,14 +360,26 @@ const COLLECTION_FILTERS: Record<
     { key: string; label: string; source: string }[]
 > = {
     'farms/index': [
-        { key: 'verification_status', label: 'Verification', source: 'verificationStatuses' },
+        {
+            key: 'verification_status',
+            label: 'Verification',
+            source: 'verificationStatuses',
+        },
         { key: 'status', label: 'Farm status', source: 'statuses' },
     ],
     'farm-verification/index': [
-        { key: 'verification_status', label: 'Verification', source: 'verificationStatuses' },
+        {
+            key: 'verification_status',
+            label: 'Verification',
+            source: 'verificationStatuses',
+        },
         { key: 'crop', label: 'Crop', source: 'crops' },
         { key: 'province', label: 'Province', source: 'provinces' },
-        { key: 'municipality', label: 'Municipality', source: 'municipalities' },
+        {
+            key: 'municipality',
+            label: 'Municipality',
+            source: 'municipalities',
+        },
     ],
     'farm-activities/index': [
         { key: 'farm', label: 'Farm', source: 'farms' },
@@ -458,19 +496,23 @@ function SureFarmApp() {
     const current = stack[stack.length - 1];
     const sections = useMemo(
         () =>
-            SECTIONS.filter(
-                (item) => {
-                    if (user?.role === 'farmer')
-                        return item.key === 'dashboard' || (user.farmer_profile_linked === true && item.roles?.includes('farmer') === true);
-                    if (user?.role === 'field_verifier')
-                        return ['dashboard', 'farm-verification'].includes(item.key);
+            SECTIONS.filter((item) => {
+                if (user?.role === 'farmer')
                     return (
-                        !item.roles ||
-                        user?.role === 'admin' ||
-                        (user && item.roles.includes(user.role))
+                        item.key === 'dashboard' ||
+                        (user.farmer_profile_linked === true &&
+                            item.roles?.includes('farmer') === true)
                     );
-                },
-            ),
+                if (user?.role === 'field_verifier')
+                    return ['dashboard', 'farm-verification'].includes(
+                        item.key,
+                    );
+                return (
+                    !item.roles ||
+                    user?.role === 'admin' ||
+                    (user && item.roles.includes(user.role))
+                );
+            }),
         [user?.role],
     );
     const isOperations = user?.role === 'admin' || user?.role === 'operations';
@@ -654,7 +696,9 @@ function SureFarmApp() {
         const previous = stack.slice(0, -1);
         setStack(previous);
         const path = previous[previous.length - 1].path;
-        setSearch(new URLSearchParams(path.split('?')[1] ?? '').get('search') ?? '');
+        setSearch(
+            new URLSearchParams(path.split('?')[1] ?? '').get('search') ?? '',
+        );
         if (!path.startsWith('local:')) await loadPage(path);
     };
 
@@ -876,7 +920,10 @@ function SureFarmApp() {
         >
             <View style={styles.header}>
                 <Pressable
-                    style={[styles.backButton, stack.length === 1 && styles.brandButton]}
+                    style={[
+                        styles.backButton,
+                        stack.length === 1 && styles.brandButton,
+                    ]}
                     onPress={() => void back()}
                 >
                     {stack.length > 1 ? (
@@ -993,8 +1040,7 @@ function SureFarmApp() {
                     <BottomItem
                         label="My farms"
                         active={
-                            panel === 'page' &&
-                            current.path === '/farmer/farms'
+                            panel === 'page' && current.path === '/farmer/farms'
                         }
                         icon="farms"
                         onPress={() =>
@@ -1004,9 +1050,17 @@ function SureFarmApp() {
                 ) : user.role === 'farmer' ? (
                     <BottomItem
                         label="Security"
-                        active={panel === 'page' && current.path === '/settings/security'}
+                        active={
+                            panel === 'page' &&
+                            current.path === '/settings/security'
+                        }
                         icon="lock"
-                        onPress={() => void navigate('/settings/security', 'Security settings')}
+                        onPress={() =>
+                            void navigate(
+                                '/settings/security',
+                                'Security settings',
+                            )
+                        }
                     />
                 ) : (
                     <BottomItem
@@ -1065,7 +1119,9 @@ function LoginScreen(props: {
                             accessibilityLabel="SureFarm logo"
                         />
                         <View style={styles.loginBrandCopy}>
-                            <Text style={styles.loginTagline}>Coffee farm operations</Text>
+                            <Text style={styles.loginTagline}>
+                                Coffee farm operations
+                            </Text>
                         </View>
                     </View>
                     <View style={styles.loginCard}>
@@ -1187,7 +1243,10 @@ function Dashboard({
 }) {
     if (page.data.mobile_dashboard_mode === 'farmer_account_not_linked') {
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <View style={styles.welcome}>
                     <View style={styles.welcomeOrb} />
                     <Text style={styles.eyebrow}>SUREFARM · FARMER PORTAL</Text>
@@ -1204,7 +1263,9 @@ function Dashboard({
                     <View style={styles.setupIcon}>
                         <AppIcon name="farmers" size={22} color={GREEN} />
                     </View>
-                    <Text style={styles.cardTitle}>Finish setting up your farm access</Text>
+                    <Text style={styles.cardTitle}>
+                        Finish setting up your farm access
+                    </Text>
                     <Text style={styles.muted}>
                         To protect farmer records, the app only shows farms
                         assigned to your account. Contact your cooperative or
@@ -1220,8 +1281,8 @@ function Dashboard({
                     <View style={styles.setupNote}>
                         <AppIcon name="lock" size={15} color={API_FOREST} />
                         <Text style={styles.setupNoteText}>
-                            Your sign-in is active. No other farmer’s information
-                            is shown on this screen.
+                            Your sign-in is active. No other farmer’s
+                            information is shown on this screen.
                         </Text>
                     </View>
                 </View>
@@ -1231,36 +1292,73 @@ function Dashboard({
 
     if (page.data.mobile_dashboard_mode === 'farmer_dashboard') {
         const summary = page.data.summary ?? {};
-        const farmsSection = sections.find((section) => section.key === 'farmer-farms');
-        const activitySection = sections.find((section) => section.key === 'farmer-activities');
-        const notificationSection = sections.find((section) => section.key === 'farmer-notifications');
+        const farmsSection = sections.find(
+            (section) => section.key === 'farmer-farms',
+        );
+        const activitySection = sections.find(
+            (section) => section.key === 'farmer-activities',
+        );
+        const notificationSection = sections.find(
+            (section) => section.key === 'farmer-notifications',
+        );
 
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <View style={styles.welcome}>
                     <Text style={styles.eyebrow}>SUREFARM · FARMER PORTAL</Text>
-                    <Text style={styles.welcomeTitle}>Hello, {(page.data.farmer?.name ?? user?.name)?.split(' ')[0] ?? 'farmer'}</Text>
-                    <Text style={styles.welcomeBody}>Your farms and verification updates, in one place.</Text>
+                    <Text style={styles.welcomeTitle}>
+                        Hello,{' '}
+                        {(page.data.farmer?.name ?? user?.name)?.split(
+                            ' ',
+                        )[0] ?? 'farmer'}
+                    </Text>
+                    <Text style={styles.welcomeBody}>
+                        Your farms and verification updates, in one place.
+                    </Text>
                 </View>
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Farm verification</Text>
-                    <SummaryRow label="Registered farms" value={summary.registered_farms ?? 0} />
-                    <SummaryRow label="Pending" value={summary.pending_verification ?? 0} />
-                    <SummaryRow label="In progress" value={summary.in_progress ?? 0} />
-                    <SummaryRow label="Verified" value={summary.verified_farms ?? 0} />
-                    <SummaryRow label="Needs review" value={summary.needs_review ?? 0} />
+                    <SummaryRow
+                        label="Registered farms"
+                        value={summary.registered_farms ?? 0}
+                    />
+                    <SummaryRow
+                        label="Pending"
+                        value={summary.pending_verification ?? 0}
+                    />
+                    <SummaryRow
+                        label="In progress"
+                        value={summary.in_progress ?? 0}
+                    />
+                    <SummaryRow
+                        label="Verified"
+                        value={summary.verified_farms ?? 0}
+                    />
+                    <SummaryRow
+                        label="Needs review"
+                        value={summary.needs_review ?? 0}
+                    />
                     <SummaryRow label="Failed" value={summary.failed ?? 0} />
                 </View>
                 <Pressable
                     accessibilityRole="button"
-                    onPress={() => notificationSection && onOpen(notificationSection)}
-                    style={({ pressed }) => [styles.noticeCard, pressed && styles.pressed]}
+                    onPress={() =>
+                        notificationSection && onOpen(notificationSection)
+                    }
+                    style={({ pressed }) => [
+                        styles.noticeCard,
+                        pressed && styles.pressed,
+                    ]}
                 >
                     <AppIcon name="info" size={18} color={GREEN} />
                     <View style={styles.flex}>
                         <Text style={styles.recordTitle}>Notifications</Text>
                         <Text style={styles.mutedSmall}>
-                            {page.data.unread_notifications ?? 0} unread update{page.data.unread_notifications === 1 ? '' : 's'}
+                            {page.data.unread_notifications ?? 0} unread update
+                            {page.data.unread_notifications === 1 ? '' : 's'}
                         </Text>
                     </View>
                     <AppIcon name="chevronRight" size={17} color={GREEN} />
@@ -1270,36 +1368,77 @@ function Dashboard({
                         <Text style={styles.cardTitle}>Recent updates</Text>
                         {page.data.recent_notifications.map((item: any) => (
                             <View key={item.id} style={styles.relatedRow}>
-                                <Text style={styles.recordTitle}>{item.title}{item.read ? '' : ' · New'}</Text>
-                                <Text style={styles.mutedSmall}>{item.message}</Text>
-                                <Text style={styles.mutedSmall}>{item.farm_name ? `${item.farm_name} · ` : ''}{item.created_at}</Text>
+                                <Text style={styles.recordTitle}>
+                                    {item.title}
+                                    {item.read ? '' : ' · New'}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.message}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.farm_name
+                                        ? `${item.farm_name} · `
+                                        : ''}
+                                    {item.created_at}
+                                </Text>
                             </View>
                         ))}
                     </View>
                 )}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Recent farm activities</Text>
-                    {(page.data.recent_activities ?? []).length ? page.data.recent_activities.map((item: any) => (
-                        <View key={item.id} style={styles.relatedRow}>
-                            <Text style={styles.recordTitle}>{item.activity ?? 'Farm activity'}</Text>
-                            <Text style={styles.mutedSmall}>{item.farm_name} · {item.activity_date} · {item.status_label}</Text>
-                        </View>
-                    )) : <Text style={styles.inlineEmpty}>Farm activity updates will appear here.</Text>}
+                    {(page.data.recent_activities ?? []).length ? (
+                        page.data.recent_activities.map((item: any) => (
+                            <View key={item.id} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>
+                                    {item.activity ?? 'Farm activity'}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.farm_name} · {item.activity_date} ·{' '}
+                                    {item.status_label}
+                                </Text>
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.inlineEmpty}>
+                            Farm activity updates will appear here.
+                        </Text>
+                    )}
                 </View>
                 {(page.data.recent_productions ?? []).length > 0 && (
-                    <Related title="Recent production" rows={page.data.recent_productions} />
+                    <Related
+                        title="Recent production"
+                        rows={page.data.recent_productions}
+                    />
                 )}
                 {(page.data.recent_harvests ?? []).length > 0 && (
-                    <Related title="Recent harvest" rows={page.data.recent_harvests} />
+                    <Related
+                        title="Recent harvest"
+                        rows={page.data.recent_harvests}
+                    />
                 )}
-                {farmsSection && <Primary title="View my farms" onPress={() => onOpen(farmsSection)} />}
-                {activitySection && <Secondary title="Activities & harvest" onPress={() => onOpen(activitySection)} />}
+                {farmsSection && (
+                    <Primary
+                        title="View my farms"
+                        onPress={() => onOpen(farmsSection)}
+                    />
+                )}
+                {activitySection && (
+                    <Secondary
+                        title="Activities & harvest"
+                        onPress={() => onOpen(activitySection)}
+                    />
+                )}
             </ScrollView>
         );
     }
 
     const summary = page.data.summary ?? {};
-    const operationsStats: { icon: IconName; label: string; value: string | number }[] = [
+    const operationsStats: {
+        icon: IconName;
+        label: string;
+        value: string | number;
+    }[] = [
         {
             icon: 'farmers',
             label: 'Farmers',
@@ -1332,16 +1471,41 @@ function Dashboard({
             value: summary.failed ?? 0,
         },
     ];
-    const verifierStats: { icon: IconName; label: string; value: string | number }[] = [
-        { icon: 'farms', label: 'Assigned farms', value: summary.assigned_farms ?? 0 },
-        { icon: 'pending', label: 'Pending', value: summary.pending_verification ?? 0 },
-        { icon: 'inProgress', label: 'In progress', value: summary.in_progress ?? 0 },
-        { icon: 'verified', label: 'Completed', value: summary.completed_farms ?? 0 },
-        { icon: 'needsReview', label: 'Needs review', value: summary.needs_review ?? 0 },
+    const verifierStats: {
+        icon: IconName;
+        label: string;
+        value: string | number;
+    }[] = [
+        {
+            icon: 'farms',
+            label: 'Assigned farms',
+            value: summary.assigned_farms ?? 0,
+        },
+        {
+            icon: 'pending',
+            label: 'Pending',
+            value: summary.pending_verification ?? 0,
+        },
+        {
+            icon: 'inProgress',
+            label: 'In progress',
+            value: summary.in_progress ?? 0,
+        },
+        {
+            icon: 'verified',
+            label: 'Completed',
+            value: summary.completed_farms ?? 0,
+        },
+        {
+            icon: 'needsReview',
+            label: 'Needs review',
+            value: summary.needs_review ?? 0,
+        },
         { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
         { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
     ];
-    const stats = user?.role === 'field_verifier' ? verifierStats : operationsStats;
+    const stats =
+        user?.role === 'field_verifier' ? verifierStats : operationsStats;
     const hour = new Date().getHours();
     const greeting =
         hour < 12
@@ -1437,18 +1601,49 @@ function Dashboard({
             {user?.role === 'field_verifier' && (
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Assigned farms</Text>
-                    {(page.data.assigned_farms_preview ?? []).length ? page.data.assigned_farms_preview.map((farm: any) => (
-                        <Pressable key={farm.id} onPress={() => onOpen({
-                            key: 'farm-verification', title: farm.farm_name,
-                            path: `/farm-verification/${farm.id}`, icon: 'verification', description: '',
-                        })} style={({ pressed }) => [styles.relatedRow, pressed && styles.pressed]}>
-                            <Text style={styles.recordTitle}>{farm.farm_name}</Text>
-                            <Text style={styles.recordCode}>{farm.farm_id}</Text>
-                            <Text style={styles.mutedSmall}>{farm.farmer_name} · {farm.location}</Text>
-                            <VerificationProgress status={farm.verification_status} />
-                        </Pressable>
-                    )) : <Text style={styles.inlineEmpty}>Assigned farms will appear here.</Text>}
-                    {verificationWorkspace && <Secondary title="Open assigned-farm queue" onPress={() => onOpen(verificationWorkspace)} />}
+                    {(page.data.assigned_farms_preview ?? []).length ? (
+                        page.data.assigned_farms_preview.map((farm: any) => (
+                            <Pressable
+                                key={farm.id}
+                                onPress={() =>
+                                    onOpen({
+                                        key: 'farm-verification',
+                                        title: farm.farm_name,
+                                        path: `/farm-verification/${farm.id}`,
+                                        icon: 'verification',
+                                        description: '',
+                                    })
+                                }
+                                style={({ pressed }) => [
+                                    styles.relatedRow,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text style={styles.recordTitle}>
+                                    {farm.farm_name}
+                                </Text>
+                                <Text style={styles.recordCode}>
+                                    {farm.farm_id}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {farm.farmer_name} · {farm.location}
+                                </Text>
+                                <VerificationProgress
+                                    status={farm.verification_status}
+                                />
+                            </Pressable>
+                        ))
+                    ) : (
+                        <Text style={styles.inlineEmpty}>
+                            Assigned farms will appear here.
+                        </Text>
+                    )}
+                    {verificationWorkspace && (
+                        <Secondary
+                            title="Open assigned-farm queue"
+                            onPress={() => onOpen(verificationWorkspace)}
+                        />
+                    )}
                 </View>
             )}
             <View style={styles.sectionHeadingRow}>
@@ -1620,22 +1815,64 @@ function DataPage(props: {
     if (page.component === 'mobile/farmer-farms') {
         const farms: any[] = page.data.farms ?? [];
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>My registered farms</Text>
-                    <Text style={styles.mutedSmall}>Declared, GPS measured, and verified area are shown separately.</Text>
+                    <Text style={styles.mutedSmall}>
+                        Declared, GPS measured, and verified area are shown
+                        separately.
+                    </Text>
                 </View>
-                {farms.length === 0 ? <EmptyState title="No farms linked yet" message="Your registered farms will appear here." /> : farms.map((farm) => (
-                    <Pressable key={farm.id} onPress={() => props.onOpen(`/farmer/farms/${farm.id}`, farm.farm_name)} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-                        <Text style={styles.recordTitle}>{farm.farm_name}</Text>
-                        <Text style={styles.recordCode}>{farm.farm_id} · {farm.crop}</Text>
-                        <SummaryRow label="Declared" value={farm.declared_area} />
-                        <SummaryRow label="GPS measured" value={farm.measured_area ?? 'Not measured'} />
-                        <SummaryRow label="Verified area" value={farm.verified_area ?? 'Not verified'} />
-                        <VerificationProgress status={farm.verification_status} />
-                        <Text style={styles.mutedSmall}>{farm.location}</Text>
-                    </Pressable>
-                ))}
+                {farms.length === 0 ? (
+                    <EmptyState
+                        title="No farms linked yet"
+                        message="Your registered farms will appear here."
+                    />
+                ) : (
+                    farms.map((farm) => (
+                        <Pressable
+                            key={farm.id}
+                            onPress={() =>
+                                props.onOpen(
+                                    `/farmer/farms/${farm.id}`,
+                                    farm.farm_name,
+                                )
+                            }
+                            style={({ pressed }) => [
+                                styles.card,
+                                pressed && styles.pressed,
+                            ]}
+                        >
+                            <Text style={styles.recordTitle}>
+                                {farm.farm_name}
+                            </Text>
+                            <Text style={styles.recordCode}>
+                                {farm.farm_id} · {farm.crop}
+                            </Text>
+                            <SummaryRow
+                                label="Declared"
+                                value={farm.declared_area}
+                            />
+                            <SummaryRow
+                                label="GPS measured"
+                                value={farm.measured_area ?? 'Not measured'}
+                            />
+                            <SummaryRow
+                                label="Verified area"
+                                value={farm.verified_area ?? 'Not verified'}
+                            />
+                            <VerificationProgress
+                                status={farm.verification_status}
+                            />
+                            <Text style={styles.mutedSmall}>
+                                {farm.location}
+                            </Text>
+                        </Pressable>
+                    ))
+                )}
             </ScrollView>
         );
     }
@@ -1643,24 +1880,58 @@ function DataPage(props: {
     if (page.component === 'mobile/farmer-farm') {
         const farm = page.data.farm ?? {};
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <View style={styles.card}>
                     <Text style={styles.recordTitle}>{farm.farm_name}</Text>
-                    <Text style={styles.recordCode}>{farm.farm_id} · {farm.crop}</Text>
+                    <Text style={styles.recordCode}>
+                        {farm.farm_id} · {farm.crop}
+                    </Text>
                     <Text style={styles.muted}>{farm.location}</Text>
                     <VerificationProgress status={farm.verification_status} />
-                    <SummaryRow label="Declared area" value={farm.declared_area} />
-                    <SummaryRow label="GPS measured area" value={farm.measured_area ?? 'Not measured'} />
-                    <SummaryRow label="Verified area" value={farm.verified_area ?? 'Not verified'} />
+                    <SummaryRow
+                        label="Declared area"
+                        value={farm.declared_area}
+                    />
+                    <SummaryRow
+                        label="GPS measured area"
+                        value={farm.measured_area ?? 'Not measured'}
+                    />
+                    <SummaryRow
+                        label="Verified area"
+                        value={farm.verified_area ?? 'Not verified'}
+                    />
                 </View>
-                {page.data.comparison && <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Area comparison</Text>
-                    <SummaryRow label="Declared" value={page.data.comparison.declared} />
-                    <SummaryRow label="Measured" value={page.data.comparison.measured} />
-                    <SummaryRow label="Difference" value={page.data.comparison.difference} />
-                </View>}
-                {page.data.boundary && <BoundaryCard boundary={page.data.boundary} apiKey={page.data.google_maps_api_key} />}
-                <VerificationHistory title="Verification history" rows={page.data.history ?? []} token={props.token} />
+                {page.data.comparison && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Area comparison</Text>
+                        <SummaryRow
+                            label="Declared"
+                            value={page.data.comparison.declared}
+                        />
+                        <SummaryRow
+                            label="Measured"
+                            value={page.data.comparison.measured}
+                        />
+                        <SummaryRow
+                            label="Difference"
+                            value={page.data.comparison.difference}
+                        />
+                    </View>
+                )}
+                {page.data.boundary && (
+                    <BoundaryCard
+                        boundary={page.data.boundary}
+                        apiKey={page.data.google_maps_api_key}
+                    />
+                )}
+                <VerificationHistory
+                    title="Verification history"
+                    rows={page.data.history ?? []}
+                    token={props.token}
+                />
             </ScrollView>
         );
     }
@@ -1670,86 +1941,251 @@ function DataPage(props: {
         const harvests: any[] = page.data.harvests ?? [];
         const productions: any[] = page.data.productions ?? [];
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <Text style={styles.cardTitle}>Farm activities</Text>
-                {activities.length ? activities.map((item) => <View key={`activity-${item.id}`} style={styles.card}>
-                    <Text style={styles.recordTitle}>{item.activity ?? item.description ?? 'Farm activity'}</Text>
-                    <Text style={styles.mutedSmall}>{item.farm_name} · {item.activity_date ?? ''}</Text>
-                    <Text style={styles.muted}>{item.status_label ?? item.status}</Text>
-                </View>) : <EmptyState title="No activities yet" message="Farm activity records will appear here." />}
-                <Text style={[styles.cardTitle, { marginTop: 12 }]}>Harvest</Text>
-                {harvests.length ? harvests.map((item) => <View key={`harvest-${item.id}`} style={styles.card}>
-                    <Text style={styles.recordTitle}>{item.farm_name}</Text>
-                    <SummaryRow label="Harvested" value={item.quantity_label ?? item.quantity} />
-                    <Text style={styles.mutedSmall}>{item.harvest_date ?? ''} · {item.status_label ?? item.status}</Text>
-                </View>) : <EmptyState title="No harvest records yet" message="Harvest records will appear here." />}
-                <Text style={[styles.cardTitle, { marginTop: 12 }]}>Production</Text>
-                {productions.length ? productions.map((item) => <View key={`production-${item.id}`} style={styles.card}>
-                    <Text style={styles.recordTitle}>{item.farm?.farm_name ?? 'Farm production'}</Text>
-                    <Text style={styles.mutedSmall}>{item.crop_label} · {item.production_period}</Text>
-                    <SummaryRow label="Expected" value={item.expected_label ?? 'Not recorded'} />
-                    <SummaryRow label="Harvested" value={item.harvested_label ?? 'Not recorded'} />
-                    <SummaryRow label="Remaining" value={item.remaining_label ?? 'Not recorded'} />
-                    <Text style={styles.mutedSmall}>{item.status_label ?? item.status}</Text>
-                </View>) : <EmptyState title="No production records yet" message="Expected production and season records will appear here." />}
+                {activities.length ? (
+                    activities.map((item) => (
+                        <View key={`activity-${item.id}`} style={styles.card}>
+                            <Text style={styles.recordTitle}>
+                                {item.activity ??
+                                    item.description ??
+                                    'Farm activity'}
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                {item.farm_name} · {item.activity_date ?? ''}
+                            </Text>
+                            <Text style={styles.muted}>
+                                {item.status_label ?? item.status}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <EmptyState
+                        title="No activities yet"
+                        message="Farm activity records will appear here."
+                    />
+                )}
+                <Text style={[styles.cardTitle, { marginTop: 12 }]}>
+                    Harvest
+                </Text>
+                {harvests.length ? (
+                    harvests.map((item) => (
+                        <View key={`harvest-${item.id}`} style={styles.card}>
+                            <Text style={styles.recordTitle}>
+                                {item.farm_name}
+                            </Text>
+                            <SummaryRow
+                                label="Harvested"
+                                value={item.quantity_label ?? item.quantity}
+                            />
+                            <Text style={styles.mutedSmall}>
+                                {item.harvest_date ?? ''} ·{' '}
+                                {item.status_label ?? item.status}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <EmptyState
+                        title="No harvest records yet"
+                        message="Harvest records will appear here."
+                    />
+                )}
+                <Text style={[styles.cardTitle, { marginTop: 12 }]}>
+                    Production
+                </Text>
+                {productions.length ? (
+                    productions.map((item) => (
+                        <View key={`production-${item.id}`} style={styles.card}>
+                            <Text style={styles.recordTitle}>
+                                {item.farm?.farm_name ?? 'Farm production'}
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                {item.crop_label} · {item.production_period}
+                            </Text>
+                            <SummaryRow
+                                label="Expected"
+                                value={item.expected_label ?? 'Not recorded'}
+                            />
+                            <SummaryRow
+                                label="Harvested"
+                                value={item.harvested_label ?? 'Not recorded'}
+                            />
+                            <SummaryRow
+                                label="Remaining"
+                                value={item.remaining_label ?? 'Not recorded'}
+                            />
+                            <Text style={styles.mutedSmall}>
+                                {item.status_label ?? item.status}
+                            </Text>
+                        </View>
+                    ))
+                ) : (
+                    <EmptyState
+                        title="No production records yet"
+                        message="Expected production and season records will appear here."
+                    />
+                )}
             </ScrollView>
         );
     }
 
     if (page.component === 'mobile/farmer-notifications') {
         const notifications: any[] = page.data.notifications ?? [];
-        return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-            {notifications.length ? notifications.map((item) => <Pressable key={item.id} onPress={async () => {
-                if (item.read) return;
-                await apiRequest(`/farmer/notifications/${item.id}/read`, props.token, { method: 'POST' });
-                props.onOpen('/farmer/notifications', 'Notifications');
-            }} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-                <Text style={styles.recordTitle}>{item.title}{item.read ? '' : ' · New'}</Text>
-                <Text style={styles.muted}>{item.message}</Text>
-                {item.farm_name ? <Text style={styles.mutedSmall}>{item.farm_name} · {item.status ?? ''}</Text> : null}
-                <Text style={styles.mutedSmall}>{item.created_at}</Text>
-            </Pressable>) : <EmptyState title="No updates yet" message="Verification updates will appear here." />}
-        </ScrollView>;
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                {notifications.length ? (
+                    notifications.map((item) => (
+                        <Pressable
+                            key={item.id}
+                            onPress={async () => {
+                                if (item.read) return;
+                                await apiRequest(
+                                    `/farmer/notifications/${item.id}/read`,
+                                    props.token,
+                                    { method: 'POST' },
+                                );
+                                props.onOpen(
+                                    '/farmer/notifications',
+                                    'Notifications',
+                                );
+                            }}
+                            style={({ pressed }) => [
+                                styles.card,
+                                pressed && styles.pressed,
+                            ]}
+                        >
+                            <Text style={styles.recordTitle}>
+                                {item.title}
+                                {item.read ? '' : ' · New'}
+                            </Text>
+                            <Text style={styles.muted}>{item.message}</Text>
+                            {item.farm_name ? (
+                                <Text style={styles.mutedSmall}>
+                                    {item.farm_name} · {item.status ?? ''}
+                                </Text>
+                            ) : null}
+                            <Text style={styles.mutedSmall}>
+                                {item.created_at}
+                            </Text>
+                        </Pressable>
+                    ))
+                ) : (
+                    <EmptyState
+                        title="No updates yet"
+                        message="Verification updates will appear here."
+                    />
+                )}
+            </ScrollView>
+        );
     }
 
     if (page.component === 'mobile/farmer-profile') {
         const farmer = page.data.farmer ?? {};
-        return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-            <View style={styles.card}>
-                <View style={styles.profileHeading}>
-                    {farmer.photo_url ? (
-                        <Image
-                            source={{ uri: farmer.photo_url, headers: { Authorization: `Bearer ${props.token}` } }}
-                            style={styles.profilePhoto}
-                            accessibilityLabel="Farmer face photo"
-                        />
-                    ) : (
-                        <View style={styles.profilePhotoPlaceholder}><AppIcon name="account" size={31} color={GREEN} /></View>
-                    )}
-                    <View style={styles.flex}>
-                        <Text style={styles.cardTitle}>{farmer.name ?? 'Farmer profile'}</Text>
-                        <Text style={styles.recordCode}>{farmer.farmer_id}</Text>
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                <View style={styles.card}>
+                    <View style={styles.profileHeading}>
+                        {farmer.photo_url ? (
+                            <Image
+                                source={{
+                                    uri: farmer.photo_url,
+                                    headers: {
+                                        Authorization: `Bearer ${props.token}`,
+                                    },
+                                }}
+                                style={styles.profilePhoto}
+                                accessibilityLabel="Farmer face photo"
+                            />
+                        ) : (
+                            <View style={styles.profilePhotoPlaceholder}>
+                                <AppIcon
+                                    name="account"
+                                    size={31}
+                                    color={GREEN}
+                                />
+                            </View>
+                        )}
+                        <View style={styles.flex}>
+                            <Text style={styles.cardTitle}>
+                                {farmer.name ?? 'Farmer profile'}
+                            </Text>
+                            <Text style={styles.recordCode}>
+                                {farmer.farmer_id}
+                            </Text>
+                        </View>
                     </View>
+                    <Text style={styles.sectionEyebrow}>PERSONAL DETAILS</Text>
+                    <SummaryRow
+                        label="First name"
+                        value={farmer.first_name ?? 'Not recorded'}
+                    />
+                    <SummaryRow
+                        label="Middle name"
+                        value={farmer.middle_name ?? 'Not recorded'}
+                    />
+                    <SummaryRow
+                        label="Last name"
+                        value={farmer.last_name ?? 'Not recorded'}
+                    />
+                    <SummaryRow label="Suffix" value={farmer.suffix ?? '—'} />
+                    <SummaryRow
+                        label="Date of birth"
+                        value={farmer.date_of_birth ?? 'Not recorded'}
+                    />
+                    <SummaryRow
+                        label="Government ID"
+                        value={farmer.government_id ?? 'Not recorded'}
+                    />
+                    <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>
+                        CONTACT & LOCATION
+                    </Text>
+                    <SummaryRow
+                        label="Email"
+                        value={farmer.email ?? 'Not provided'}
+                    />
+                    <SummaryRow
+                        label="Mobile"
+                        value={farmer.mobile_number ?? 'Not provided'}
+                    />
+                    <SummaryRow
+                        label="Address"
+                        value={farmer.address ?? 'Not provided'}
+                    />
+                    <SummaryRow
+                        label="Cooperative"
+                        value={farmer.cooperative ?? 'Not linked'}
+                    />
+                    <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>
+                        REGISTRATION CODES
+                    </Text>
+                    <SummaryRow
+                        label="Sitio / purok"
+                        value={farmer.sitio_purok_code ?? 'Not assigned'}
+                    />
+                    <SummaryRow
+                        label="Barangay"
+                        value={farmer.barangay_code ?? 'Not assigned'}
+                    />
+                    <SummaryRow
+                        label="LGU"
+                        value={farmer.lgu_code ?? 'Not assigned'}
+                    />
+                    <SummaryRow
+                        label="Security control"
+                        value={farmer.security_control_code ?? 'Not assigned'}
+                    />
                 </View>
-                <Text style={styles.sectionEyebrow}>PERSONAL DETAILS</Text>
-                <SummaryRow label="First name" value={farmer.first_name ?? 'Not recorded'} />
-                <SummaryRow label="Middle name" value={farmer.middle_name ?? 'Not recorded'} />
-                <SummaryRow label="Last name" value={farmer.last_name ?? 'Not recorded'} />
-                <SummaryRow label="Suffix" value={farmer.suffix ?? '—'} />
-                <SummaryRow label="Date of birth" value={farmer.date_of_birth ?? 'Not recorded'} />
-                <SummaryRow label="Government ID" value={farmer.government_id ?? 'Not recorded'} />
-                <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>CONTACT & LOCATION</Text>
-                <SummaryRow label="Email" value={farmer.email ?? 'Not provided'} />
-                <SummaryRow label="Mobile" value={farmer.mobile_number ?? 'Not provided'} />
-                <SummaryRow label="Address" value={farmer.address ?? 'Not provided'} />
-                <SummaryRow label="Cooperative" value={farmer.cooperative ?? 'Not linked'} />
-                <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>REGISTRATION CODES</Text>
-                <SummaryRow label="Sitio / purok" value={farmer.sitio_purok_code ?? 'Not assigned'} />
-                <SummaryRow label="Barangay" value={farmer.barangay_code ?? 'Not assigned'} />
-                <SummaryRow label="LGU" value={farmer.lgu_code ?? 'Not assigned'} />
-                <SummaryRow label="Security control" value={farmer.security_control_code ?? 'Not assigned'} />
-            </View>
-        </ScrollView>;
+            </ScrollView>
+        );
     }
 
     if (collectionName) {
@@ -1828,7 +2264,11 @@ function DataPage(props: {
                             onChangeText={props.onSearch}
                             onSubmitEditing={() =>
                                 props.onOpen(
-                                    withCollectionQuery(props.path, props.search, filterValues),
+                                    withCollectionQuery(
+                                        props.path,
+                                        props.search,
+                                        filterValues,
+                                    ),
                                     titleFor(props.path),
                                 )
                             }
@@ -1841,7 +2281,11 @@ function DataPage(props: {
                             ]}
                             onPress={() =>
                                 props.onOpen(
-                                    withCollectionQuery(props.path, props.search, filterValues),
+                                    withCollectionQuery(
+                                        props.path,
+                                        props.search,
+                                        filterValues,
+                                    ),
                                     titleFor(props.path),
                                 )
                             }
@@ -1859,16 +2303,32 @@ function DataPage(props: {
                     <View style={styles.filterGrid}>
                         {filterControls.map((filter) => (
                             <View key={filter.key} style={styles.filterField}>
-                                <Text style={styles.filterLabel}>{filter.label}</Text>
+                                <Text style={styles.filterLabel}>
+                                    {filter.label}
+                                </Text>
                                 <View style={styles.filterPicker}>
                                     <Picker
-                                        selectedValue={String(filterValues[filter.key] ?? '')}
-                                        onValueChange={(value) => applyFilter(filter.key, String(value))}
+                                        selectedValue={String(
+                                            filterValues[filter.key] ?? '',
+                                        )}
+                                        onValueChange={(value) =>
+                                            applyFilter(
+                                                filter.key,
+                                                String(value),
+                                            )
+                                        }
                                         style={styles.filterPickerControl}
                                     >
-                                        <Picker.Item label={`All ${filter.label.toLowerCase()}`} value="" />
+                                        <Picker.Item
+                                            label={`All ${filter.label.toLowerCase()}`}
+                                            value=""
+                                        />
                                         {filter.options.map((option, index) => (
-                                            <Picker.Item key={`${option.value}-${index}`} label={option.label} value={option.value} />
+                                            <Picker.Item
+                                                key={`${option.value}-${index}`}
+                                                label={option.label}
+                                                value={option.value}
+                                            />
                                         ))}
                                     </Picker>
                                 </View>
@@ -1903,7 +2363,11 @@ function DataPage(props: {
                     )}
                 {rows.length === 0 ? (
                     <Empty
-                        title={props.search.trim() ? 'No matching records' : 'No records yet'}
+                        title={
+                            props.search.trim()
+                                ? 'No matching records'
+                                : 'No records yet'
+                        }
                         detail={
                             props.search.trim()
                                 ? 'Try a different name, farm ID, or search term.'
@@ -1932,7 +2396,9 @@ function DataPage(props: {
                                     <View style={styles.rowIdentity}>
                                         <View style={styles.rowIcon}>
                                             <AppIcon
-                                                name={collectionIcon(page.component)}
+                                                name={collectionIcon(
+                                                    page.component,
+                                                )}
                                                 size={16}
                                                 color={GREEN}
                                             />
@@ -1941,9 +2407,15 @@ function DataPage(props: {
                                             <Text style={styles.recordTitle}>
                                                 {recordTitle(row)}
                                             </Text>
-                                            {row.farm_id || row.farmer_id || row.lot_code ? (
+                                            {row.farm_id ||
+                                            row.farmer_id ||
+                                            row.lot_code ? (
                                                 <Text style={styles.recordCode}>
-                                                    {String(row.farm_id ?? row.farmer_id ?? row.lot_code)}
+                                                    {String(
+                                                        row.farm_id ??
+                                                            row.farmer_id ??
+                                                            row.lot_code,
+                                                    )}
                                                 </Text>
                                             ) : null}
                                         </View>
@@ -1959,7 +2431,17 @@ function DataPage(props: {
                                 </Text>
                                 {(row.status_label ||
                                     row.verification_status) && (
-                                    <Text style={[styles.status, statusStyle(String(row.status_label ?? row.verification_status))]}>
+                                    <Text
+                                        style={[
+                                            styles.status,
+                                            statusStyle(
+                                                String(
+                                                    row.status_label ??
+                                                        row.verification_status,
+                                                ),
+                                            ),
+                                        ]}
+                                    >
                                         {String(
                                             row.status_label ??
                                                 row.verification_status,
@@ -2011,7 +2493,8 @@ function DataPage(props: {
                     <Text style={styles.cardTitle}>Verification progress</Text>
                     <VerificationProgress status={farm.verification_status} />
                     <Text style={styles.mutedSmall}>
-                        Start the visit, capture the farm perimeter, complete the inspection, then submit a result.
+                        Start the visit, capture the farm perimeter, complete
+                        the inspection, then submit a result.
                     </Text>
                 </View>
                 {page.data.comparison && (
@@ -2032,13 +2515,21 @@ function DataPage(props: {
                     </View>
                 )}
                 {page.data.boundary ? (
-                    <BoundaryCard boundary={page.data.boundary} apiKey={page.data.google_maps_api_key} />
+                    <BoundaryCard
+                        boundary={page.data.boundary}
+                        apiKey={page.data.google_maps_api_key}
+                    />
                 ) : (
                     <View style={styles.noticeCard}>
                         <AppIcon name="location" size={18} color={GREEN} />
                         <View style={styles.flex}>
-                            <Text style={styles.recordTitle}>No GPS boundary saved</Text>
-                            <Text style={styles.mutedSmall}>Capture the farm perimeter to calculate its measured area.</Text>
+                            <Text style={styles.recordTitle}>
+                                No GPS boundary saved
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                Capture the farm perimeter to calculate its
+                                measured area.
+                            </Text>
                         </View>
                     </View>
                 )}
@@ -2050,13 +2541,14 @@ function DataPage(props: {
                                 farmId: farm.id,
                                 hasBoundary: Boolean(page.data.boundary),
                                 boundary: page.data.boundary,
-                                google_maps_api_key: page.data.google_maps_api_key,
+                                google_maps_api_key:
+                                    page.data.google_maps_api_key,
                             })
                         }
                     />
                 )}
-                {canVerifierManageBoundary && (
-                    page.data.boundary ? (
+                {canVerifierManageBoundary &&
+                    (page.data.boundary ? (
                         <Secondary
                             title="Update GPS boundary"
                             onPress={() =>
@@ -2064,7 +2556,8 @@ function DataPage(props: {
                                     farmId: farm.id,
                                     hasBoundary: true,
                                     boundary: page.data.boundary,
-                                    google_maps_api_key: page.data.google_maps_api_key,
+                                    google_maps_api_key:
+                                        page.data.google_maps_api_key,
                                 })
                             }
                         />
@@ -2075,23 +2568,27 @@ function DataPage(props: {
                                 props.onLocalForm('farm-boundary/edit', {
                                     farmId: farm.id,
                                     hasBoundary: false,
-                                    google_maps_api_key: page.data.google_maps_api_key,
+                                    google_maps_api_key:
+                                        page.data.google_maps_api_key,
                                 })
                             }
                         />
-                    )
-                )}
+                    ))}
                 {props.user.role === 'field_verifier' &&
                     farm.verification_status === 'verified' && (
                         <View style={styles.noticeCard}>
                             <AppIcon name="lock" size={17} color={API_FOREST} />
                             <Text style={[styles.mutedSmall, styles.flex]}>
-                                This verified boundary is read-only. Ask operations to open a new verification if it needs review.
+                                This verified boundary is read-only. Ask
+                                operations to open a new verification if it
+                                needs review.
                             </Text>
                         </View>
                     )}
                 {props.user.role === 'field_verifier' &&
-                    ['pending', 'needs_review'].includes(farm.verification_status) && (
+                    ['pending', 'needs_review'].includes(
+                        farm.verification_status,
+                    ) && (
                         <Primary
                             title="Start verification"
                             busy={props.busy}
@@ -2101,107 +2598,236 @@ function DataPage(props: {
                 {props.user.role === 'field_verifier' &&
                     farm.verification_status === 'in_progress' && (
                         <>
-                            {page.data.boundary && !hasInspection && props.user.role === 'field_verifier' && (
-                                <Primary
-                                    title="Complete inspection & add evidence"
-                                    onPress={() => props.onLocalForm('farm-verification/inspection', {
-                                        farmId: farm.id,
-                                        farmName: farm.farm_name,
-                                        farmCode: farm.farm_id,
-                                        farmerName: farm.farmer_name,
-                                        declaredArea: page.data.comparison?.declared_area,
-                                        measuredArea: page.data.comparison?.measured_area,
-                                    })}
-                                />
-                            )}
+                            {page.data.boundary &&
+                                !hasInspection &&
+                                props.user.role === 'field_verifier' && (
+                                    <Primary
+                                        title="Complete inspection & add evidence"
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'farm-verification/inspection',
+                                                {
+                                                    farmId: farm.id,
+                                                    farmName: farm.farm_name,
+                                                    farmCode: farm.farm_id,
+                                                    farmerName:
+                                                        farm.farmer_name,
+                                                    declaredArea:
+                                                        page.data.comparison
+                                                            ?.declared_area,
+                                                    measuredArea:
+                                                        page.data.comparison
+                                                            ?.measured_area,
+                                                },
+                                            )
+                                        }
+                                    />
+                                )}
                             {page.data.boundary && hasInspection && (
                                 <Primary
                                     title="Record verification result"
-                                    onPress={() => props.onLocalForm('farm-verification/decision', {
-                                        farmId: farm.id,
-                                        farmName: farm.farm_name,
-                                        farmCode: farm.farm_id,
-                                        farmerName: farm.farmer_name,
-                                        declaredArea: page.data.comparison?.declared_area,
-                                        measuredArea: page.data.comparison?.measured_area,
-                                    })}
+                                    onPress={() =>
+                                        props.onLocalForm(
+                                            'farm-verification/decision',
+                                            {
+                                                farmId: farm.id,
+                                                farmName: farm.farm_name,
+                                                farmCode: farm.farm_id,
+                                                farmerName: farm.farmer_name,
+                                                declaredArea:
+                                                    page.data.comparison
+                                                        ?.declared_area,
+                                                measuredArea:
+                                                    page.data.comparison
+                                                        ?.measured_area,
+                                            },
+                                        )
+                                    }
                                 />
                             )}
                             {page.data.boundary && hasInspection && (
                                 <Secondary
                                     title="Add another evidence photo"
-                                    onPress={() => props.onLocalForm('farm-verification/inspection', {
-                                        farmId: farm.id,
-                                        farmName: farm.farm_name,
-                                        farmCode: farm.farm_id,
-                                        farmerName: farm.farmer_name,
-                                        declaredArea: page.data.comparison?.declared_area,
-                                        measuredArea: page.data.comparison?.measured_area,
-                                        farm_identified: inspection.checklist?.farm_identified,
-                                        boundary_walked: inspection.checklist?.boundary_walked,
-                                        farmer_or_representative_met: inspection.checklist?.farmer_or_representative_met,
-                                        remarks: inspection.checklist?.observations,
-                                    })}
+                                    onPress={() =>
+                                        props.onLocalForm(
+                                            'farm-verification/inspection',
+                                            {
+                                                farmId: farm.id,
+                                                farmName: farm.farm_name,
+                                                farmCode: farm.farm_id,
+                                                farmerName: farm.farmer_name,
+                                                declaredArea:
+                                                    page.data.comparison
+                                                        ?.declared_area,
+                                                measuredArea:
+                                                    page.data.comparison
+                                                        ?.measured_area,
+                                                farm_identified:
+                                                    inspection.checklist
+                                                        ?.farm_identified,
+                                                boundary_walked:
+                                                    inspection.checklist
+                                                        ?.boundary_walked,
+                                                farmer_or_representative_met:
+                                                    inspection.checklist
+                                                        ?.farmer_or_representative_met,
+                                                remarks:
+                                                    inspection.checklist
+                                                        ?.observations,
+                                            },
+                                        )
+                                    }
                                 />
                             )}
                             {inspection && (
                                 <View style={styles.card}>
-                                    <Text style={styles.cardTitle}>Field inspection</Text>
-                                    <SummaryRow label="Farm identified" value={inspection.checklist?.farm_identified ? 'Complete' : 'Incomplete'} />
-                                    <SummaryRow label="Boundary walked" value={inspection.checklist?.boundary_walked ? 'Complete' : 'Incomplete'} />
-                                    <SummaryRow label="Farmer / representative met" value={inspection.checklist?.farmer_or_representative_met ? 'Complete' : 'Incomplete'} />
-                                    {inspection.checklist?.observations ? <Text style={styles.muted}>{inspection.checklist.observations}</Text> : null}
+                                    <Text style={styles.cardTitle}>
+                                        Field inspection
+                                    </Text>
+                                    <SummaryRow
+                                        label="Farm identified"
+                                        value={
+                                            inspection.checklist
+                                                ?.farm_identified
+                                                ? 'Complete'
+                                                : 'Incomplete'
+                                        }
+                                    />
+                                    <SummaryRow
+                                        label="Boundary walked"
+                                        value={
+                                            inspection.checklist
+                                                ?.boundary_walked
+                                                ? 'Complete'
+                                                : 'Incomplete'
+                                        }
+                                    />
+                                    <SummaryRow
+                                        label="Farmer / representative met"
+                                        value={
+                                            inspection.checklist
+                                                ?.farmer_or_representative_met
+                                                ? 'Complete'
+                                                : 'Incomplete'
+                                        }
+                                    />
+                                    {inspection.checklist?.observations ? (
+                                        <Text style={styles.muted}>
+                                            {inspection.checklist.observations}
+                                        </Text>
+                                    ) : null}
                                     <View style={styles.evidenceGrid}>
-                                        {(inspection.photos ?? []).map((photo: any) => (
-                                            <View key={photo.id} style={styles.evidenceItem}>
-                                                <Image
-                                                    source={{ uri: photo.url, headers: { Authorization: `Bearer ${props.token}` } }}
-                                                    style={styles.evidenceImage}
-                                                    accessibilityLabel={`Inspection evidence: ${photo.name}`}
-                                                />
-                                                <Text style={styles.mutedSmall}>{photo.name}</Text>
-                                                <Text style={styles.mutedSmall}>{photo.captured_at ? new Date(photo.captured_at).toLocaleString() : 'Capture time unavailable'}</Text>
-                                                {photo.latitude && photo.longitude ? <Text style={styles.mutedSmall}>{photo.latitude}, {photo.longitude}</Text> : null}
-                                            </View>
-                                        ))}
+                                        {(inspection.photos ?? []).map(
+                                            (photo: any) => (
+                                                <View
+                                                    key={photo.id}
+                                                    style={styles.evidenceItem}
+                                                >
+                                                    <Image
+                                                        source={{
+                                                            uri: photo.url,
+                                                            headers: {
+                                                                Authorization: `Bearer ${props.token}`,
+                                                            },
+                                                        }}
+                                                        style={
+                                                            styles.evidenceImage
+                                                        }
+                                                        accessibilityLabel={`Inspection evidence: ${photo.name}`}
+                                                    />
+                                                    <Text
+                                                        style={
+                                                            styles.mutedSmall
+                                                        }
+                                                    >
+                                                        {photo.name}
+                                                    </Text>
+                                                    <Text
+                                                        style={
+                                                            styles.mutedSmall
+                                                        }
+                                                    >
+                                                        {photo.captured_at
+                                                            ? new Date(
+                                                                  photo.captured_at,
+                                                              ).toLocaleString()
+                                                            : 'Capture time unavailable'}
+                                                    </Text>
+                                                    {photo.latitude &&
+                                                    photo.longitude ? (
+                                                        <Text
+                                                            style={
+                                                                styles.mutedSmall
+                                                            }
+                                                        >
+                                                            {photo.latitude},{' '}
+                                                            {photo.longitude}
+                                                        </Text>
+                                                    ) : null}
+                                                </View>
+                                            ),
+                                        )}
                                     </View>
                                 </View>
                             )}
                         </>
                     )}
-                <VerificationHistory title="Verification history" rows={page.data.history ?? []} token={props.token} />
+                <VerificationHistory
+                    title="Verification history"
+                    rows={page.data.history ?? []}
+                    token={props.token}
+                />
             </ScrollView>
         );
     }
 
     if (page.component === 'modules/placeholder')
         return (
-            <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
                 <View style={styles.moduleHero}>
                     <View style={styles.moduleIcon}>
-                        <AppIcon name={moduleIcon(page.data.module)} size={28} color={API_FOREST} />
+                        <AppIcon
+                            name={moduleIcon(page.data.module)}
+                            size={28}
+                            color={API_FOREST}
+                        />
                     </View>
                     <Text style={styles.moduleEyebrow}>SUREFARM WORKSPACE</Text>
-                    <Text style={styles.moduleTitle}>{page.data.title ?? 'Workspace'}</Text>
+                    <Text style={styles.moduleTitle}>
+                        {page.data.title ?? 'Workspace'}
+                    </Text>
                     <Text style={styles.muted}>
-                        {page.data.description ?? 'This workspace is part of the SureFarm program.'}
+                        {page.data.description ??
+                            'This workspace is part of the SureFarm program.'}
                     </Text>
                     <View style={styles.comingSoonPill}>
                         <View style={styles.comingSoonDot} />
-                        <Text style={styles.comingSoonText}>In development</Text>
+                        <Text style={styles.comingSoonText}>
+                            In development
+                        </Text>
                     </View>
                 </View>
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>What you can do now</Text>
                     <Text style={styles.muted}>
-                        This workspace does not have working record screens yet. SureFarm will show live tools here when they are ready.
+                        This workspace does not have working record screens yet.
+                        SureFarm will show live tools here when they are ready.
                     </Text>
                     {['finance', 'insurance'].includes(page.data.module) && (
                         <>
                             <Text style={[styles.muted, { marginTop: 10 }]}>
-                                Existing farm financing and insurance records can be reviewed from a farm profile.
+                                Existing farm financing and insurance records
+                                can be reviewed from a farm profile.
                             </Text>
-                            <Primary title="Browse farm records" onPress={() => props.onOpen('/farms', 'Farms & map')} />
+                            <Primary
+                                title="Browse farm records"
+                                onPress={() =>
+                                    props.onOpen('/farms', 'Farms & map')
+                                }
+                            />
                         </>
                     )}
                 </View>
@@ -2221,43 +2847,103 @@ function DataPage(props: {
                     title={recordTitle(entity)}
                     token={props.token}
                 />
-                {page.component === 'farmers/show' && page.data.farmer?.farm_summary && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Farm portfolio</Text>
-                        <SummaryRow label="Registered farms" value={page.data.farmer.farm_summary.registered_farms} />
-                        <SummaryRow label="Declared area" value={`${page.data.farmer.farm_summary.declared_area_hectares} ha`} />
-                        <SummaryRow label="Verified area" value={`${page.data.farmer.farm_summary.total_verified_hectares} ha`} />
-                        <SummaryRow label="Verified farms" value={page.data.farmer.farm_summary.verified_farms} />
-                        <SummaryRow label="Pending verification" value={page.data.farmer.farm_summary.pending_verification} />
-                    </View>
-                )}
-                {page.component === 'farmers/show' && page.data.farmer?.spouse && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Spouse</Text>
-                        <SummaryRow label="Name" value={page.data.farmer.spouse.full_name} />
-                    </View>
-                )}
-                {page.component === 'farmers/show' && page.data.farmer?.bank_account && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Bank account</Text>
-                        <SummaryRow label="Bank" value={page.data.farmer.bank_account.bank_name} />
-                        <SummaryRow label="Account name" value={page.data.farmer.bank_account.account_name} />
-                        <SummaryRow label="Account number" value={page.data.farmer.bank_account.account_number} />
-                        <SummaryRow label="Verification" value={page.data.farmer.bank_account.status_label} />
-                    </View>
-                )}
+                {page.component === 'farmers/show' &&
+                    page.data.farmer?.farm_summary && (
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>Farm portfolio</Text>
+                            <SummaryRow
+                                label="Registered farms"
+                                value={
+                                    page.data.farmer.farm_summary
+                                        .registered_farms
+                                }
+                            />
+                            <SummaryRow
+                                label="Declared area"
+                                value={`${page.data.farmer.farm_summary.declared_area_hectares} ha`}
+                            />
+                            <SummaryRow
+                                label="Verified area"
+                                value={`${page.data.farmer.farm_summary.total_verified_hectares} ha`}
+                            />
+                            <SummaryRow
+                                label="Verified farms"
+                                value={
+                                    page.data.farmer.farm_summary.verified_farms
+                                }
+                            />
+                            <SummaryRow
+                                label="Pending verification"
+                                value={
+                                    page.data.farmer.farm_summary
+                                        .pending_verification
+                                }
+                            />
+                        </View>
+                    )}
+                {page.component === 'farmers/show' &&
+                    page.data.farmer?.spouse && (
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>Spouse</Text>
+                            <SummaryRow
+                                label="Name"
+                                value={page.data.farmer.spouse.full_name}
+                            />
+                        </View>
+                    )}
+                {page.component === 'farmers/show' &&
+                    page.data.farmer?.bank_account && (
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>Bank account</Text>
+                            <SummaryRow
+                                label="Bank"
+                                value={page.data.farmer.bank_account.bank_name}
+                            />
+                            <SummaryRow
+                                label="Account name"
+                                value={
+                                    page.data.farmer.bank_account.account_name
+                                }
+                            />
+                            <SummaryRow
+                                label="Account number"
+                                value={
+                                    page.data.farmer.bank_account.account_number
+                                }
+                            />
+                            <SummaryRow
+                                label="Verification"
+                                value={
+                                    page.data.farmer.bank_account.status_label
+                                }
+                            />
+                        </View>
+                    )}
                 {page.component === 'inventory/show' && entity.stage && (
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Current processing stage</Text>
+                        <Text style={styles.cardTitle}>
+                            Current processing stage
+                        </Text>
                         <SummaryRow label="Stage" value={entity.stage.name} />
-                        <SummaryRow label="Stage code" value={entity.stage.code} />
+                        <SummaryRow
+                            label="Stage code"
+                            value={entity.stage.code}
+                        />
                     </View>
                 )}
                 {page.component !== 'farms/show' && entity.farm?.id && (
-                    <LinkedRecord row={entity.farm} kind="farm" onOpen={props.onOpen} />
+                    <LinkedRecord
+                        row={entity.farm}
+                        kind="farm"
+                        onOpen={props.onOpen}
+                    />
                 )}
                 {page.component !== 'farmers/show' && entity.farmer?.id && (
-                    <LinkedRecord row={entity.farmer} kind="farmer" onOpen={props.onOpen} />
+                    <LinkedRecord
+                        row={entity.farmer}
+                        kind="farmer"
+                        onOpen={props.onOpen}
+                    />
                 )}
                 {detailActions(
                     page.component,
@@ -2280,7 +2966,10 @@ function DataPage(props: {
                     />
                 ))}
                 {page.component === 'farms/show' && page.data.farm?.farmer && (
-                    <LinkedFarmer farmer={page.data.farm.farmer} onOpen={props.onOpen} />
+                    <LinkedFarmer
+                        farmer={page.data.farm.farmer}
+                        onOpen={props.onOpen}
+                    />
                 )}
                 {page.component === 'farms/show' && (
                     <FarmLocationCard farm={page.data.farm} />
@@ -2288,59 +2977,80 @@ function DataPage(props: {
                 {page.component === 'farms/show' && (
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>Area records</Text>
-                        <SummaryRow label="Declared area" value={`${page.data.farm.declared_area_hectares} ha`} />
-                        <SummaryRow label="GPS measured" value={page.data.farm.measured_area ?? 'Not yet measured'} />
-                        <SummaryRow label="Verified area" value={page.data.farm.verified_area ?? 'Not yet verified'} />
-                        <SummaryRow label="Difference" value={page.data.farm.difference ?? '—'} />
-                        <SummaryRow label="Variance" value={page.data.farm.variance ?? '—'} />
+                        <SummaryRow
+                            label="Declared area"
+                            value={`${page.data.farm.declared_area_hectares} ha`}
+                        />
+                        <SummaryRow
+                            label="GPS measured"
+                            value={
+                                page.data.farm.measured_area ??
+                                'Not yet measured'
+                            }
+                        />
+                        <SummaryRow
+                            label="Verified area"
+                            value={
+                                page.data.farm.verified_area ??
+                                'Not yet verified'
+                            }
+                        />
+                        <SummaryRow
+                            label="Difference"
+                            value={page.data.farm.difference ?? '—'}
+                        />
+                        <SummaryRow
+                            label="Variance"
+                            value={page.data.farm.variance ?? '—'}
+                        />
                     </View>
                 )}
                 {page.component === 'farmers/show' && (
-                        <RelatedLinks
-                            title="Farms"
-                            rows={page.data.farmer?.farms ?? []}
-                            pathFor={(row) => `/farms/${row.id}`}
-                            onOpen={props.onOpen}
-                        />
-                    )}
+                    <RelatedLinks
+                        title="Farms"
+                        rows={page.data.farmer?.farms ?? []}
+                        pathFor={(row) => `/farms/${row.id}`}
+                        onOpen={props.onOpen}
+                    />
+                )}
                 {page.component === 'farmers/show' && (
-                        <Related
-                            title="Recent activities"
-                            rows={page.data.farmer?.recent_activities ?? []}
-                        />
-                    )}
+                    <Related
+                        title="Recent activities"
+                        rows={page.data.farmer?.recent_activities ?? []}
+                    />
+                )}
                 {page.component === 'farms/show' && (
-                        <RelatedLinks
-                            title="Farm activities"
-                            rows={page.data.farm?.activities ?? []}
-                            pathFor={(row) => `/farm-activities/${row.id}`}
-                            onOpen={props.onOpen}
-                        />
-                    )}
+                    <RelatedLinks
+                        title="Farm activities"
+                        rows={page.data.farm?.activities ?? []}
+                        pathFor={(row) => `/farm-activities/${row.id}`}
+                        onOpen={props.onOpen}
+                    />
+                )}
                 {page.component === 'farms/show' && (
-                        <RelatedLinks
-                            title="Production records"
-                            rows={page.data.farm?.productions ?? []}
-                            pathFor={(row) => `/production/${row.id}`}
-                            onOpen={props.onOpen}
-                        />
-                    )}
+                    <RelatedLinks
+                        title="Production records"
+                        rows={page.data.farm?.productions ?? []}
+                        pathFor={(row) => `/production/${row.id}`}
+                        onOpen={props.onOpen}
+                    />
+                )}
                 {page.component === 'farms/show' && (
-                        <RelatedLinks
-                            title="Harvest records"
-                            rows={page.data.farm?.harvests ?? []}
-                            pathFor={(row) => `/harvest/${row.id}`}
-                            onOpen={props.onOpen}
-                        />
-                    )}
+                    <RelatedLinks
+                        title="Harvest records"
+                        rows={page.data.farm?.harvests ?? []}
+                        pathFor={(row) => `/harvest/${row.id}`}
+                        onOpen={props.onOpen}
+                    />
+                )}
                 {page.component === 'farms/show' && (
-                        <RelatedLinks
-                            title="Traceability lots"
-                            rows={page.data.farm?.traceability_lots ?? []}
-                            pathFor={(row) => `/traceability/${row.id}`}
-                            onOpen={props.onOpen}
-                        />
-                    )}
+                    <RelatedLinks
+                        title="Traceability lots"
+                        rows={page.data.farm?.traceability_lots ?? []}
+                        pathFor={(row) => `/traceability/${row.id}`}
+                        onOpen={props.onOpen}
+                    />
+                )}
                 {page.component === 'farms/show' &&
                     page.data.farm?.can_record_activity && (
                         <Primary
@@ -2380,7 +3090,10 @@ function DataPage(props: {
                     />
                 )}
                 {page.data.movements && (
-                    <Related title="Inventory movements" rows={page.data.movements} />
+                    <Related
+                        title="Inventory movements"
+                        rows={page.data.movements}
+                    />
                 )}
                 {page.data.events && (
                     <Related title="Lot journey" rows={page.data.events} />
@@ -2391,19 +3104,23 @@ function DataPage(props: {
                         onOpen={props.onOpen}
                     />
                 )}
-                {page.component === 'farms/show' && page.data.farm?.can_manage_coverage && (
-                    <CoverageActions
-                        rows={[
-                            {
-                                ...page.data.farm,
-                                number_label: 'Farm coverage',
-                            },
-                        ]}
-                        onOpen={props.onOpen}
-                    />
-                )}
+                {page.component === 'farms/show' &&
+                    page.data.farm?.can_manage_coverage && (
+                        <CoverageActions
+                            rows={[
+                                {
+                                    ...page.data.farm,
+                                    number_label: 'Farm coverage',
+                                },
+                            ]}
+                            onOpen={props.onOpen}
+                        />
+                    )}
                 {(page.data.boundary ?? page.data.farm?.boundary)?.geojson && (
-                    <BoundaryCard boundary={page.data.boundary ?? page.data.farm.boundary} apiKey={page.data.google_maps_api_key} />
+                    <BoundaryCard
+                        boundary={page.data.boundary ?? page.data.farm.boundary}
+                        apiKey={page.data.google_maps_api_key}
+                    />
                 )}
             </ScrollView>
         );
@@ -2427,14 +3144,43 @@ function VerificationProgress({ status = 'pending' }: { status?: string }) {
     return (
         <View style={styles.progressTrack}>
             {labels.map((label, index) => {
-                const done = index < activeStep || (completed && index === activeStep);
+                const done =
+                    index < activeStep || (completed && index === activeStep);
                 const active = index === activeStep && !completed;
                 return (
                     <View key={label} style={styles.progressStep}>
-                        <View style={[styles.progressDot, done && styles.progressDotDone, active && styles.progressDotActive]}>
-                            {done ? <AppIcon name="verified" size={13} color="#ffffff" /> : <Text style={[styles.progressNumber, active && styles.progressNumberActive]}>{index + 1}</Text>}
+                        <View
+                            style={[
+                                styles.progressDot,
+                                done && styles.progressDotDone,
+                                active && styles.progressDotActive,
+                            ]}
+                        >
+                            {done ? (
+                                <AppIcon
+                                    name="verified"
+                                    size={13}
+                                    color="#ffffff"
+                                />
+                            ) : (
+                                <Text
+                                    style={[
+                                        styles.progressNumber,
+                                        active && styles.progressNumberActive,
+                                    ]}
+                                >
+                                    {index + 1}
+                                </Text>
+                            )}
                         </View>
-                        <Text style={[styles.progressLabel, (done || active) && styles.progressLabelActive]}>{label}</Text>
+                        <Text
+                            style={[
+                                styles.progressLabel,
+                                (done || active) && styles.progressLabelActive,
+                            ]}
+                        >
+                            {label}
+                        </Text>
                     </View>
                 );
             })}
@@ -2443,82 +3189,135 @@ function VerificationProgress({ status = 'pending' }: { status?: string }) {
 }
 
 function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
-    const hasCoordinates = farm.latitude !== null && farm.latitude !== undefined && farm.longitude !== null && farm.longitude !== undefined;
-    const address = farm.location ?? [farm.purok_sitio, farm.barangay, farm.municipality, farm.province]
-        .filter((part) => typeof part === 'string' && part.trim())
-        .join(', ');
+    const hasCoordinates =
+        farm.latitude !== null &&
+        farm.latitude !== undefined &&
+        farm.longitude !== null &&
+        farm.longitude !== undefined;
+    const address =
+        farm.location ??
+        [farm.purok_sitio, farm.barangay, farm.municipality, farm.province]
+            .filter((part) => typeof part === 'string' && part.trim())
+            .join(', ');
     const openMap = async () => {
         if (!hasCoordinates) return;
         const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${farm.latitude},${farm.longitude}`)}`;
         try {
             await Linking.openURL(url);
         } catch {
-            Alert.alert('Could not open map', 'Check that a maps app or browser is available.');
+            Alert.alert(
+                'Could not open map',
+                'Check that a maps app or browser is available.',
+            );
         }
     };
 
     return (
         <View style={styles.locationCard}>
             <View style={styles.locationTitleRow}>
-                <View style={styles.locationIcon}><AppIcon name="location" size={18} color={API_FOREST} /></View>
+                <View style={styles.locationIcon}>
+                    <AppIcon name="location" size={18} color={API_FOREST} />
+                </View>
                 <View style={styles.flex}>
                     <Text style={styles.recordTitle}>Farm location</Text>
-                    <Text style={styles.mutedSmall}>{address || 'Location not provided'}</Text>
+                    <Text style={styles.mutedSmall}>
+                        {address || 'Location not provided'}
+                    </Text>
                 </View>
             </View>
             {hasCoordinates ? (
                 <>
-                    <Text style={styles.coordinateText}>Lat {farm.latitude}  ·  Lng {farm.longitude}</Text>
-                    <Secondary title="Open directions in Maps" onPress={() => void openMap()} />
+                    <Text style={styles.coordinateText}>
+                        Lat {farm.latitude} · Lng {farm.longitude}
+                    </Text>
+                    <Secondary
+                        title="Open directions in Maps"
+                        onPress={() => void openMap()}
+                    />
                 </>
             ) : (
-                <Text style={styles.gpsAccuracy}>GPS coordinates have not been recorded.</Text>
+                <Text style={styles.gpsAccuracy}>
+                    GPS coordinates have not been recorded.
+                </Text>
             )}
         </View>
     );
 }
 
-function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; apiKey?: string }) {
+function BoundaryCard({
+    boundary,
+    apiKey,
+}: {
+    boundary: Record<string, any>;
+    apiKey?: string;
+}) {
     const mapHost = useRef<HTMLDivElement | null>(null);
     const [mapUnavailable, setMapUnavailable] = useState(false);
     const geometry = useMemo(() => {
         try {
-            const parsed = typeof boundary.geojson === 'string' ? JSON.parse(boundary.geojson) : boundary.geojson;
+            const parsed =
+                typeof boundary.geojson === 'string'
+                    ? JSON.parse(boundary.geojson)
+                    : boundary.geojson;
             if (parsed?.type === 'Polygon') return parsed.coordinates?.[0];
-            if (parsed?.type === 'MultiPolygon') return parsed.coordinates?.[0]?.[0];
+            if (parsed?.type === 'MultiPolygon')
+                return parsed.coordinates?.[0]?.[0];
         } catch {
             return null;
         }
         return null;
     }, [boundary.geojson]);
     const points = useMemo(
-        () => Array.isArray(geometry)
-            ? geometry.filter((point: any) => Array.isArray(point) && Number.isFinite(Number(point[0])) && Number.isFinite(Number(point[1])))
-            : [],
+        () =>
+            Array.isArray(geometry)
+                ? geometry.filter(
+                      (point: any) =>
+                          Array.isArray(point) &&
+                          Number.isFinite(Number(point[0])) &&
+                          Number.isFinite(Number(point[1])),
+                  )
+                : [],
         [geometry],
     );
     const openPoints = useMemo(
-        () => points.length > 1 && points[0][0] === points[points.length - 1][0] && points[0][1] === points[points.length - 1][1]
-            ? points.slice(0, -1)
-            : points,
+        () =>
+            points.length > 1 &&
+            points[0][0] === points[points.length - 1][0] &&
+            points[0][1] === points[points.length - 1][1]
+                ? points.slice(0, -1)
+                : points,
         [points],
     );
     const previewPoints = (() => {
         if (openPoints.length < 3) return '';
         const xs = openPoints.map((point: any) => Number(point[0]));
         const ys = openPoints.map((point: any) => Number(point[1]));
-        const minX = Math.min(...xs), maxX = Math.max(...xs);
-        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const minX = Math.min(...xs),
+            maxX = Math.max(...xs);
+        const minY = Math.min(...ys),
+            maxY = Math.max(...ys);
         const width = maxX - minX || 1;
         const height = maxY - minY || 1;
         const scale = Math.min(250 / width, 105 / height);
         const offsetX = (320 - width * scale) / 2;
         const offsetY = (140 - height * scale) / 2;
-        return openPoints.map((point: any) => `${(offsetX + (Number(point[0]) - minX) * scale).toFixed(1)},${(offsetY + 8 + (maxY - Number(point[1])) * scale).toFixed(1)}`).join(' ');
+        return openPoints
+            .map(
+                (point: any) =>
+                    `${(offsetX + (Number(point[0]) - minX) * scale).toFixed(1)},${(offsetY + 8 + (maxY - Number(point[1])) * scale).toFixed(1)}`,
+            )
+            .join(' ');
     })();
 
     useEffect(() => {
-        if (Platform.OS !== 'web' || typeof window === 'undefined' || !apiKey || openPoints.length < 3 || !mapHost.current) return;
+        if (
+            Platform.OS !== 'web' ||
+            typeof window === 'undefined' ||
+            !apiKey ||
+            openPoints.length < 3 ||
+            !mapHost.current
+        )
+            return;
 
         const browserWindow = window as any;
         let cancelled = false;
@@ -2531,7 +3330,10 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
                 try {
                     previousAuthFailure();
                 } catch (error) {
-                    console.error('A previous Google Maps authentication handler failed.', error);
+                    console.error(
+                        'A previous Google Maps authentication handler failed.',
+                        error,
+                    );
                 }
             }
         };
@@ -2540,7 +3342,8 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
         };
         browserWindow.gm_authFailure = handleAuthFailure;
         const renderMap = () => {
-            if (cancelled || !mapHost.current || !browserWindow.google?.maps) return;
+            if (cancelled || !mapHost.current || !browserWindow.google?.maps)
+                return;
             try {
                 const map = new browserWindow.google.maps.Map(mapHost.current, {
                     mapTypeId: 'hybrid',
@@ -2549,7 +3352,10 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
                     fullscreenControl: true,
                     gestureHandling: 'greedy',
                 });
-                const path = openPoints.map((point: any) => ({ lat: Number(point[1]), lng: Number(point[0]) }));
+                const path = openPoints.map((point: any) => ({
+                    lat: Number(point[1]),
+                    lng: Number(point[0]),
+                }));
                 const polygon = new browserWindow.google.maps.Polygon({
                     paths: path,
                     strokeColor: '#17613d',
@@ -2564,7 +3370,10 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
                 map.fitBounds(bounds, 24);
                 setMapUnavailable(false);
             } catch (error) {
-                console.error('Could not render the saved farm boundary map.', error);
+                console.error(
+                    'Could not render the saved farm boundary map.',
+                    error,
+                );
                 setMapUnavailable(true);
             }
         };
@@ -2572,7 +3381,9 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
         if (browserWindow.google?.maps) {
             renderMap();
         } else {
-            let script = document.querySelector<HTMLScriptElement>('#surefarm-google-maps');
+            let script = document.querySelector<HTMLScriptElement>(
+                '#surefarm-google-maps',
+            );
             if (!script) {
                 script = document.createElement('script');
                 script.id = 'surefarm-google-maps';
@@ -2589,7 +3400,9 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
         return () => {
             cancelled = true;
             if (loadTimeout) clearTimeout(loadTimeout);
-            const script = document.querySelector<HTMLScriptElement>('#surefarm-google-maps');
+            const script = document.querySelector<HTMLScriptElement>(
+                '#surefarm-google-maps',
+            );
             script?.removeEventListener('load', renderMap);
             script?.removeEventListener('error', handleScriptError);
             if (browserWindow.gm_authFailure === handleAuthFailure) {
@@ -2603,31 +3416,78 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
             <View style={styles.sectionHeadingRow}>
                 <View>
                     <Text style={styles.cardTitle}>Saved GPS boundary</Text>
-                    <Text style={styles.mutedSmall}>{Platform.OS === 'web' && apiKey && !mapUnavailable ? 'Google satellite map · saved GPS boundary' : mapUnavailable ? 'Satellite map unavailable · GPS outline shown' : 'Boundary outline preview'}</Text>
+                    <Text style={styles.mutedSmall}>
+                        {Platform.OS === 'web' && apiKey && !mapUnavailable
+                            ? 'Google satellite map · saved GPS boundary'
+                            : mapUnavailable
+                              ? 'Satellite map unavailable · GPS outline shown'
+                              : 'Boundary outline preview'}
+                    </Text>
                 </View>
-                <View style={styles.boundaryIcon}><AppIcon name="location" size={17} color={API_FOREST} /></View>
+                <View style={styles.boundaryIcon}>
+                    <AppIcon name="location" size={17} color={API_FOREST} />
+                </View>
             </View>
-            {Platform.OS === 'web' && apiKey && openPoints.length >= 3 && !mapUnavailable
-                ? createElement('div', { ref: mapHost, style: { width: '100%', height: 220, borderRadius: 14, overflow: 'hidden' } })
-                : Platform.OS !== 'web'
-                    ? <BoundaryMap points={openPoints.map((point: any) => ({ latitude: Number(point[1]), longitude: Number(point[0]) }))} height={220} />
-                    : <View style={styles.boundaryPreview}>
-                        <Svg width="100%" height={140} viewBox="0 0 320 140">
-                            <Path d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140" stroke="#e6eee7" strokeWidth={1} />
-                            {previewPoints ? <Polygon points={previewPoints} fill="#88b89555" stroke={GREEN} strokeWidth={3} strokeLinejoin="round" /> : <Circle cx={160} cy={70} r={5} fill={GREEN} />}
-                        </Svg>
-                    </View>}
+            {Platform.OS === 'web' &&
+            apiKey &&
+            openPoints.length >= 3 &&
+            !mapUnavailable ? (
+                createElement('div', {
+                    ref: mapHost,
+                    style: {
+                        width: '100%',
+                        height: 220,
+                        borderRadius: 14,
+                        overflow: 'hidden',
+                    },
+                })
+            ) : Platform.OS !== 'web' ? (
+                <BoundaryMap
+                    points={openPoints.map((point: any) => ({
+                        latitude: Number(point[1]),
+                        longitude: Number(point[0]),
+                    }))}
+                    height={220}
+                />
+            ) : (
+                <View style={styles.boundaryPreview}>
+                    <Svg width="100%" height={140} viewBox="0 0 320 140">
+                        <Path
+                            d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140"
+                            stroke="#e6eee7"
+                            strokeWidth={1}
+                        />
+                        {previewPoints ? (
+                            <Polygon
+                                points={previewPoints}
+                                fill="#88b89555"
+                                stroke={GREEN}
+                                strokeWidth={3}
+                                strokeLinejoin="round"
+                            />
+                        ) : (
+                            <Circle cx={160} cy={70} r={5} fill={GREEN} />
+                        )}
+                    </Svg>
+                </View>
+            )}
             <View style={styles.boundaryFacts}>
                 <View style={styles.boundaryFact}>
-                    <Text style={styles.boundaryValue}>{boundary.gps_measured_area_hectares ?? '—'}</Text>
+                    <Text style={styles.boundaryValue}>
+                        {boundary.gps_measured_area_hectares ?? '—'}
+                    </Text>
                     <Text style={styles.mutedSmall}>Measured ha</Text>
                 </View>
                 <View style={styles.boundaryFact}>
-                    <Text style={styles.boundaryValue}>{openPoints.length || '—'}</Text>
+                    <Text style={styles.boundaryValue}>
+                        {openPoints.length || '—'}
+                    </Text>
                     <Text style={styles.mutedSmall}>GPS points</Text>
                 </View>
                 <View style={styles.boundaryFact}>
-                    <Text style={styles.boundaryValue}>{boundary.captured_at ?? '—'}</Text>
+                    <Text style={styles.boundaryValue}>
+                        {boundary.captured_at ?? '—'}
+                    </Text>
                     <Text style={styles.mutedSmall}>Captured</Text>
                 </View>
             </View>
@@ -2635,13 +3495,29 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
     );
 }
 
-function LinkedFarmer({ farmer, onOpen }: { farmer: Record<string, any>; onOpen: (path: string, title: string) => void }) {
+function LinkedFarmer({
+    farmer,
+    onOpen,
+}: {
+    farmer: Record<string, any>;
+    onOpen: (path: string, title: string) => void;
+}) {
     return (
-        <Pressable onPress={() => onOpen(`/farmers/${farmer.id}`, 'Farmer details')} style={({ pressed }) => [styles.linkedFarmer, pressed && styles.pressed]}>
-            <View style={styles.linkedFarmerIcon}><AppIcon name="farmers" size={18} color={API_FOREST} /></View>
+        <Pressable
+            onPress={() => onOpen(`/farmers/${farmer.id}`, 'Farmer details')}
+            style={({ pressed }) => [
+                styles.linkedFarmer,
+                pressed && styles.pressed,
+            ]}
+        >
+            <View style={styles.linkedFarmerIcon}>
+                <AppIcon name="farmers" size={18} color={API_FOREST} />
+            </View>
             <View style={styles.flex}>
                 <Text style={styles.mutedSmall}>REGISTERED FARMER</Text>
-                <Text style={styles.recordTitle}>{farmer.full_name ?? 'Farmer profile'}</Text>
+                <Text style={styles.recordTitle}>
+                    {farmer.full_name ?? 'Farmer profile'}
+                </Text>
                 <Text style={styles.recordCode}>{farmer.farmer_id}</Text>
             </View>
             <AppIcon name="chevronRight" size={18} color={GREEN} />
@@ -2649,19 +3525,48 @@ function LinkedFarmer({ farmer, onOpen }: { farmer: Record<string, any>; onOpen:
     );
 }
 
-function LinkedRecord({ row, kind, onOpen }: { row: Record<string, any>; kind: 'farm' | 'farmer'; onOpen: (path: string, title: string) => void }) {
+function LinkedRecord({
+    row,
+    kind,
+    onOpen,
+}: {
+    row: Record<string, any>;
+    kind: 'farm' | 'farmer';
+    onOpen: (path: string, title: string) => void;
+}) {
     const farmer = kind === 'farmer';
-    const title = farmer ? (row.full_name ?? row.name ?? 'Farmer profile') : (row.farm_name ?? 'Farm profile');
+    const title = farmer
+        ? (row.full_name ?? row.name ?? 'Farmer profile')
+        : (row.farm_name ?? 'Farm profile');
     const code = farmer ? row.farmer_id : row.farm_id;
     return (
-        <Pressable onPress={() => onOpen(`/${farmer ? 'farmers' : 'farms'}/${row.id}`, farmer ? 'Farmer details' : 'Farm details')} style={({ pressed }) => [styles.linkedFarmer, pressed && styles.pressed]}>
+        <Pressable
+            onPress={() =>
+                onOpen(
+                    `/${farmer ? 'farmers' : 'farms'}/${row.id}`,
+                    farmer ? 'Farmer details' : 'Farm details',
+                )
+            }
+            style={({ pressed }) => [
+                styles.linkedFarmer,
+                pressed && styles.pressed,
+            ]}
+        >
             <View style={styles.linkedFarmerIcon}>
-                <AppIcon name={farmer ? 'farmers' : 'farms'} size={18} color={API_FOREST} />
+                <AppIcon
+                    name={farmer ? 'farmers' : 'farms'}
+                    size={18}
+                    color={API_FOREST}
+                />
             </View>
             <View style={styles.flex}>
-                <Text style={styles.mutedSmall}>{farmer ? 'FARMER PROFILE' : 'FARM RECORD'}</Text>
+                <Text style={styles.mutedSmall}>
+                    {farmer ? 'FARMER PROFILE' : 'FARM RECORD'}
+                </Text>
                 <Text style={styles.recordTitle}>{title}</Text>
-                {code ? <Text style={styles.recordCode}>{String(code)}</Text> : null}
+                {code ? (
+                    <Text style={styles.recordCode}>{String(code)}</Text>
+                ) : null}
             </View>
             <AppIcon name="chevronRight" size={18} color={GREEN} />
         </Pressable>
@@ -2685,8 +3590,12 @@ function FormView(props: {
         [],
     );
     const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
-    const [gpsCoordinate, setGpsCoordinate] = useState<BoundaryPoint | null>(null);
-    const [measuredBoundaryPreview, setMeasuredBoundaryPreview] = useState<string | null>(() => {
+    const [gpsCoordinate, setGpsCoordinate] = useState<BoundaryPoint | null>(
+        null,
+    );
+    const [measuredBoundaryPreview, setMeasuredBoundaryPreview] = useState<
+        string | null
+    >(() => {
         const existingArea = props.data.boundary?.gps_measured_area_hectares;
         return existingArea == null
             ? null
@@ -2705,21 +3614,41 @@ function FormView(props: {
         if (typeof raw === 'string' && raw.trim()) {
             try {
                 const geometry = JSON.parse(raw);
-                const ring = geometry?.type === 'Polygon' ? geometry.coordinates?.[0] : null;
+                const ring =
+                    geometry?.type === 'Polygon'
+                        ? geometry.coordinates?.[0]
+                        : null;
                 if (Array.isArray(ring)) {
                     const points = ring
-                        .filter((coordinate: any) => Array.isArray(coordinate) && Number.isFinite(Number(coordinate[0])) && Number.isFinite(Number(coordinate[1])))
-                        .map((coordinate: any) => ({ latitude: Number(coordinate[1]), longitude: Number(coordinate[0]) }));
+                        .filter(
+                            (coordinate: any) =>
+                                Array.isArray(coordinate) &&
+                                Number.isFinite(Number(coordinate[0])) &&
+                                Number.isFinite(Number(coordinate[1])),
+                        )
+                        .map((coordinate: any) => ({
+                            latitude: Number(coordinate[1]),
+                            longitude: Number(coordinate[0]),
+                        }));
                     const first = points[0];
                     const last = points[points.length - 1];
-                    if (first && last && first.latitude === last.latitude && first.longitude === last.longitude) points.pop();
+                    if (
+                        first &&
+                        last &&
+                        first.latitude === last.latitude &&
+                        first.longitude === last.longitude
+                    )
+                        points.pop();
                     return points;
                 }
             } catch {
                 // Keep any points captured during this edit if the GeoJSON is being corrected.
             }
         }
-        return boundaryPoints.map(([longitude, latitude]) => ({ latitude, longitude }));
+        return boundaryPoints.map(([longitude, latitude]) => ({
+            latitude,
+            longitude,
+        }));
     }, [boundaryField?.key, boundaryPoints, props.values]);
 
     const captureLocation = async () => {
@@ -2745,7 +3674,10 @@ function FormView(props: {
 
             if (boundaryField) {
                 const nextPoints: [number, number][] = [
-                    ...currentBoundaryPoints.map((item): [number, number] => [item.longitude, item.latitude]),
+                    ...currentBoundaryPoints.map((item): [number, number] => [
+                        item.longitude,
+                        item.latitude,
+                    ]),
                     point,
                 ];
                 setBoundaryPoints(nextPoints);
@@ -2771,7 +3703,9 @@ function FormView(props: {
     };
 
     const closeBoundary = async () => {
-        const points: [number, number][] = currentBoundaryPoints.map((item): [number, number] => [item.longitude, item.latitude]);
+        const points: [number, number][] = currentBoundaryPoints.map(
+            (item): [number, number] => [item.longitude, item.latitude],
+        );
 
         if (points.length < 3 || !boundaryField) {
             Alert.alert(
@@ -2783,10 +3717,7 @@ function FormView(props: {
 
         const ring = [...points, points[0]];
         const geojson = { type: 'Polygon', coordinates: [ring] };
-        props.onChange(
-            boundaryField.key,
-            JSON.stringify(geojson, null, 2),
-        );
+        props.onChange(boundaryField.key, JSON.stringify(geojson, null, 2));
         setBoundaryPoints(points);
         setMeasuredBoundaryPreview(null);
         try {
@@ -2803,7 +3734,9 @@ function FormView(props: {
         } catch (error) {
             Alert.alert(
                 'Boundary needs attention',
-                error instanceof Error ? error.message : 'The boundary could not be measured. Review the points and try again.',
+                error instanceof Error
+                    ? error.message
+                    : 'The boundary could not be measured. Review the points and try again.',
             );
         }
     };
@@ -2811,12 +3744,26 @@ function FormView(props: {
     const undoBoundaryPoint = () => {
         if (!boundaryField || currentBoundaryPoints.length === 0) return;
         const next = currentBoundaryPoints.slice(0, -1);
-        setBoundaryPoints(next.map((point): [number, number] => [point.longitude, point.latitude]));
+        setBoundaryPoints(
+            next.map((point): [number, number] => [
+                point.longitude,
+                point.latitude,
+            ]),
+        );
         setMeasuredBoundaryPreview(null);
-        props.onChange(boundaryField.key, JSON.stringify({
-            type: 'Polygon',
-            coordinates: [next.map((point) => [point.longitude, point.latitude])],
-        }, null, 2));
+        props.onChange(
+            boundaryField.key,
+            JSON.stringify(
+                {
+                    type: 'Polygon',
+                    coordinates: [
+                        next.map((point) => [point.longitude, point.latitude]),
+                    ],
+                },
+                null,
+                2,
+            ),
+        );
     };
 
     return (
@@ -2832,19 +3779,46 @@ function FormView(props: {
                 <View style={styles.formIntro}>
                     <Text style={styles.formTitle}>{props.spec.title}</Text>
                     <Text style={styles.muted}>
-                        Complete the fields below. SureFarm checks the values before saving.
+                        Complete the fields below. SureFarm checks the values
+                        before saving.
                     </Text>
                 </View>
                 {props.spec.path.includes('/farm-verification/') && (
                     <View style={styles.reviewCard}>
                         <View style={styles.reviewHeading}>
-                            <AppIcon name="shield" size={17} color={API_FOREST} />
-                            <Text style={styles.recordTitle}>Verification review</Text>
+                            <AppIcon
+                                name="shield"
+                                size={17}
+                                color={API_FOREST}
+                            />
+                            <Text style={styles.recordTitle}>
+                                Verification review
+                            </Text>
                         </View>
-                        <SummaryRow label="Farmer" value={props.data.farmerName ?? '—'} />
-                        <SummaryRow label="Farm" value={props.data.farmName ?? props.data.farmCode ?? '—'} />
-                        {props.data.declaredArea && <SummaryRow label="Declared area" value={props.data.declaredArea} />}
-                        {props.data.measuredArea && <SummaryRow label="GPS measured" value={props.data.measuredArea} />}
+                        <SummaryRow
+                            label="Farmer"
+                            value={props.data.farmerName ?? '—'}
+                        />
+                        <SummaryRow
+                            label="Farm"
+                            value={
+                                props.data.farmName ??
+                                props.data.farmCode ??
+                                '—'
+                            }
+                        />
+                        {props.data.declaredArea && (
+                            <SummaryRow
+                                label="Declared area"
+                                value={props.data.declaredArea}
+                            />
+                        )}
+                        {props.data.measuredArea && (
+                            <SummaryRow
+                                label="GPS measured"
+                                value={props.data.measuredArea}
+                            />
+                        )}
                     </View>
                 )}
                 {hasCoordinates && (
@@ -2860,7 +3834,8 @@ function FormView(props: {
                         />
                         {gpsAccuracy !== null && (
                             <Text style={styles.gpsAccuracy}>
-                                Last GPS reading accuracy: about {Math.round(gpsAccuracy)} m
+                                Last GPS reading accuracy: about{' '}
+                                {Math.round(gpsAccuracy)} m
                             </Text>
                         )}
                     </View>
@@ -2872,15 +3847,24 @@ function FormView(props: {
                         </Text>
                         <Text style={styles.mutedSmall}>
                             Record a GPS point at each farm corner in order. Add
-                            at least three corners, review the map, then close the polygon. Undo removes the most recent point before you submit.
+                            at least three corners, review the map, then close
+                            the polygon. Undo removes the most recent point
+                            before you submit.
                         </Text>
-                        <BoundaryMap points={currentBoundaryPoints} height={210} apiKey={props.data.google_maps_api_key} />
+                        <BoundaryMap
+                            points={currentBoundaryPoints}
+                            height={210}
+                            apiKey={props.data.google_maps_api_key}
+                        />
                         <Secondary
                             title="Add GPS point"
                             onPress={() => void captureLocation()}
                         />
                         {currentBoundaryPoints.length > 0 && (
-                            <Secondary title="Undo last point" onPress={undoBoundaryPoint} />
+                            <Secondary
+                                title="Undo last point"
+                                onPress={undoBoundaryPoint}
+                            />
                         )}
                         <Secondary
                             title="Close boundary"
@@ -2888,20 +3872,26 @@ function FormView(props: {
                         />
                         <Text style={styles.mutedSmall}>
                             {currentBoundaryPoints.length} GPS point
-                            {currentBoundaryPoints.length === 1 ? '' : 's'} on this boundary
+                            {currentBoundaryPoints.length === 1 ? '' : 's'} on
+                            this boundary
                         </Text>
                         {gpsCoordinate && (
                             <Text style={styles.coordinateText}>
-                                Latest: {gpsCoordinate.latitude.toFixed(6)}, {gpsCoordinate.longitude.toFixed(6)}
+                                Latest: {gpsCoordinate.latitude.toFixed(6)},{' '}
+                                {gpsCoordinate.longitude.toFixed(6)}
                             </Text>
                         )}
                         {gpsAccuracy !== null && (
                             <Text style={styles.gpsAccuracy}>
-                                Last point accuracy: about {Math.round(gpsAccuracy)} m
+                                Last point accuracy: about{' '}
+                                {Math.round(gpsAccuracy)} m
                             </Text>
                         )}
                         {measuredBoundaryPreview && (
-                            <SummaryRow label="Measured area preview" value={measuredBoundaryPreview} />
+                            <SummaryRow
+                                label="Measured area preview"
+                                value={measuredBoundaryPreview}
+                            />
                         )}
                     </View>
                 )}
@@ -2938,7 +3928,8 @@ function FormView(props: {
                             options={options}
                             photo={props.photos[field.key]}
                             onChange={(value) => {
-                                if (field.kind === 'geojson') setMeasuredBoundaryPreview(null);
+                                if (field.kind === 'geojson')
+                                    setMeasuredBoundaryPreview(null);
                                 props.onChange(field.key, value);
                             }}
                             onImage={(camera) =>
@@ -3130,7 +4121,9 @@ function Entity({
                     </Text>
                 ) : null}
             </View>
-            {recordCode ? <Text style={styles.recordCode}>{String(recordCode)}</Text> : null}
+            {recordCode ? (
+                <Text style={styles.recordCode}>{String(recordCode)}</Text>
+            ) : null}
             <KeyRows
                 data={data}
                 skip={[
@@ -3186,7 +4179,9 @@ function KeyRows({
             {rows.map(([key, value]) => (
                 <View key={key} style={styles.keyRow}>
                     <Text style={styles.keyLabel}>{fieldLabel(key)}</Text>
-                    <Text style={styles.keyValue}>{displayValue(key, value)}</Text>
+                    <Text style={styles.keyValue}>
+                        {displayValue(key, value)}
+                    </Text>
                 </View>
             ))}
         </View>
@@ -3196,60 +4191,141 @@ function KeyRows({
 function Related({ title, rows }: { title: string; rows: any[] }) {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
+            <Text style={styles.cardTitle}>
+                {title} <Text style={styles.sectionCount}>{rows.length}</Text>
+            </Text>
             {rows.length === 0 ? (
-                <Text style={styles.inlineEmpty}>Nothing has been recorded here yet.</Text>
-            ) : rows.map((item, i) => (
-                <View key={item.id ?? i} style={styles.relatedRow}>
-                    <Text style={styles.recordTitle}>{recordTitle(item)}</Text>
-                    <Text style={styles.mutedSmall}>
-                        {recordSubtitle(item)}
-                    </Text>
-                </View>
-            ))}
+                <Text style={styles.inlineEmpty}>
+                    Nothing has been recorded here yet.
+                </Text>
+            ) : (
+                rows.map((item, i) => (
+                    <View key={item.id ?? i} style={styles.relatedRow}>
+                        <Text style={styles.recordTitle}>
+                            {recordTitle(item)}
+                        </Text>
+                        <Text style={styles.mutedSmall}>
+                            {recordSubtitle(item)}
+                        </Text>
+                    </View>
+                ))
+            )}
         </View>
     );
 }
 
-function VerificationHistory({ title, rows, token }: { title: string; rows: any[]; token: string }) {
+function VerificationHistory({
+    title,
+    rows,
+    token,
+}: {
+    title: string;
+    rows: any[];
+    token: string;
+}) {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
-            {rows.length === 0 ? <Text style={styles.inlineEmpty}>No inspection history has been recorded.</Text> : rows.map((item: any) => (
-                <View key={item.id} style={styles.historyItem}>
-                    <View style={styles.historyHeading}>
-                        <View style={styles.flex}>
-                            <Text style={styles.recordTitle}>{item.reference ?? `Verification ${item.id}`}</Text>
-                            <Text style={styles.mutedSmall}>{item.date}{item.verified_by ? ` · ${item.verified_by}` : ''}</Text>
+            <Text style={styles.cardTitle}>
+                {title} <Text style={styles.sectionCount}>{rows.length}</Text>
+            </Text>
+            {rows.length === 0 ? (
+                <Text style={styles.inlineEmpty}>
+                    No inspection history has been recorded.
+                </Text>
+            ) : (
+                rows.map((item: any) => (
+                    <View key={item.id} style={styles.historyItem}>
+                        <View style={styles.historyHeading}>
+                            <View style={styles.flex}>
+                                <Text style={styles.recordTitle}>
+                                    {item.reference ??
+                                        `Verification ${item.id}`}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.date}
+                                    {item.verified_by
+                                        ? ` · ${item.verified_by}`
+                                        : ''}
+                                </Text>
+                            </View>
+                            <Text
+                                style={[
+                                    styles.status,
+                                    statusStyle(
+                                        String(item.result ?? 'in_progress'),
+                                    ),
+                                ]}
+                            >
+                                {String(
+                                    item.result ?? 'In progress',
+                                ).replaceAll('_', ' ')}
+                            </Text>
                         </View>
-                        <Text style={[styles.status, statusStyle(String(item.result ?? 'in_progress'))]}>
-                            {String(item.result ?? 'In progress').replaceAll('_', ' ')}
-                        </Text>
+                        <SummaryRow
+                            label="Declared area"
+                            value={item.declared_area ?? '—'}
+                        />
+                        <SummaryRow
+                            label="Measured area"
+                            value={item.measured_area ?? 'Not measured'}
+                        />
+                        <SummaryRow
+                            label="Difference"
+                            value={item.difference ?? '—'}
+                        />
+                        <SummaryRow
+                            label="Variance"
+                            value={item.variance ?? '—'}
+                        />
+                        {item.remarks ? (
+                            <Text style={styles.muted}>{item.remarks}</Text>
+                        ) : null}
+                        {item.inspection_checklist?.observations ? (
+                            <Text style={styles.muted}>
+                                {item.inspection_checklist.observations}
+                            </Text>
+                        ) : null}
+                        {(item.photos ?? []).length > 0 && (
+                            <View style={styles.evidenceGrid}>
+                                {item.photos.map((photo: any) => (
+                                    <View
+                                        key={photo.id}
+                                        style={styles.evidenceItem}
+                                    >
+                                        <Image
+                                            source={{
+                                                uri: photo.url,
+                                                headers: {
+                                                    Authorization: `Bearer ${token}`,
+                                                },
+                                            }}
+                                            style={styles.evidenceImage}
+                                            accessibilityLabel={`Verification evidence: ${photo.name}`}
+                                        />
+                                        <Text style={styles.mutedSmall}>
+                                            {photo.name}
+                                        </Text>
+                                        <Text style={styles.mutedSmall}>
+                                            {photo.captured_at
+                                                ? new Date(
+                                                      photo.captured_at,
+                                                  ).toLocaleString()
+                                                : 'Capture time unavailable'}
+                                        </Text>
+                                        {photo.latitude != null &&
+                                        photo.longitude != null ? (
+                                            <Text style={styles.mutedSmall}>
+                                                {photo.latitude},{' '}
+                                                {photo.longitude}
+                                            </Text>
+                                        ) : null}
+                                    </View>
+                                ))}
+                            </View>
+                        )}
                     </View>
-                    <SummaryRow label="Declared area" value={item.declared_area ?? '—'} />
-                    <SummaryRow label="Measured area" value={item.measured_area ?? 'Not measured'} />
-                    <SummaryRow label="Difference" value={item.difference ?? '—'} />
-                    <SummaryRow label="Variance" value={item.variance ?? '—'} />
-                    {item.remarks ? <Text style={styles.muted}>{item.remarks}</Text> : null}
-                    {item.inspection_checklist?.observations ? <Text style={styles.muted}>{item.inspection_checklist.observations}</Text> : null}
-                    {(item.photos ?? []).length > 0 && (
-                        <View style={styles.evidenceGrid}>
-                            {item.photos.map((photo: any) => (
-                                <View key={photo.id} style={styles.evidenceItem}>
-                                    <Image
-                                        source={{ uri: photo.url, headers: { Authorization: `Bearer ${token}` } }}
-                                        style={styles.evidenceImage}
-                                        accessibilityLabel={`Verification evidence: ${photo.name}`}
-                                    />
-                                    <Text style={styles.mutedSmall}>{photo.name}</Text>
-                                    <Text style={styles.mutedSmall}>{photo.captured_at ? new Date(photo.captured_at).toLocaleString() : 'Capture time unavailable'}</Text>
-                                    {photo.latitude != null && photo.longitude != null ? <Text style={styles.mutedSmall}>{photo.latitude}, {photo.longitude}</Text> : null}
-                                </View>
-                            ))}
-                        </View>
-                    )}
-                </View>
-            ))}
+                ))
+            )}
         </View>
     );
 }
@@ -3277,19 +4353,29 @@ function RelatedLinks({
 }) {
     return (
         <View style={styles.card}>
-            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
+            <Text style={styles.cardTitle}>
+                {title} <Text style={styles.sectionCount}>{rows.length}</Text>
+            </Text>
             {rows.length === 0 ? (
-                <Text style={styles.inlineEmpty}>No records are linked to this item yet.</Text>
-            ) : rows.map((row, index) => (
-                <Pressable
-                    key={row.id ?? index}
-                    onPress={() => onOpen(pathFor(row), recordTitle(row))}
-                    style={styles.relatedRow}
-                >
-                    <Text style={styles.recordTitle}>{recordTitle(row)}</Text>
-                    <Text style={styles.mutedSmall}>{recordSubtitle(row)}</Text>
-                </Pressable>
-            ))}
+                <Text style={styles.inlineEmpty}>
+                    No records are linked to this item yet.
+                </Text>
+            ) : (
+                rows.map((row, index) => (
+                    <Pressable
+                        key={row.id ?? index}
+                        onPress={() => onOpen(pathFor(row), recordTitle(row))}
+                        style={styles.relatedRow}
+                    >
+                        <Text style={styles.recordTitle}>
+                            {recordTitle(row)}
+                        </Text>
+                        <Text style={styles.mutedSmall}>
+                            {recordSubtitle(row)}
+                        </Text>
+                    </Pressable>
+                ))
+            )}
         </View>
     );
 }
@@ -3512,29 +4598,41 @@ function collectionIcon(component: string): IconName {
 function collectionDescription(component: string) {
     const descriptions: Record<string, string> = {
         'farmers/index': 'Farmer profiles and registered farm portfolios',
-        'farms/index': 'Registered land, declared area, and verification status',
-        'farm-verification/index': 'Field assignments and farm verification status',
+        'farms/index':
+            'Registered land, declared area, and verification status',
+        'farm-verification/index':
+            'Field assignments and farm verification status',
         'farm-activities/index': 'Recorded work across registered farms',
         'production/index': 'Expected crop output by farm and season',
         'harvest/index': 'Harvest quantities, dates, and receiving status',
         'inventory/index': 'Coffee stock and its current processing stage',
         'inventory/processing': 'Processing activity and coffee movements',
         'traceability/index': 'Coffee lots and their traceable journeys',
-        'activity-types/index': 'Configured activities available to field teams',
+        'activity-types/index':
+            'Configured activities available to field teams',
     };
     return descriptions[component] ?? 'Live records from SureFarm';
 }
 function emptyCollectionDescription(component: string) {
     const messages: Record<string, string> = {
-        'farmers/index': 'No farmer profiles match this view. Register a farmer to start a portfolio.',
-        'farms/index': 'No farm records match this view. Farms appear after they are registered.',
-        'farm-verification/index': 'There are no farms in this verification queue right now.',
-        'farm-activities/index': 'Farm activities will appear here after a field record is saved.',
-        'production/index': 'Production records will appear here after they are added to a farm.',
-        'harvest/index': 'Harvest records will appear here after a harvest is recorded.',
-        'inventory/index': 'Inventory lots will appear here after harvest is received or coffee is processed.',
-        'inventory/processing': 'Processing movements will appear here when coffee is processed.',
-        'traceability/index': 'Traceability lots will appear here after a lot is created.',
+        'farmers/index':
+            'No farmer profiles match this view. Register a farmer to start a portfolio.',
+        'farms/index':
+            'No farm records match this view. Farms appear after they are registered.',
+        'farm-verification/index':
+            'There are no farms in this verification queue right now.',
+        'farm-activities/index':
+            'Farm activities will appear here after a field record is saved.',
+        'production/index':
+            'Production records will appear here after they are added to a farm.',
+        'harvest/index':
+            'Harvest records will appear here after a harvest is recorded.',
+        'inventory/index':
+            'Inventory lots will appear here after harvest is received or coffee is processed.',
+        'inventory/processing':
+            'Processing movements will appear here when coffee is processed.',
+        'traceability/index':
+            'Traceability lots will appear here after a lot is created.',
         'activity-types/index': 'No activity types are available in this view.',
     };
     return messages[component] ?? 'There are no records to show in this view.';
@@ -3552,9 +4650,24 @@ function moduleIcon(module: string): IconName {
 }
 function statusStyle(status: string) {
     const key = status.toLowerCase().replaceAll(' ', '_');
-    if (['verified', 'active', 'completed', 'approved', 'received'].includes(key)) return styles.statusPositive;
-    if (['failed', 'inactive', 'rejected', 'damaged'].includes(key)) return styles.statusNegative;
-    if (['needs_review', 'in_progress', 'pending', 'processing', 'draft'].includes(key)) return styles.statusAttention;
+    if (
+        ['verified', 'active', 'completed', 'approved', 'received'].includes(
+            key,
+        )
+    )
+        return styles.statusPositive;
+    if (['failed', 'inactive', 'rejected', 'damaged'].includes(key))
+        return styles.statusNegative;
+    if (
+        [
+            'needs_review',
+            'in_progress',
+            'pending',
+            'processing',
+            'draft',
+        ].includes(key)
+    )
+        return styles.statusAttention;
     return styles.statusNeutral;
 }
 function fieldLabel(key: string) {
@@ -3586,8 +4699,18 @@ function fieldLabel(key: string) {
 }
 function displayValue(key: string, value: unknown) {
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (typeof value === 'number' && key.endsWith('_hectares')) return `${value.toLocaleString()} ha`;
-    if (typeof value === 'string' && ['status', 'verification_status', 'result', 'quality_grade', 'property_ownership'].includes(key)) {
+    if (typeof value === 'number' && key.endsWith('_hectares'))
+        return `${value.toLocaleString()} ha`;
+    if (
+        typeof value === 'string' &&
+        [
+            'status',
+            'verification_status',
+            'result',
+            'quality_grade',
+            'property_ownership',
+        ].includes(key)
+    ) {
         return value.replaceAll('_', ' ');
     }
     return String(value);
@@ -3625,7 +4748,11 @@ function recordSubtitle(row: Record<string, any>) {
         row.crop_label,
         row.declared_area,
         row.measured_area,
-        row.boundary_saved != null ? (row.boundary_saved ? 'Boundary saved' : 'Boundary not captured') : null,
+        row.boundary_saved != null
+            ? row.boundary_saved
+                ? 'Boundary saved'
+                : 'Boundary not captured'
+            : null,
         row.variance,
         row.activity_type,
         row.quantity_label,
@@ -3648,7 +4775,12 @@ function withCollectionQuery(
     const query = new URLSearchParams();
     if (search.trim()) query.set('search', search.trim());
     Object.entries(filters).forEach(([key, value]) => {
-        if (key !== 'search' && value !== '' && value !== null && value !== undefined) {
+        if (
+            key !== 'search' &&
+            value !== '' &&
+            value !== null &&
+            value !== undefined
+        ) {
             query.set(key, String(value));
         }
     });
@@ -3810,10 +4942,20 @@ function detailActions(
             { title: 'Adjust inventory', path: `/inventory/${id}/adjust` },
             { title: 'Record damage', path: `/inventory/${id}/damage` },
             ...(data.can_process
-                ? [{ title: 'Process coffee', path: `/inventory/process/create?inventory=${id}` }]
+                ? [
+                      {
+                          title: 'Process coffee',
+                          path: `/inventory/process/create?inventory=${id}`,
+                      },
+                  ]
                 : []),
             ...(data.can_trace
-                ? [{ title: 'Create traceability lot', path: `/traceability/create?inventory=${id}` }]
+                ? [
+                      {
+                          title: 'Create traceability lot',
+                          path: `/traceability/create?inventory=${id}`,
+                      },
+                  ]
                 : []),
         );
     if (component === 'traceability/show' && id && operations)
@@ -3843,7 +4985,12 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e9efea',
     },
-    backButton: { width: 42, justifyContent: 'center', alignItems: 'flex-start', minHeight: 48 },
+    backButton: {
+        width: 42,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        minHeight: 48,
+    },
     brandButton: { width: 112 },
     headerLogo: { width: 108, height: 32 },
     logo: {
@@ -4060,15 +5207,57 @@ const styles = StyleSheet.create({
     },
     cardTitle: { color: INK, fontSize: 16, fontWeight: '700', marginBottom: 9 },
     sectionCount: { color: MUTED, fontSize: 11, fontWeight: '600' },
-    sectionEyebrow: { color: GREEN, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 6 },
-    profileHeading: { flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 15 },
-    profilePhoto: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#edf4ee' },
-    profilePhotoPlaceholder: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
-    historyItem: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#edf0ed' },
-    historyHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
-    evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 9 },
+    sectionEyebrow: {
+        color: GREEN,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1,
+        marginBottom: 6,
+    },
+    profileHeading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 13,
+        marginBottom: 15,
+    },
+    profilePhoto: {
+        width: 72,
+        height: 72,
+        borderRadius: 24,
+        backgroundColor: '#edf4ee',
+    },
+    profilePhotoPlaceholder: {
+        width: 72,
+        height: 72,
+        borderRadius: 24,
+        backgroundColor: '#edf4ee',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    historyItem: {
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#edf0ed',
+    },
+    historyHeading: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginBottom: 8,
+    },
+    evidenceGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginTop: 9,
+    },
     evidenceItem: { width: '47%', minWidth: 120, gap: 3 },
-    evidenceImage: { width: '100%', height: 132, borderRadius: 12, backgroundColor: '#e6ece6' },
+    evidenceImage: {
+        width: '100%',
+        height: 132,
+        borderRadius: 12,
+        backgroundColor: '#e6ece6',
+    },
     keyRow: {
         minHeight: 39,
         paddingVertical: 8,
@@ -4093,7 +5282,13 @@ const styles = StyleSheet.create({
         borderBottomColor: '#edf0ed',
     },
     recordTitle: { color: INK, fontSize: 14, fontWeight: '700' },
-    recordCode: { color: MUTED, fontSize: 10, fontWeight: '600', letterSpacing: 0.35, marginTop: 4 },
+    recordCode: {
+        color: MUTED,
+        fontSize: 10,
+        fontWeight: '600',
+        letterSpacing: 0.35,
+        marginTop: 4,
+    },
     mutedSmall: { color: MUTED, fontSize: 11, lineHeight: 16, marginTop: 4 },
     muted: { color: MUTED, fontSize: 13, lineHeight: 19 },
     recordCard: {
@@ -4146,11 +5341,35 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 0.5,
     },
-    collectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-    collectionHeaderIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center' },
+    collectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 14,
+    },
+    collectionHeaderIcon: {
+        width: 46,
+        height: 46,
+        borderRadius: 15,
+        backgroundColor: '#e8f0e8',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     collectionTitle: { color: INK, fontSize: 20, fontWeight: '700' },
-    rowIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
-    rowIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    rowIdentity: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 11,
+    },
+    rowIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        backgroundColor: '#edf4ee',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     featureIcon: {
         width: 43,
         height: 43,
@@ -4241,8 +5460,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#f7f9f7',
     },
     summaryNumber: { color: API_FOREST, fontSize: 19, fontWeight: '700' },
-    inlineEmpty: { color: MUTED, fontSize: 12, lineHeight: 18, paddingVertical: 10 },
-    noticeCard: { marginBottom: 12, padding: 13, borderRadius: 15, backgroundColor: '#edf4ee', flexDirection: 'row', alignItems: 'center', gap: 10 },
+    inlineEmpty: {
+        color: MUTED,
+        fontSize: 12,
+        lineHeight: 18,
+        paddingVertical: 10,
+    },
+    noticeCard: {
+        marginBottom: 12,
+        padding: 13,
+        borderRadius: 15,
+        backgroundColor: '#edf4ee',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -4261,17 +5493,59 @@ const styles = StyleSheet.create({
         backgroundColor: '#e6efe6',
     },
     searchText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
-    filterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 9 },
+    filterGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 9,
+        marginBottom: 9,
+    },
     filterField: { flex: 1, minWidth: 145 },
-    filterLabel: { color: MUTED, fontSize: 10, fontWeight: '700', marginBottom: 5 },
-    filterPicker: { minHeight: 46, overflow: 'hidden', borderWidth: 1, borderColor: '#e1e8e2', borderRadius: 13, backgroundColor: '#ffffff', justifyContent: 'center' },
+    filterLabel: {
+        color: MUTED,
+        fontSize: 10,
+        fontWeight: '700',
+        marginBottom: 5,
+    },
+    filterPicker: {
+        minHeight: 46,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e1e8e2',
+        borderRadius: 13,
+        backgroundColor: '#ffffff',
+        justifyContent: 'center',
+    },
     filterPickerControl: { height: 47, color: INK, fontSize: 12 },
     formContent: { padding: 16, paddingBottom: 30 },
-    formIntro: { padding: 17, marginBottom: 4, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e7ede8' },
-    reviewCard: { marginTop: 13, padding: 15, borderRadius: 17, borderWidth: 1, borderColor: '#dce8dd', backgroundColor: '#eff5f0' },
-    reviewHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
+    formIntro: {
+        padding: 17,
+        marginBottom: 4,
+        borderRadius: 18,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e7ede8',
+    },
+    reviewCard: {
+        marginTop: 13,
+        padding: 15,
+        borderRadius: 17,
+        borderWidth: 1,
+        borderColor: '#dce8dd',
+        backgroundColor: '#eff5f0',
+    },
+    reviewHeading: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 3,
+    },
     formTitle: { color: INK, fontSize: 20, fontWeight: '700', marginBottom: 5 },
-    gpsAccuracy: { color: API_FOREST, fontSize: 11, fontWeight: '600', marginTop: 7 },
+    gpsAccuracy: {
+        color: API_FOREST,
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 7,
+    },
     locationCard: {
         marginTop: 13,
         padding: 13,
@@ -4279,8 +5553,20 @@ const styles = StyleSheet.create({
         backgroundColor: '#e9f0e9',
     },
     locationTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-    locationIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
-    coordinateText: { color: MUTED, fontSize: 10, fontWeight: '600', marginTop: 8 },
+    locationIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: '#ffffff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    coordinateText: {
+        color: MUTED,
+        fontSize: 10,
+        fontWeight: '600',
+        marginTop: 8,
+    },
     field: { marginTop: 13 },
     fieldLabel: {
         color: '#34443a',
@@ -4347,7 +5633,12 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginBottom: 5,
     },
-    entityTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+    entityTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 8,
+    },
     entityPhoto: {
         width: '100%',
         height: 180,
@@ -4356,35 +5647,161 @@ const styles = StyleSheet.create({
         backgroundColor: '#e6ece6',
     },
     empty: { alignItems: 'center', padding: 36, gap: 8 },
-    setupCard: { marginTop: 17, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e7ede8', backgroundColor: '#ffffff' },
-    setupIcon: { width: 50, height: 50, borderRadius: 17, backgroundColor: '#eaf2eb', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-    accountInfo: { minHeight: 46, paddingHorizontal: 12, marginTop: 16, borderRadius: 14, backgroundColor: '#f5f8f5', flexDirection: 'row', alignItems: 'center', gap: 10 },
+    setupCard: {
+        marginTop: 17,
+        padding: 20,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#e7ede8',
+        backgroundColor: '#ffffff',
+    },
+    setupIcon: {
+        width: 50,
+        height: 50,
+        borderRadius: 17,
+        backgroundColor: '#eaf2eb',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+    },
+    accountInfo: {
+        minHeight: 46,
+        paddingHorizontal: 12,
+        marginTop: 16,
+        borderRadius: 14,
+        backgroundColor: '#f5f8f5',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
     accountInfoText: { color: INK, fontSize: 13, fontWeight: '600' },
-    setupNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#edf0ed' },
+    setupNote: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginTop: 13,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#edf0ed',
+    },
     setupNoteText: { flex: 1, color: MUTED, fontSize: 11, lineHeight: 16 },
-    moduleHero: { alignItems: 'center', padding: 24, borderRadius: 22, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e7ede8' },
-    moduleIcon: { width: 68, height: 68, borderRadius: 22, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-    moduleEyebrow: { color: GREEN, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
-    moduleTitle: { color: INK, fontSize: 22, fontWeight: '800', textAlign: 'center', marginTop: 8, marginBottom: 7 },
-    comingSoonPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 15, backgroundColor: '#f1f3ee', marginTop: 15 },
-    comingSoonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#a58d44' },
+    moduleHero: {
+        alignItems: 'center',
+        padding: 24,
+        borderRadius: 22,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e7ede8',
+    },
+    moduleIcon: {
+        width: 68,
+        height: 68,
+        borderRadius: 22,
+        backgroundColor: '#e8f0e8',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+    },
+    moduleEyebrow: {
+        color: GREEN,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+    },
+    moduleTitle: {
+        color: INK,
+        fontSize: 22,
+        fontWeight: '800',
+        textAlign: 'center',
+        marginTop: 8,
+        marginBottom: 7,
+    },
+    comingSoonPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 11,
+        paddingVertical: 7,
+        borderRadius: 15,
+        backgroundColor: '#f1f3ee',
+        marginTop: 15,
+    },
+    comingSoonDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#a58d44',
+    },
     comingSoonText: { color: '#71663d', fontSize: 11, fontWeight: '700' },
-    progressTrack: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 12 },
+    progressTrack: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginVertical: 12,
+    },
     progressStep: { flex: 1, alignItems: 'center', gap: 6 },
-    progressDot: { width: 27, height: 27, borderRadius: 14, borderWidth: 1, borderColor: '#dce5dc', backgroundColor: '#f5f7f4', alignItems: 'center', justifyContent: 'center' },
+    progressDot: {
+        width: 27,
+        height: 27,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#dce5dc',
+        backgroundColor: '#f5f7f4',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     progressDotDone: { backgroundColor: API_FOREST, borderColor: API_FOREST },
     progressDotActive: { backgroundColor: '#e8f0e8', borderColor: GREEN },
     progressNumber: { color: MUTED, fontSize: 10, fontWeight: '700' },
     progressNumberActive: { color: API_FOREST },
     progressLabel: { color: MUTED, fontSize: 10 },
     progressLabelActive: { color: API_FOREST, fontWeight: '800' },
-    boundaryIcon: { width: 36, height: 36, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
-    boundaryPreview: { overflow: 'hidden', marginTop: 11, borderRadius: 15, backgroundColor: '#f7faf7' },
-    boundaryFacts: { flexDirection: 'row', paddingTop: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#edf0ed' },
+    boundaryIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 13,
+        backgroundColor: '#edf4ee',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    boundaryPreview: {
+        overflow: 'hidden',
+        marginTop: 11,
+        borderRadius: 15,
+        backgroundColor: '#f7faf7',
+    },
+    boundaryFacts: {
+        flexDirection: 'row',
+        paddingTop: 12,
+        marginTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#edf0ed',
+    },
     boundaryFact: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-    boundaryValue: { color: INK, fontSize: 12, fontWeight: '700', textAlign: 'center' },
-    linkedFarmer: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, marginBottom: 12, borderRadius: 16, borderWidth: 1, borderColor: '#e5eae5', backgroundColor: '#ffffff' },
-    linkedFarmerIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    boundaryValue: {
+        color: INK,
+        fontSize: 12,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    linkedFarmer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        padding: 13,
+        marginBottom: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e5eae5',
+        backgroundColor: '#ffffff',
+    },
+    linkedFarmerIcon: {
+        width: 39,
+        height: 39,
+        borderRadius: 13,
+        backgroundColor: '#edf4ee',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     heading: { color: INK, fontSize: 19, fontWeight: '700', marginBottom: 6 },
     loginSafe: { flex: 1, backgroundColor: CANVAS },
     loginWrap: {

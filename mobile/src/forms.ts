@@ -60,15 +60,23 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     text('date_of_birth', 'Date of birth', { kind: 'date' }),
                     text('government_id', 'Government ID'),
                     text('purok_sitio', 'Purok / sitio', { required: true }),
-                    text('sitio_purok_code', 'Sitio / purok code (3 digits)', { kind: 'number' }),
+                    text('sitio_purok_code', 'Sitio / purok code (3 digits)', {
+                        kind: 'number',
+                    }),
                     text('barangay', 'Barangay', { required: true }),
-                    text('barangay_code', 'Barangay code (3 digits)', { kind: 'number' }),
+                    text('barangay_code', 'Barangay code (3 digits)', {
+                        kind: 'number',
+                    }),
                     text('municipality', 'Municipality / city', {
                         required: true,
                     }),
                     text('lgu_code', 'LGU code (3 digits)', { kind: 'number' }),
                     text('province', 'Province', { required: true }),
-                    text('security_control_code', 'Security control code (3 digits)', { kind: 'number' }),
+                    text(
+                        'security_control_code',
+                        'Security control code (3 digits)',
+                        { kind: 'number' },
+                    ),
                     text('mobile_number', 'Mobile number', {
                         kind: 'phone',
                         required: true,
@@ -126,10 +134,18 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     text('date_of_birth', 'Date of birth', { kind: 'date' }),
                     text('government_id', 'Government ID'),
                     text('suffix', 'Suffix'),
-                    text('sitio_purok_code', 'Sitio / purok code (3 digits)', { kind: 'number' }),
-                    text('barangay_code', 'Barangay code (3 digits)', { kind: 'number' }),
+                    text('sitio_purok_code', 'Sitio / purok code (3 digits)', {
+                        kind: 'number',
+                    }),
+                    text('barangay_code', 'Barangay code (3 digits)', {
+                        kind: 'number',
+                    }),
                     text('lgu_code', 'LGU code (3 digits)', { kind: 'number' }),
-                    text('security_control_code', 'Security control code (3 digits)', { kind: 'number' }),
+                    text(
+                        'security_control_code',
+                        'Security control code (3 digits)',
+                        { kind: 'number' },
+                    ),
                     {
                         key: 'has_bank_account',
                         label: 'Record bank account',

@@ -11,7 +11,12 @@ type Props = {
 export default function BoundaryMap({ points, height = 210 }: Props) {
     const map = useRef<MapView | null>(null);
     const validPoints = useMemo(
-        () => points.filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)),
+        () =>
+            points.filter(
+                (point) =>
+                    Number.isFinite(point.latitude) &&
+                    Number.isFinite(point.longitude),
+            ),
         [points],
     );
     const center = validPoints[0] ?? { latitude: 8.16, longitude: 125.13 };
@@ -23,11 +28,14 @@ export default function BoundaryMap({ points, height = 210 }: Props) {
                 animated: false,
             });
         } else if (validPoints.length === 1) {
-            map.current?.animateToRegion({
-                ...center,
-                latitudeDelta: 0.008,
-                longitudeDelta: 0.008,
-            }, 250);
+            map.current?.animateToRegion(
+                {
+                    ...center,
+                    latitudeDelta: 0.008,
+                    longitudeDelta: 0.008,
+                },
+                250,
+            );
         }
     }, [validPoints, center]);
 
@@ -36,11 +44,19 @@ export default function BoundaryMap({ points, height = 210 }: Props) {
             ref={map}
             style={[styles.map, { height }]}
             mapType="hybrid"
-            initialRegion={{ ...center, latitudeDelta: 0.012, longitudeDelta: 0.012 }}
+            initialRegion={{
+                ...center,
+                latitudeDelta: 0.012,
+                longitudeDelta: 0.012,
+            }}
             toolbarEnabled={false}
         >
             {validPoints.length > 1 && validPoints.length < 3 && (
-                <Polyline coordinates={validPoints} strokeColor="#17613d" strokeWidth={3} />
+                <Polyline
+                    coordinates={validPoints}
+                    strokeColor="#17613d"
+                    strokeWidth={3}
+                />
             )}
             {validPoints.length >= 3 && (
                 <Polygon
