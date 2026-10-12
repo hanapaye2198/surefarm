@@ -39,9 +39,38 @@ class MobileFarmerController extends Controller
         abort_unless($farm->farmer_id === $this->farmer($request)->id, 404);
         $farm->load(['boundary', 'verifications.verifier:id,name', 'verifications.photos.uploader:id,name']);
         $comparison = $areas->calculate($farm->declared_area_hectares, $farm->boundary?->gps_measured_area_hectares);
+        $boundaryUpdateRequest = $farm->boundaryUpdateRequests()->first();
 
         return Inertia::render('mobile/farmer-farm', [
-            'farm' => $this->farmRow($farm, $areas),
+            'farm' => [
+                ...$this->farmRow($farm, $areas),
+                'drone_image_url' => $farm->drone_image_path === null
+                    ? null
+                    : URL::temporarySignedRoute(
+                        'api.mobile.media.farm-drone-image',
+                        now()->addMinutes(15),
+                        ['farm' => $farm->id],
+                    ),
+            ],
+            'activities' => FarmActivity::query()
+                ->with(['farm.farmer', 'activityType', 'creator'])
+                ->where('farm_id', $farm->id)
+                ->latest('activity_date')->latest('id')->limit(5)->get()
+                ->map(fn (FarmActivity $activity): array => $activity->present())
+                ->values()->all(),
+            'harvests' => FarmHarvest::query()
+                ->with(['farm.farmer', 'production', 'creator'])
+                ->where('farm_id', $farm->id)
+                ->latest('harvest_date')->latest('id')->limit(5)->get()
+                ->map(fn (FarmHarvest $harvest): array => $harvest->present())
+                ->values()->all(),
+            'boundary_update_request' => $boundaryUpdateRequest === null ? null : [
+                'id' => $boundaryUpdateRequest->id,
+                'status' => $boundaryUpdateRequest->status,
+                'reason' => $boundaryUpdateRequest->reason,
+                'created_at' => $boundaryUpdateRequest->created_at?->format('M j, Y'),
+                'resolved_at' => $boundaryUpdateRequest->resolved_at?->format('M j, Y'),
+            ],
             'boundary' => $farm->boundary === null ? null : [
                 'geojson' => $farm->boundary->boundary_geojson,
                 'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
@@ -53,9 +82,46 @@ class MobileFarmerController extends Controller
                 'declared' => $areas->hectares($comparison['declared']),
                 'measured' => $areas->hectares($comparison['measured']),
                 'difference' => $areas->hectares($comparison['difference']),
+                'variance' => $areas->percent($comparison['variance']),
             ],
             'google_maps_api_key' => config('services.google_maps.browser_api_key'),
         ]);
+    }
+
+    public function requestBoundaryUpdate(Request $request, Farm $farm): \Illuminate\Http\JsonResponse
+    {
+        $farmer = $this->farmer($request);
+        abort_unless($farm->farmer_id === $farmer->id, 404);
+        abort_unless($farm->verification_status->value === 'verified' && $farm->boundary()->exists(), 422);
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        if ($farm->boundaryUpdateRequests()->where('status', 'pending')->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'reason' => 'A boundary review request is already open for this farm.',
+            ]);
+        }
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $updateRequest = $farm->boundaryUpdateRequests()->create([
+            'farmer_id' => $farmer->id,
+            'requested_by' => $user->id,
+            'reason' => trim($validated['reason']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'request' => [
+                'id' => $updateRequest->id,
+                'status' => $updateRequest->status,
+                'reason' => $updateRequest->reason,
+                'created_at' => $updateRequest->created_at?->format('M j, Y'),
+            ],
+        ], 201);
     }
 
     public function activities(Request $request): Response
@@ -70,9 +136,9 @@ class MobileFarmerController extends Controller
                 'creator:id,name',
             ])
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
-            ->latest('activity_date')->latest('id')->limit(30)->get()
-            ->map(fn (FarmActivity $activity): array => $activity->present())
-            ->values()->all();
+            ->latest('activity_date')->latest('id')
+            ->paginate(30, ['*'], 'activities_page')
+            ->through(fn (FarmActivity $activity): array => $activity->present());
 
         $harvests = FarmHarvest::query()
             ->with([
@@ -82,16 +148,16 @@ class MobileFarmerController extends Controller
                 'creator:id,name',
             ])
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
-            ->latest('harvest_date')->latest('id')->limit(30)->get()
-            ->map(fn (FarmHarvest $harvest): array => $harvest->present())
-            ->values()->all();
+            ->latest('harvest_date')->latest('id')
+            ->paginate(30, ['*'], 'harvests_page')
+            ->through(fn (FarmHarvest $harvest): array => $harvest->present());
 
         $productions = FarmProduction::query()
             ->with('farm:id,farm_id,farm_name,farmer_id,crop_type')
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
-            ->latest('id')->limit(30)->get()
-            ->map(fn (FarmProduction $production): array => $production->present())
-            ->values()->all();
+            ->latest('id')
+            ->paginate(30, ['*'], 'productions_page')
+            ->through(fn (FarmProduction $production): array => $production->present());
 
         return Inertia::render('mobile/farmer-activities', [
             'activities' => $activities,
@@ -106,8 +172,9 @@ class MobileFarmerController extends Controller
         abort_unless($user instanceof User && $user->role === UserRole::Farmer, 403);
 
         return Inertia::render('mobile/farmer-notifications', [
-            'notifications' => $user->notifications()->latest()->limit(30)->get()
-                ->map(fn (DatabaseNotification $notification): array => [
+            'notifications' => $user->notifications()->latest()
+                ->paginate(30, ['*'], 'notifications_page')
+                ->through(fn (DatabaseNotification $notification): array => [
                     'id' => $notification->id,
                     'title' => $notification->data['title'] ?? 'SureFarm update',
                     'message' => $notification->data['message'] ?? '',
@@ -116,7 +183,7 @@ class MobileFarmerController extends Controller
                     'created_at' => $notification->created_at?->format('M j, Y g:i A'),
                     'read' => $notification->read_at !== null,
                     'kind' => $notification->data['kind'] ?? 'update',
-                ])->values()->all(),
+                ]),
         ]);
     }
 
@@ -162,6 +229,7 @@ class MobileFarmerController extends Controller
                     ['farmer' => $farmer->id],
                 ),
                 'cooperative' => $farmer->cooperative?->name,
+                'spouse' => $farmer->spouse?->fullName(),
             ],
         ]);
     }
@@ -216,7 +284,7 @@ class MobileFarmerController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $user->role === UserRole::Farmer, 403);
 
-        return $user->farmer()->with('cooperative')->firstOrFail();
+        return $user->farmer()->with(['cooperative', 'spouse'])->firstOrFail();
     }
 
     /** @return array<string, mixed> */

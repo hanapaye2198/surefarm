@@ -57,6 +57,12 @@ class UpdateFarmDetails
 
                 if (array_key_exists('assigned_verifier_id', $data)) {
                     $attributes['assigned_verifier_id'] = $data['assigned_verifier_id'];
+
+                    if ((string) $farm->assigned_verifier_id !== (string) $data['assigned_verifier_id']) {
+                        $attributes['assigned_at'] = $data['assigned_verifier_id'] === null
+                            ? null
+                            : now();
+                    }
                 }
 
                 $farm->update($attributes);

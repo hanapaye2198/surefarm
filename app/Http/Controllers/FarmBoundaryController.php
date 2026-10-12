@@ -11,6 +11,7 @@ use App\UserRole;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class FarmBoundaryController extends Controller
@@ -32,7 +33,7 @@ class FarmBoundaryController extends Controller
         ]);
     }
 
-    public function store(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry): RedirectResponse
+    public function store(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry, FarmAreaComparison $areas): RedirectResponse
     {
         if ($farm->boundary()->exists()) {
             return back()->withErrors([
@@ -40,16 +41,16 @@ class FarmBoundaryController extends Controller
             ]);
         }
 
-        return $this->persist($request, $farm, $geometry, creating: true);
+        return $this->persist($request, $farm, $geometry, $areas, creating: true);
     }
 
-    public function update(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry): RedirectResponse
+    public function update(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry, FarmAreaComparison $areas): RedirectResponse
     {
         if ($farm->boundary === null) {
             abort(404);
         }
 
-        return $this->persist($request, $farm, $geometry, creating: false);
+        return $this->persist($request, $farm, $geometry, $areas, creating: false);
     }
 
     public function destroy(DestroyFarmBoundaryRequest $request, Farm $farm): RedirectResponse
@@ -76,6 +77,7 @@ class FarmBoundaryController extends Controller
         SaveFarmBoundaryRequest $request,
         Farm $farm,
         FarmBoundaryGeometry $geometry,
+        FarmAreaComparison $areas,
         bool $creating,
     ): RedirectResponse {
         $inspection = $geometry->inspect($request->validated('boundary_geojson'));
@@ -103,15 +105,53 @@ class FarmBoundaryController extends Controller
         ];
 
         try {
-            if ($creating) {
-                $farm->boundary()->create([
-                    ...$attributes,
-                    'created_by' => $request->user()?->id,
-                    'captured_at' => now(),
+            DB::transaction(function () use ($creating, $farm, $attributes, $inspection, $areas, $request): void {
+                $previousPolygon = $farm->boundary?->boundary_geojson;
+
+                if ($creating) {
+                    $farm->boundary()->create([
+                        ...$attributes,
+                        'created_by' => $request->user()?->id,
+                        'captured_at' => now(),
+                    ]);
+                } else {
+                    $farm->boundary?->update($attributes);
+                }
+
+                $farm->boundaryUpdateRequests()
+                    ->where('status', 'pending')
+                    ->update([
+                        'status' => 'addressed',
+                        'resolved_by' => $request->user()?->id,
+                        'resolved_at' => now(),
+                    ]);
+
+                if ($farm->verification_status !== \App\FarmVerificationStatus::InProgress) {
+                    return;
+                }
+
+                $openVerification = $farm->verifications()
+                    ->whereNull('result')
+                    ->latest('id')
+                    ->first();
+
+                if ($openVerification === null) {
+                    return;
+                }
+
+                $comparison = $areas->calculate(
+                    $openVerification->declared_area_hectares,
+                    $inspection['hectares'],
+                );
+                $boundaryChanged = $previousPolygon != $inspection['polygon'];
+
+                $openVerification->update([
+                    'measured_area_hectares' => $comparison['measured'] ?? null,
+                    'difference_hectares' => $comparison['difference'] ?? null,
+                    'variance_percentage' => $comparison['variance'] ?? null,
+                    ...($boundaryChanged ? ['inspection_checklist' => null] : []),
                 ]);
-            } else {
-                $farm->boundary?->update($attributes);
-            }
+            });
         } catch (UniqueConstraintViolationException) {
             return back()->withErrors([
                 'boundary_geojson' => 'This farm already has a boundary.',

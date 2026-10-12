@@ -30,6 +30,8 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
     Route::post('two-factor', [MobileAuthController::class, 'completeTwoFactor'])->middleware('throttle:6,1');
     Route::get('media/farmers/{farmer}/photo', [MobileFarmerController::class, 'signedPhoto'])
         ->middleware('signed')->name('media.farmer-photo');
+    Route::get('media/farms/{farm}/drone-image', [FarmController::class, 'signedDroneImage'])
+        ->middleware('signed')->name('media.farm-drone-image');
     Route::get('media/farm-verification/{photo}', [FarmVerificationController::class, 'signedPhoto'])
         ->middleware('signed')->name('media.farm-verification-photo');
 
@@ -49,6 +51,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
                 Route::get('farms', [MobileFarmerController::class, 'farms']);
                 Route::get('farms/{farm}', [MobileFarmerController::class, 'showFarm']);
+                Route::post('farms/{farm}/boundary-update-request', [MobileFarmerController::class, 'requestBoundaryUpdate']);
                 Route::get('activities', [MobileFarmerController::class, 'activities']);
                 Route::get('notifications', [MobileFarmerController::class, 'notifications']);
                 Route::post('notifications/{notification}/read', [MobileFarmerController::class, 'markNotificationRead']);

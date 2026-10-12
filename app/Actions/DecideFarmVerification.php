@@ -58,6 +58,24 @@ class DecideFarmVerification
                 ]);
             }
 
+            if ($result === FarmVerificationResult::Verified) {
+                $requiredChecks = [
+                    'farm_exists',
+                    'location_matches',
+                    'coffee_crop_observed',
+                    'boundary_captured',
+                    'area_checked',
+                    'required_photos_captured',
+                ];
+                $checklist = $open->inspection_checklist;
+
+                if (collect($requiredChecks)->contains(fn (string $check): bool => ($checklist[$check] ?? false) !== true)) {
+                    throw ValidationException::withMessages([
+                        'verification' => 'A farm cannot be marked verified while a required field check is marked No.',
+                    ]);
+                }
+            }
+
             $open->update([
                 'measured_area_hectares' => $comparison['measured'],
                 'difference_hectares' => $comparison['difference'],

@@ -88,7 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update'])->name('farms.boundary.update');
     });
 
-    Route::middleware('role:operations,field_verifier')->group(function () {
+    Route::middleware('role:operations')->group(function () {
         Route::get('farmers', [FarmerController::class, 'index'])->name('farmers.index');
         Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo'])->name('farmers.photo');
         Route::get('farmers/{farmer}', [FarmerController::class, 'show'])->name('farmers.show');

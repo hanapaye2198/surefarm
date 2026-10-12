@@ -10,6 +10,8 @@ use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
+use App\Models\FarmBoundaryUpdateRequest;
+use App\Models\FarmVerification;
 use App\Models\User;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
@@ -17,6 +19,7 @@ use App\Services\TraceabilitySummary;
 use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +40,22 @@ class DashboardController extends Controller
                     'location' => $farm->locationLabel(),
                     'verification_status' => $farm->verification_status->value,
                 ])->values()->all();
+            $assignedMapFarms = (clone $assignedFarms)
+                ->with('farmer')
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->latest('id')
+                ->get()
+                ->map(fn (Farm $farm): array => [
+                    'id' => $farm->id,
+                    'farm_id' => $farm->farm_id,
+                    'farm_name' => $farm->displayName(),
+                    'farmer_name' => $farm->farmer?->fullName(),
+                    'location' => $farm->locationLabel(),
+                    'latitude' => (float) $farm->latitude,
+                    'longitude' => (float) $farm->longitude,
+                    'verification_status' => $farm->verification_status->value,
+                ])->values()->all();
             $declared = (float) (clone $assignedFarms)->sum('declared_area_hectares');
             $coffee = (float) (clone $assignedFarms)
                 ->where('crop_type', CropType::Coffee)
@@ -44,11 +63,21 @@ class DashboardController extends Controller
             $verified = (float) (clone $assignedFarms)
                 ->where('verification_status', FarmVerificationStatus::Verified)
                 ->sum('verified_area_hectares');
+            $verifiedToday = FarmVerification::query()
+                ->whereIn('farm_id', (clone $assignedFarms)->select('id'))
+                ->where('verified_by', $user->id)
+                ->where('result', 'verified')
+                ->whereDate('verified_at', today())
+                ->count();
+            $assignedToday = (clone $assignedFarms)
+                ->whereDate('assigned_at', today())
+                ->count();
 
             return Inertia::render('dashboard', [
                 'mobile_dashboard_mode' => 'verifier_dashboard',
                 'summary' => [
                     'assigned_farms' => (clone $assignedFarms)->count(),
+                    'assigned_today' => $assignedToday,
                     'registered_farms' => (clone $assignedFarms)->count(),
                     'pending_verification' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
                     'in_progress' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
@@ -56,6 +85,7 @@ class DashboardController extends Controller
                     'verified_farms' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
                     'needs_review' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
                     'failed' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
+                    'verified_today' => $verifiedToday,
                 ],
                 'area_summary' => [
                     'total_declared_hectares' => round($declared, 2),
@@ -64,6 +94,8 @@ class DashboardController extends Controller
                     'other_crop_hectares' => round($declared - $coffee, 2),
                 ],
                 'assigned_farms_preview' => $assignedPreview,
+                'assigned_farms_map' => $assignedMapFarms,
+                'google_maps_api_key' => config('services.google_maps.browser_api_key'),
                 'recent_activities' => [],
                 'recent_harvests' => [],
                 'recent_lots' => [],
@@ -105,6 +137,10 @@ class DashboardController extends Controller
                         'read' => $notification->read_at !== null,
                         'kind' => $notification->data['kind'] ?? 'update',
                     ])->values()->all();
+                $declaredArea = (float) (clone $farms)->sum('declared_area_hectares');
+                $verifiedArea = (float) (clone $farms)
+                    ->where('verification_status', FarmVerificationStatus::Verified)
+                    ->sum('verified_area_hectares');
 
                 return Inertia::render('dashboard', [
                     'mobile_dashboard_mode' => 'farmer_dashboard',
@@ -112,6 +148,11 @@ class DashboardController extends Controller
                     'farmer' => [
                         'name' => $farmer->fullName(),
                         'farmer_id' => $farmer->farmer_id,
+                        'photo_url' => $farmer->photo_path === null ? null : URL::temporarySignedRoute(
+                            'api.mobile.media.farmer-photo',
+                            now()->addMinutes(15),
+                            ['farmer' => $farmer->id],
+                        ),
                     ],
                     'unread_notifications' => $user->unreadNotifications()->count(),
                     'recent_notifications' => $recentNotifications,
@@ -120,6 +161,8 @@ class DashboardController extends Controller
                     'recent_productions' => $recentProductions,
                     'summary' => [
                         'registered_farms' => (clone $farms)->count(),
+                        'declared_area_hectares' => round($declaredArea, 2),
+                        'verified_area_hectares' => round($verifiedArea, 2),
                         'pending_verification' => (clone $farms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
                         'in_progress' => (clone $farms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
                         'verified_farms' => (clone $farms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
@@ -185,6 +228,23 @@ class DashboardController extends Controller
 
         $coffeeArea = $this->declaredHectares(CropType::Coffee);
         $totalDeclared = $this->declaredHectares();
+        $boundaryUpdateRequests = FarmBoundaryUpdateRequest::query()
+            ->with(['farm.farmer'])
+            ->where('status', 'pending')
+            ->latest('id')
+            ->limit(8)
+            ->get()
+            ->map(fn (FarmBoundaryUpdateRequest $updateRequest): array => [
+                'id' => $updateRequest->id,
+                'farm_id' => $updateRequest->farm_id,
+                'farm_code' => $updateRequest->farm?->farm_id,
+                'farm_name' => $updateRequest->farm?->displayName(),
+                'farmer_name' => $updateRequest->farm?->farmer?->fullName(),
+                'reason' => $updateRequest->reason,
+                'created_at' => $updateRequest->created_at?->format('M j, Y'),
+            ])
+            ->values()
+            ->all();
 
         return Inertia::render('dashboard', [
             'summary' => [
@@ -211,6 +271,7 @@ class DashboardController extends Controller
             'inventory_summary' => $stock->balances(),
             'traceability_summary' => $traceability->metrics(),
             'recent_lots' => $traceability->recent(),
+            'boundary_update_requests' => $boundaryUpdateRequests,
         ]);
     }
 

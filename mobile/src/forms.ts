@@ -18,6 +18,7 @@ export type FieldSpec = {
     options?: string | Option[];
     optional?: boolean;
     hint?: string;
+    cameraOnly?: boolean;
 };
 
 export type FormSpec = {
@@ -34,6 +35,18 @@ const text = (
     label?: string,
     extra: Partial<FieldSpec> = {},
 ): FieldSpec => ({ key, label: label ?? key.replaceAll('_', ' '), ...extra });
+
+const yesNo = (key: string, label: string): FieldSpec => ({
+    key,
+    label,
+    kind: 'select',
+    required: true,
+    options: [
+        { value: '', label: 'Select yes or no' },
+        { value: '1', label: 'Yes' },
+        { value: '0', label: 'No' },
+    ],
+});
 
 export function formForPage(component: string, data: Data): FormSpec | null {
     const farmerId = data.farmer?.id;
@@ -72,7 +85,21 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     text('photo', 'Farmer photo (face capture)', {
                         kind: 'image',
                         required: true,
-                        hint: 'Take a clear face photo or choose one from your device.',
+                        cameraOnly: true,
+                        hint: 'Capture a clear face photo with the front camera.',
+                    }),
+                ],
+            };
+        case 'farmer-boundary-update/request':
+            return {
+                title: 'Request boundary review',
+                method: 'POST',
+                path: `/farmer/farms/${data.farmId}/boundary-update-request`,
+                fields: [
+                    text('reason', 'Why does this boundary need review?', {
+                        required: true,
+                        multiline: true,
+                        hint: 'Describe the boundary issue so SureFarm staff can review it.',
                     }),
                 ],
             };
@@ -856,23 +883,29 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'POST',
                 path: `/farm-verification/${data.farmId}/inspection`,
                 fields: [
+                    yesNo('farm_exists', 'Farm physically exists'),
+                    yesNo('location_matches', 'Location matches registration'),
+                    yesNo('coffee_crop_observed', 'Coffee crop observed'),
+                    yesNo('boundary_captured', 'GPS boundary captured'),
+                    yesNo('area_checked', 'Farm area checked'),
+                    yesNo('required_photos_captured', 'Required photos captured'),
+                    yesNo(
+                        'farmer_or_representative_met',
+                        'Farmer or representative met',
+                    ),
                     {
-                        key: 'farm_identified',
-                        label: 'I confirmed this is the registered farm',
-                        kind: 'toggle',
+                        key: 'evidence_type',
+                        label: 'Photo category',
+                        kind: 'select',
                         required: true,
-                    },
-                    {
-                        key: 'boundary_walked',
-                        label: 'I walked and checked the GPS boundary',
-                        kind: 'toggle',
-                        required: true,
-                    },
-                    {
-                        key: 'farmer_or_representative_met',
-                        label: 'I met the farmer or their representative',
-                        kind: 'toggle',
-                        required: true,
+                        options: [
+                            { value: '', label: 'Choose a category' },
+                            { value: 'farm_entrance', label: 'Farm entrance' },
+                            { value: 'coffee_plants', label: 'Coffee plants' },
+                            { value: 'farm_boundary', label: 'Farm boundary' },
+                            { value: 'general_farm_view', label: 'General farm view' },
+                            { value: 'other', label: 'Other' },
+                        ],
                     },
                     text('latitude', 'Evidence latitude', { kind: 'number' }),
                     text('longitude', 'Evidence longitude', { kind: 'number' }),
@@ -1089,6 +1122,14 @@ export function initialFieldValues(
             if (field.key === 'boundary_geojson' && data.boundary?.geojson)
                 value = JSON.stringify(data.boundary.geojson, null, 2);
             if (field.kind === 'toggle') value = Boolean(value);
+            if (
+                field.kind === 'select' &&
+                typeof value === 'boolean' &&
+                Array.isArray(field.options) &&
+                field.options.some((option) => option.value === '1') &&
+                field.options.some((option) => option.value === '0')
+            )
+                value = value ? '1' : '0';
 
             return [field.key, value];
         }),

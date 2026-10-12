@@ -345,6 +345,15 @@ class FarmController extends Controller
         return Storage::response($farm->drone_image_path);
     }
 
+    public function signedDroneImage(Farm $farm): StreamedResponse
+    {
+        if ($farm->drone_image_path === null || ! Storage::exists($farm->drone_image_path)) {
+            abort(404);
+        }
+
+        return Storage::response($farm->drone_image_path);
+    }
+
     /**
      * Web-map measured area stays separate from declared area.
      * A missing boundary is not shown as 0.00 ha.

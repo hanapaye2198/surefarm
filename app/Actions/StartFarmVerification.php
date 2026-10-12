@@ -20,7 +20,7 @@ class StartFarmVerification
     ) {}
 
     /**
-     * Open one verification attempt and mark the farm in progress.
+     * Open one verification attempt before the verifier starts field capture.
      * Declared area on the farm is not changed.
      */
     public function handle(Farm $farm): FarmVerification
@@ -32,6 +32,7 @@ class StartFarmVerification
             if (! in_array($locked->verification_status, [
                 FarmVerificationStatus::Pending,
                 FarmVerificationStatus::NeedsReview,
+                FarmVerificationStatus::Failed,
                 FarmVerificationStatus::Verified,
             ], true)) {
                 throw ValidationException::withMessages([
@@ -39,16 +40,12 @@ class StartFarmVerification
                 ]);
             }
 
-            if ($locked->boundary === null) {
-                throw ValidationException::withMessages([
-                    'verification' => 'Farm boundary is required before verification.',
-                ]);
-            }
-
-            $comparison = $this->areas->calculate(
-                $locked->declared_area_hectares,
-                $locked->boundary->gps_measured_area_hectares,
-            );
+            $comparison = $locked->boundary === null
+                ? null
+                : $this->areas->calculate(
+                    $locked->declared_area_hectares,
+                    $locked->boundary->gps_measured_area_hectares,
+                );
 
             $verification = $locked->verifications()->create([
                 'verification_reference' => 'TMP-'.Str::uuid()->toString(),

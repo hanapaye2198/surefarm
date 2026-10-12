@@ -105,6 +105,10 @@ class FarmVerification extends Model
             'measured_area' => $this->measured_area_hectares === null
                 ? null
                 : number_format((float) $this->measured_area_hectares, 2, '.', '').' ha',
+            'verified_area' => $this->result === FarmVerificationResult::Verified
+                && $this->measured_area_hectares !== null
+                    ? number_format((float) $this->measured_area_hectares, 2, '.', '').' ha'
+                    : null,
             'difference' => $this->difference_hectares === null
                 ? null
                 : number_format((float) $this->difference_hectares, 2, '.', '').' ha',

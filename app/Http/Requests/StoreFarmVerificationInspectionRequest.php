@@ -27,9 +27,14 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'farm_identified' => ['required', 'accepted'],
-            'boundary_walked' => ['required', 'accepted'],
-            'farmer_or_representative_met' => ['required', 'accepted'],
+            'farm_exists' => ['required', 'boolean'],
+            'location_matches' => ['required', 'boolean'],
+            'coffee_crop_observed' => ['required', 'boolean'],
+            'boundary_captured' => ['required', 'boolean'],
+            'area_checked' => ['required', 'boolean'],
+            'required_photos_captured' => ['required', 'boolean'],
+            'farmer_or_representative_met' => ['required', 'boolean'],
+            'evidence_type' => ['sometimes', 'string', 'in:farm_entrance,coffee_plants,farm_boundary,general_farm_view,other'],
             'evidence_photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],

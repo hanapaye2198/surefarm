@@ -32,6 +32,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 import BoundaryMap, { type BoundaryPoint } from './src/BoundaryMap';
+import FarmAssignmentMap, { type FarmPin } from './src/FarmAssignmentMap';
 import { ApiError, apiRequest, API_URL, SITE_URL } from './src/api';
 import {
     formForPage,
@@ -707,6 +708,64 @@ function SureFarmApp() {
         await loadPage(path);
     };
 
+    const loadMore = async (
+        path: string,
+        title: string,
+        collection?: string,
+    ) => {
+        if (!collection) {
+            await navigate(path, title);
+            return;
+        }
+        if (!token || !page || busy) return;
+
+        setBusy(true);
+        try {
+            const nextPage = await apiRequest<Page>(path, token);
+            const previousCollection = page.data[collection];
+            const incomingCollection = nextPage.data[collection];
+            if (
+                page.component !== nextPage.component ||
+                !Array.isArray(previousCollection?.data) ||
+                !Array.isArray(incomingCollection?.data)
+            ) {
+                return;
+            }
+
+            setPage((currentPage) => {
+                if (
+                    !currentPage ||
+                    currentPage.component !== nextPage.component
+                ) {
+                    return currentPage;
+                }
+                const currentCollection = currentPage.data[collection];
+                if (!Array.isArray(currentCollection?.data)) return currentPage;
+
+                return {
+                    ...currentPage,
+                    data: {
+                        ...currentPage.data,
+                        [collection]: {
+                            ...incomingCollection,
+                            data: [
+                                ...currentCollection.data,
+                                ...incomingCollection.data,
+                            ],
+                        },
+                    },
+                };
+            });
+        } catch (error) {
+            Alert.alert(
+                'Could not load more records',
+                error instanceof Error ? error.message : 'Try again.',
+            );
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const openLocalForm = (component: string, data: Record<string, any>) => {
         const spec = formForPage(component, data);
         if (!spec) return;
@@ -839,6 +898,9 @@ function SureFarmApp() {
         const result = camera
             ? await ImagePicker.launchCameraAsync({
                   mediaTypes: ['images'],
+                  ...(page?.component === 'farmer-profile/photo'
+                      ? { cameraType: ImagePicker.CameraType.front }
+                      : {}),
                   exif: true,
                   quality: 0.8,
               })
@@ -1059,7 +1121,9 @@ function SureFarmApp() {
                     onLocalForm={openLocalForm}
                     onStartVerification={(id) => void startVerification(id)}
                     onDeleteBoundary={removeBoundary}
-                    onLoadMore={(path, title) => void navigate(path, title)}
+                    onLoadMore={(path, title, collection) =>
+                        void loadMore(path, title, collection)
+                    }
                     busy={busy || pageLoading}
                 />
             ) : (
@@ -1354,6 +1418,22 @@ function Dashboard({
                 contentContainerStyle={styles.content}
             >
                 <View style={styles.welcome}>
+                    {page.data.farmer?.photo_url ? (
+                        <Image
+                            source={{ uri: page.data.farmer.photo_url }}
+                            style={[styles.profilePhoto, { borderRadius: 36, marginBottom: 14 }]}
+                            accessibilityLabel="Farmer face photo"
+                        />
+                    ) : (
+                        <View
+                            style={[
+                                styles.profilePhotoPlaceholder,
+                                { borderRadius: 36, marginBottom: 14 },
+                            ]}
+                        >
+                            <AppIcon name="account" size={31} color={GREEN} />
+                        </View>
+                    )}
                     <Text style={styles.eyebrow}>SUREFARM · FARMER PORTAL</Text>
                     <Text style={styles.welcomeTitle}>
                         Hello,{' '}
@@ -1363,6 +1443,9 @@ function Dashboard({
                     </Text>
                     <Text style={styles.welcomeBody}>
                         Your farms and verification updates, in one place.
+                    </Text>
+                    <Text style={[styles.recordCode, { color: '#d4e3d8', marginTop: 8 }]}>
+                        Farmer ID / {page.data.farmer?.farmer_id ?? 'Not assigned'}
                     </Text>
                 </View>
                 <View style={styles.card}>
@@ -1388,6 +1471,17 @@ function Dashboard({
                         value={summary.needs_review ?? 0}
                     />
                     <SummaryRow label="Failed" value={summary.failed ?? 0} />
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Farm area</Text>
+                    <SummaryRow
+                        label="Declared area"
+                        value={`${Number(summary.declared_area_hectares ?? 0).toFixed(2)} ha`}
+                    />
+                    <SummaryRow
+                        label="Verified area"
+                        value={`${Number(summary.verified_area_hectares ?? 0).toFixed(2)} ha`}
+                    />
                 </View>
                 <Pressable
                     accessibilityRole="button"
@@ -1533,6 +1627,11 @@ function Dashboard({
             value: summary.assigned_farms ?? 0,
         },
         {
+            icon: 'calendar',
+            label: "Today's assignments",
+            value: summary.assigned_today ?? 0,
+        },
+        {
             icon: 'pending',
             label: 'Pending',
             value: summary.pending_verification ?? 0,
@@ -1548,11 +1647,15 @@ function Dashboard({
             value: summary.completed_farms ?? 0,
         },
         {
+            icon: 'verified',
+            label: 'Verified today',
+            value: summary.verified_today ?? 0,
+        },
+        {
             icon: 'needsReview',
             label: 'Needs review',
             value: summary.needs_review ?? 0,
         },
-        { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
         { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
     ];
     const stats =
@@ -1662,6 +1765,97 @@ function Dashboard({
                         label="Coffee"
                         value={`${page.data.area_summary.coffee_hectares} ha`}
                     />
+                </View>
+            )}
+            {user?.role !== 'field_verifier' &&
+                (page.data.boundary_update_requests ?? []).length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>
+                            Boundary review requests
+                        </Text>
+                        {page.data.boundary_update_requests.map((item: any) => (
+                            <Pressable
+                                key={item.id}
+                                onPress={() =>
+                                    onOpen({
+                                        key: 'farms',
+                                        title: item.farm_name ?? 'Farm record',
+                                        path: `/farms/${item.farm_id}`,
+                                        icon: 'farms',
+                                        description: '',
+                                    })
+                                }
+                                style={({ pressed }) => [
+                                    styles.relatedRow,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text style={styles.recordTitle}>
+                                    {item.farm_name} · {item.farm_code}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.farmer_name} · {item.created_at}
+                                </Text>
+                                <Text style={styles.muted}>{item.reason}</Text>
+                                <Text style={styles.status}>Open farm record</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                )}
+            {user?.role === 'field_verifier' && (
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Assigned farm map</Text>
+                    <Text style={styles.mutedSmall}>
+                        Tap a marker to open its verification record.
+                    </Text>
+                    <FarmAssignmentMap
+                        farms={page.data.assigned_farms_map ?? []}
+                        apiKey={page.data.google_maps_api_key}
+                        onSelect={(farm: FarmPin) =>
+                            onOpen({
+                                key: 'farm-verification',
+                                title: farm.farm_name,
+                                path: `/farm-verification/${farm.id}`,
+                                icon: 'verification',
+                                description: '',
+                            })
+                        }
+                    />
+                    <View
+                        style={{
+                            flexDirection: 'row',
+                            flexWrap: 'wrap',
+                            gap: 12,
+                            marginTop: 12,
+                        }}
+                    >
+                        {[
+                            ['Pending', '#d69219'],
+                            ['In progress', '#4384d5'],
+                            ['Verified', '#348758'],
+                            ['Failed', '#c74848'],
+                            ['Needs review', '#bd6c25'],
+                        ].map(([label, color]) => (
+                            <View
+                                key={label}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                }}
+                            >
+                                <View
+                                    style={{
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: 4,
+                                        backgroundColor: color,
+                                    }}
+                                />
+                                <Text style={styles.mutedSmall}>{label}</Text>
+                            </View>
+                        ))}
+                    </View>
                 </View>
             )}
             {user?.role === 'field_verifier' && (
@@ -1860,7 +2054,7 @@ function DataPage(props: {
     onLocalForm: (component: string, data: Record<string, any>) => void;
     onStartVerification: (id: number) => void;
     onDeleteBoundary: (id: number) => void;
-    onLoadMore: (path: string, title: string) => void;
+    onLoadMore: (path: string, title: string, collection?: string) => void;
     busy: boolean;
 }) {
     const { page } = props;
@@ -1983,6 +2177,22 @@ function DataPage(props: {
                         value={farm.verified_area ?? 'Not verified'}
                     />
                 </View>
+                {farm.drone_image_url && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Farm photo</Text>
+                        <Image
+                            source={{ uri: farm.drone_image_url }}
+                            style={{
+                                width: '100%',
+                                height: 210,
+                                borderRadius: 14,
+                                backgroundColor: '#e6ece6',
+                            }}
+                            resizeMode="cover"
+                            accessibilityLabel="Farm aerial photo"
+                        />
+                    </View>
+                )}
                 {page.data.comparison && (
                     <View style={styles.card}>
                         <Text style={styles.cardTitle}>Area comparison</Text>
@@ -1998,14 +2208,96 @@ function DataPage(props: {
                             label="Difference"
                             value={page.data.comparison.difference}
                         />
+                        <SummaryRow
+                            label="Variance"
+                            value={page.data.comparison.variance}
+                        />
                     </View>
                 )}
                 {page.data.boundary && (
                     <BoundaryCard
                         boundary={page.data.boundary}
                         apiKey={page.data.google_maps_api_key}
+                        title={
+                            farm.verification_status === 'verified'
+                                ? 'Official verified boundary'
+                                : 'Saved GPS boundary'
+                        }
                     />
                 )}
+                {farm.verification_status === 'verified' && page.data.boundary && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Boundary correction</Text>
+                        {page.data.boundary_update_request?.status === 'pending' ? (
+                            <Text style={styles.mutedSmall}>
+                                Your review request was submitted on{' '}
+                                {page.data.boundary_update_request.created_at}. SureFarm staff will review it.
+                            </Text>
+                        ) : (
+                            <>
+                                {page.data.boundary_update_request?.status === 'addressed' && (
+                                    <Text style={styles.mutedSmall}>
+                                        Your previous request was addressed on{' '}
+                                        {page.data.boundary_update_request.resolved_at}.
+                                    </Text>
+                                )}
+                                <Text style={styles.mutedSmall}>
+                                    Ask SureFarm staff to review the official boundary. This will not change the saved boundary.
+                                </Text>
+                                <Secondary
+                                    title="Request boundary review"
+                                    onPress={() =>
+                                        props.onLocalForm('farmer-boundary-update/request', {
+                                            farmId: farm.id,
+                                            farmName: farm.farm_name,
+                                        })
+                                    }
+                                />
+                            </>
+                        )}
+                    </View>
+                )}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Recent farm activities</Text>
+                    {(page.data.activities ?? []).length > 0 ? (
+                        page.data.activities.map((item: any) => (
+                            <View key={`farm-activity-${item.id}`} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>
+                                    {item.activity_type ?? item.description ?? 'Farm activity'}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.activity_date ?? 'Date not recorded'} · {item.status_label ?? item.status}
+                                </Text>
+                                {item.remarks ? (
+                                    <Text style={styles.mutedSmall}>{item.remarks}</Text>
+                                ) : null}
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.inlineEmpty}>No activities recorded for this farm yet.</Text>
+                    )}
+                </View>
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Recent harvests</Text>
+                    {(page.data.harvests ?? []).length > 0 ? (
+                        page.data.harvests.map((item: any) => (
+                            <View key={`farm-harvest-${item.id}`} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>
+                                    {item.quantity_label ?? `${item.quantity ?? 0} ${item.unit ?? ''}`}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {item.harvest_date ?? 'Date not recorded'} · {item.status_label ?? item.status}
+                                    {item.quality_grade ? ` · ${item.quality_grade}` : ''}
+                                </Text>
+                                {item.notes ? (
+                                    <Text style={styles.mutedSmall}>{item.notes}</Text>
+                                ) : null}
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={styles.inlineEmpty}>No harvest records for this farm yet.</Text>
+                    )}
+                </View>
                 <VerificationHistory
                     title="Verification history"
                     rows={page.data.history ?? []}
@@ -2016,9 +2308,12 @@ function DataPage(props: {
     }
 
     if (page.component === 'mobile/farmer-activities') {
-        const activities: any[] = page.data.activities ?? [];
-        const harvests: any[] = page.data.harvests ?? [];
-        const productions: any[] = page.data.productions ?? [];
+        const activitiesPage = page.data.activities;
+        const harvestsPage = page.data.harvests;
+        const productionsPage = page.data.productions;
+        const activities: any[] = collectionRows(activitiesPage);
+        const harvests: any[] = collectionRows(harvestsPage);
+        const productions: any[] = collectionRows(productionsPage);
         return (
             <ScrollView
                 style={styles.page}
@@ -2047,6 +2342,20 @@ function DataPage(props: {
                         message="Farm activity records will appear here."
                     />
                 )}
+                {activitiesPage?.next_page_url && (
+                    <Secondary
+                        title={
+                            props.busy ? 'Loading…' : 'Load more activities'
+                        }
+                        onPress={() =>
+                            props.onLoadMore(
+                                nextPath(activitiesPage.next_page_url),
+                                'Farm activities',
+                                'activities',
+                            )
+                        }
+                    />
+                )}
                 <Text style={[styles.cardTitle, { marginTop: 12 }]}>
                     Harvest
                 </Text>
@@ -2070,6 +2379,18 @@ function DataPage(props: {
                     <EmptyState
                         title="No harvest records yet"
                         message="Harvest records will appear here."
+                    />
+                )}
+                {harvestsPage?.next_page_url && (
+                    <Secondary
+                        title={props.busy ? 'Loading…' : 'Load more harvests'}
+                        onPress={() =>
+                            props.onLoadMore(
+                                nextPath(harvestsPage.next_page_url),
+                                'Harvest',
+                                'harvests',
+                            )
+                        }
                     />
                 )}
                 <Text style={[styles.cardTitle, { marginTop: 12 }]}>
@@ -2107,12 +2428,27 @@ function DataPage(props: {
                         message="Expected production and season records will appear here."
                     />
                 )}
+                {productionsPage?.next_page_url && (
+                    <Secondary
+                        title={
+                            props.busy ? 'Loading…' : 'Load more production'
+                        }
+                        onPress={() =>
+                            props.onLoadMore(
+                                nextPath(productionsPage.next_page_url),
+                                'Production',
+                                'productions',
+                            )
+                        }
+                    />
+                )}
             </ScrollView>
         );
     }
 
     if (page.component === 'mobile/farmer-notifications') {
-        const notifications: any[] = page.data.notifications ?? [];
+        const notificationsPage = page.data.notifications;
+        const notifications: any[] = collectionRows(notificationsPage);
         return (
             <ScrollView
                 style={styles.page}
@@ -2161,6 +2497,18 @@ function DataPage(props: {
                     <EmptyState
                         title="No updates yet"
                         message="Verification updates will appear here."
+                    />
+                )}
+                {notificationsPage?.next_page_url && (
+                    <Secondary
+                        title={props.busy ? 'Loading…' : 'Load more updates'}
+                        onPress={() =>
+                            props.onLoadMore(
+                                nextPath(notificationsPage.next_page_url),
+                                'Notifications',
+                                'notifications',
+                            )
+                        }
                     />
                 )}
             </ScrollView>
@@ -2245,6 +2593,10 @@ function DataPage(props: {
                     <SummaryRow
                         label="Cooperative"
                         value={farmer.cooperative ?? 'Not linked'}
+                    />
+                    <SummaryRow
+                        label="Spouse"
+                        value={farmer.spouse ?? 'Not recorded'}
                     />
                     <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>
                         REGISTRATION CODES
@@ -2559,15 +2911,24 @@ function DataPage(props: {
         const farm = page.data.farm ?? {};
         const canVerifierManageBoundary =
             props.user.role === 'field_verifier' &&
-            ['pending', 'needs_review', 'in_progress'].includes(
+            ['pending', 'needs_review', 'failed', 'in_progress'].includes(
                 farm.verification_status,
             );
         const inspection = page.data.inspection;
+        const inspectionChecks = [
+            'farm_exists',
+            'location_matches',
+            'coffee_crop_observed',
+            'boundary_captured',
+            'area_checked',
+            'required_photos_captured',
+            'farmer_or_representative_met',
+        ];
+        const hasCompleteChecklist = inspectionChecks.every(
+            (key) => typeof inspection?.checklist?.[key] === 'boolean',
+        );
         const hasInspection = Boolean(
-            inspection?.checklist?.farm_identified &&
-            inspection?.checklist?.boundary_walked &&
-            inspection?.checklist?.farmer_or_representative_met &&
-            inspection?.photos?.length,
+            hasCompleteChecklist && inspection?.photos?.length,
         );
         return (
             <ScrollView
@@ -2584,8 +2945,12 @@ function DataPage(props: {
                     <VerificationProgress status={farm.verification_status} />
                     <Text style={styles.mutedSmall}>
                         {page.data.boundary
-                            ? 'Start the visit, complete the inspection, then submit a result.'
-                            : 'Capture and save the farm perimeter before starting the verification.'}
+                            ? farm.verification_status === 'in_progress'
+                                ? 'Capture or review the boundary, complete the field checks, then submit a result.'
+                                : 'Start the field visit to open a verification session.'
+                            : farm.verification_status === 'in_progress'
+                              ? 'Capture and save the GPS boundary to continue this verification.'
+                              : 'Start the field visit first. You can capture the GPS boundary during the session.'}
                     </Text>
                 </View>
                 {page.data.comparison && (
@@ -2598,6 +2963,10 @@ function DataPage(props: {
                         <SummaryRow
                             label="Measured"
                             value={page.data.comparison.measured_area}
+                        />
+                        <SummaryRow
+                            label="Difference"
+                            value={page.data.comparison.difference}
                         />
                         <SummaryRow
                             label="Variance"
@@ -2639,6 +3008,7 @@ function DataPage(props: {
                     />
                 )}
                 {canVerifierManageBoundary &&
+                    farm.verification_status === 'in_progress' &&
                     (page.data.boundary ? (
                         <Secondary
                             title="Update GPS boundary"
@@ -2676,19 +3046,22 @@ function DataPage(props: {
                         </View>
                     )}
                 {props.user.role === 'field_verifier' &&
-                    ['pending', 'needs_review'].includes(
+                    ['pending', 'needs_review', 'failed'].includes(
                         farm.verification_status,
-                    ) &&
-                    page.data.boundary && (
+                    ) && (
                         <Primary
-                            title="Start verification"
+                            title={
+                                farm.verification_status === 'failed'
+                                    ? 'Start follow-up verification'
+                                    : 'Start field verification'
+                            }
                             busy={props.busy}
                             onPress={() => props.onStartVerification(farm.id)}
                         />
                     )}
                 {props.user.role === 'field_verifier' &&
                     farm.verification_status === 'verified' &&
-                    page.data.boundary && (
+                    (
                         <Primary
                             title="Start re-verification"
                             busy={props.busy}
@@ -2718,32 +3091,83 @@ function DataPage(props: {
                                                     measuredArea:
                                                         page.data.comparison
                                                             ?.measured_area,
+                                                    difference:
+                                                        page.data.comparison
+                                                            ?.difference,
+                                                    variance:
+                                                        page.data.comparison
+                                                            ?.variance,
                                                 },
                                             )
                                         }
                                     />
                                 )}
                             {page.data.boundary && hasInspection && (
-                                <Primary
-                                    title="Record verification result"
-                                    onPress={() =>
-                                        props.onLocalForm(
-                                            'farm-verification/decision',
-                                            {
-                                                farmId: farm.id,
-                                                farmName: farm.farm_name,
-                                                farmCode: farm.farm_id,
-                                                farmerName: farm.farmer_name,
-                                                declaredArea:
-                                                    page.data.comparison
-                                                        ?.declared_area,
-                                                measuredArea:
-                                                    page.data.comparison
-                                                        ?.measured_area,
-                                            },
-                                        )
-                                    }
-                                />
+                                <>
+                                    <Secondary
+                                        title="Add another evidence photo"
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'farm-verification/inspection',
+                                                {
+                                                    farmId: farm.id,
+                                                    farmName: farm.farm_name,
+                                                    farmCode: farm.farm_id,
+                                                    farmerName: farm.farmer_name,
+                                                    declaredArea: page.data.comparison?.declared_area,
+                                                    measuredArea: page.data.comparison?.measured_area,
+                                                    difference: page.data.comparison?.difference,
+                                                    variance: page.data.comparison?.variance,
+                                                    farm_exists: inspection.checklist.farm_exists,
+                                                    location_matches: inspection.checklist.location_matches,
+                                                    coffee_crop_observed: inspection.checklist.coffee_crop_observed,
+                                                    boundary_captured: inspection.checklist.boundary_captured,
+                                                    area_checked: inspection.checklist.area_checked,
+                                                    required_photos_captured: inspection.checklist.required_photos_captured,
+                                                    farmer_or_representative_met: inspection.checklist.farmer_or_representative_met,
+                                                    remarks: inspection.checklist.observations,
+                                                },
+                                            )
+                                        }
+                                    />
+                                    <Primary
+                                        title="Record verification result"
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'farm-verification/decision',
+                                                {
+                                                    farmId: farm.id,
+                                                    farmName: farm.farm_name,
+                                                    farmCode: farm.farm_id,
+                                                    farmerName: farm.farmer_name,
+                                                    declaredArea:
+                                                        page.data.comparison?.declared_area,
+                                                    measuredArea:
+                                                        page.data.comparison?.measured_area,
+                                                    difference:
+                                                        page.data.comparison?.difference,
+                                                    variance:
+                                                        page.data.comparison?.variance,
+                                                    gpsPoints: boundaryPointCount(
+                                                        page.data.boundary,
+                                                    ),
+                                                    evidencePhotos:
+                                                        inspection.photos.length,
+                                                    requiredChecksPassed:
+                                                        inspectionChecks
+                                                            .slice(0, 6)
+                                                            .filter(
+                                                                (key) =>
+                                                                    inspection
+                                                                        .checklist?.[
+                                                                        key
+                                                                    ] === true,
+                                                            ).length,
+                                                },
+                                            )
+                                        }
+                                    />
+                                </>
                             )}
                             {page.data.boundary && hasInspection && (
                                 <Secondary
@@ -2762,18 +3186,33 @@ function DataPage(props: {
                                                 measuredArea:
                                                     page.data.comparison
                                                         ?.measured_area,
-                                                farm_identified:
+                                                farm_exists:
                                                     inspection.checklist
-                                                        ?.farm_identified,
-                                                boundary_walked:
+                                                        ?.farm_exists,
+                                                location_matches:
                                                     inspection.checklist
-                                                        ?.boundary_walked,
+                                                        ?.location_matches,
+                                                coffee_crop_observed:
+                                                    inspection.checklist
+                                                        ?.coffee_crop_observed,
+                                                boundary_captured:
+                                                    inspection.checklist
+                                                        ?.boundary_captured,
+                                                area_checked:
+                                                    inspection.checklist
+                                                        ?.area_checked,
+                                                required_photos_captured:
+                                                    inspection.checklist
+                                                        ?.required_photos_captured,
                                                 farmer_or_representative_met:
                                                     inspection.checklist
                                                         ?.farmer_or_representative_met,
                                                 remarks:
                                                     inspection.checklist
                                                         ?.observations,
+                                                evidence_type:
+                                                    inspection.photos?.at(-1)
+                                                        ?.type ?? '',
                                             },
                                         )
                                     }
@@ -2785,31 +3224,46 @@ function DataPage(props: {
                                         Field inspection
                                     </Text>
                                     <SummaryRow
-                                        label="Farm identified"
-                                        value={
-                                            inspection.checklist
-                                                ?.farm_identified
-                                                ? 'Complete'
-                                                : 'Incomplete'
-                                        }
+                                        label="Farm physically exists"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.farm_exists,
+                                        )}
                                     />
                                     <SummaryRow
-                                        label="Boundary walked"
-                                        value={
-                                            inspection.checklist
-                                                ?.boundary_walked
-                                                ? 'Complete'
-                                                : 'Incomplete'
-                                        }
+                                        label="Location matches registration"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.location_matches,
+                                        )}
                                     />
                                     <SummaryRow
-                                        label="Farmer / representative met"
-                                        value={
-                                            inspection.checklist
-                                                ?.farmer_or_representative_met
-                                                ? 'Complete'
-                                                : 'Incomplete'
-                                        }
+                                        label="Coffee crop observed"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.coffee_crop_observed,
+                                        )}
+                                    />
+                                    <SummaryRow
+                                        label="GPS boundary captured"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.boundary_captured,
+                                        )}
+                                    />
+                                    <SummaryRow
+                                        label="Farm area checked"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.area_checked,
+                                        )}
+                                    />
+                                    <SummaryRow
+                                        label="Required photos captured"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.required_photos_captured,
+                                        )}
+                                    />
+                                    <SummaryRow
+                                        label="Farmer or representative met"
+                                        value={checklistAnswer(
+                                            inspection.checklist?.farmer_or_representative_met,
+                                        )}
                                     />
                                     {inspection.checklist?.observations ? (
                                         <Text style={styles.muted}>
@@ -2840,6 +3294,13 @@ function DataPage(props: {
                                                             styles.mutedSmall
                                                         }
                                                     >
+                                                        {String(photo.type ?? 'field_inspection').replaceAll('_', ' ')}
+                                                    </Text>
+                                                    <Text
+                                                        style={
+                                                            styles.mutedSmall
+                                                        }
+                                                    >
                                                         {photo.name}
                                                     </Text>
                                                     <Text
@@ -2853,8 +3314,8 @@ function DataPage(props: {
                                                               ).toLocaleString()
                                                             : 'Capture time unavailable'}
                                                     </Text>
-                                                    {photo.latitude &&
-                                                    photo.longitude ? (
+                                                    {photo.latitude != null &&
+                                                    photo.longitude != null ? (
                                                         <Text
                                                             style={
                                                                 styles.mutedSmall
@@ -3289,6 +3750,10 @@ function VerificationProgress({ status = 'pending' }: { status?: string }) {
 }
 
 function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
+    const [distance, setDistance] = useState<{
+        meters: number;
+        accuracy: number | null;
+    } | null>(null);
     const hasCoordinates =
         farm.latitude !== null &&
         farm.latitude !== undefined &&
@@ -3301,13 +3766,55 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
             .join(', ');
     const openMap = async () => {
         if (!hasCoordinates) return;
-        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${farm.latitude},${farm.longitude}`)}`;
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${farm.latitude},${farm.longitude}`)}`;
         try {
             await Linking.openURL(url);
         } catch {
             Alert.alert(
                 'Could not open map',
                 'Check that a maps app or browser is available.',
+            );
+        }
+    };
+    const measureDistance = async () => {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (!permission.granted) {
+            Alert.alert(
+                'Location permission needed',
+                'Allow location access while using SureFarm to estimate the distance to this farm.',
+            );
+            return;
+        }
+
+        try {
+            const position = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High,
+            });
+            const radians = (degrees: number) => (degrees * Math.PI) / 180;
+            const latitudeDelta = radians(
+                Number(farm.latitude) - position.coords.latitude,
+            );
+            const longitudeDelta = radians(
+                Number(farm.longitude) - position.coords.longitude,
+            );
+            const startLatitude = radians(position.coords.latitude);
+            const endLatitude = radians(Number(farm.latitude));
+            const earthRadiusMeters = 6_371_000;
+            const a =
+                Math.sin(latitudeDelta / 2) ** 2 +
+                Math.cos(startLatitude) *
+                    Math.cos(endLatitude) *
+                    Math.sin(longitudeDelta / 2) ** 2;
+            const meters =
+                earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            setDistance({
+                meters,
+                accuracy: position.coords.accuracy,
+            });
+        } catch {
+            Alert.alert(
+                'Could not read location',
+                'Move outdoors and try again.',
             );
         }
     };
@@ -3334,6 +3841,18 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
                         title="Open directions in Maps"
                         onPress={() => void openMap()}
                     />
+                    <Secondary
+                        title="Measure distance from my location"
+                        onPress={() => void measureDistance()}
+                    />
+                    {distance && (
+                        <Text style={styles.gpsAccuracy}>
+                            About {(distance.meters / 1000).toFixed(2)} km away
+                            {distance.accuracy === null
+                                ? ''
+                                : ` Â· GPS accuracy Â±${Math.round(distance.accuracy)} m`}
+                        </Text>
+                    )}
                 </>
             ) : (
                 <Text style={styles.gpsAccuracy}>
@@ -3347,9 +3866,11 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
 function BoundaryCard({
     boundary,
     apiKey,
+    title = 'Saved GPS boundary',
 }: {
     boundary: Record<string, any>;
     apiKey?: string;
+    title?: string;
 }) {
     const mapHost = useRef<HTMLDivElement | null>(null);
     const [mapUnavailable, setMapUnavailable] = useState(false);
@@ -3515,7 +4036,7 @@ function BoundaryCard({
         <View style={styles.card}>
             <View style={styles.sectionHeadingRow}>
                 <View>
-                    <Text style={styles.cardTitle}>Saved GPS boundary</Text>
+                    <Text style={styles.cardTitle}>{title}</Text>
                     <Text style={styles.mutedSmall}>
                         {Platform.OS === 'web' && apiKey && !mapUnavailable
                             ? 'Google satellite map · saved GPS boundary'
@@ -3966,11 +4487,43 @@ function FormView(props: {
                                 value={props.data.measuredArea}
                             />
                         )}
+                        {props.data.difference && (
+                            <SummaryRow
+                                label="Difference"
+                                value={props.data.difference}
+                            />
+                        )}
+                        {props.data.variance && (
+                            <SummaryRow
+                                label="Variance"
+                                value={props.data.variance}
+                            />
+                        )}
+                        {props.spec.method === 'PUT' && (
+                            <>
+                                <SummaryRow
+                                    label="GPS points"
+                                    value={props.data.gpsPoints ?? 0}
+                                />
+                                <SummaryRow
+                                    label="Evidence photos"
+                                    value={props.data.evidencePhotos ?? 0}
+                                />
+                                <SummaryRow
+                                    label="Required checks passed"
+                                    value={`${props.data.requiredChecksPassed ?? 0} / 6`}
+                                />
+                            </>
+                        )}
                     </View>
                 )}
                 {hasCoordinates && (
                     <View style={styles.locationCard}>
-                        <Text style={styles.recordTitle}>Farm location</Text>
+                        <Text style={styles.recordTitle}>
+                            {props.spec.path.includes('/farm-verification/')
+                                ? 'Evidence location'
+                                : 'Farm location'}
+                        </Text>
                         <Text style={styles.mutedSmall}>
                             Use the phone’s current GPS location to fill in
                             latitude and longitude.
@@ -4197,14 +4750,27 @@ function InputField(props: {
                     </>
                 )}
                 <View style={styles.imageActions}>
-                    <Secondary
-                        title="Choose photo"
-                        onPress={() => props.onImage(false)}
-                    />
-                    <Secondary
-                        title="Take photo"
-                        onPress={() => props.onImage(true)}
-                    />
+                    {field.cameraOnly ? (
+                        <Secondary
+                            title={
+                                props.photo
+                                    ? 'Retake face photo'
+                                    : 'Capture face photo'
+                            }
+                            onPress={() => props.onImage(true)}
+                        />
+                    ) : (
+                        <>
+                            <Secondary
+                                title="Choose photo"
+                                onPress={() => props.onImage(false)}
+                            />
+                            <Secondary
+                                title="Take photo"
+                                onPress={() => props.onImage(true)}
+                            />
+                        </>
+                    )}
                 </View>
             </View>
         );
@@ -4441,6 +5007,10 @@ function VerificationHistory({
                             value={item.measured_area ?? 'Not measured'}
                         />
                         <SummaryRow
+                            label="Verified area"
+                            value={item.verified_area ?? 'Not verified'}
+                        />
+                        <SummaryRow
                             label="Difference"
                             value={item.difference ?? '—'}
                         />
@@ -4473,6 +5043,9 @@ function VerificationHistory({
                                             style={styles.evidenceImage}
                                             accessibilityLabel={`Verification evidence: ${photo.name}`}
                                         />
+                                        <Text style={styles.mutedSmall}>
+                                            {String(photo.type ?? 'field_inspection').replaceAll('_', ' ')}
+                                        </Text>
                                         <Text style={styles.mutedSmall}>
                                             {photo.name}
                                         </Text>
@@ -4965,6 +5538,38 @@ function nextPath(url: string) {
         return `${parsed.pathname.startsWith(root) ? parsed.pathname.slice(root.length) : parsed.pathname}${parsed.search}`;
     } catch {
         return '/dashboard';
+    }
+}
+function collectionRows(value: any): any[] {
+    if (Array.isArray(value)) return value;
+    return Array.isArray(value?.data) ? value.data : [];
+}
+function checklistAnswer(value: unknown): string {
+    return typeof value === 'boolean' ? (value ? 'Yes' : 'No') : 'Not recorded';
+}
+function boundaryPointCount(boundary: any): number {
+    const savedAccuracies = boundary?.gps_point_accuracies;
+    if (Array.isArray(savedAccuracies) && savedAccuracies.length > 0)
+        return savedAccuracies.length;
+
+    try {
+        const geometry =
+            typeof boundary?.geojson === 'string'
+                ? JSON.parse(boundary.geojson)
+                : boundary?.geojson;
+        const ring = geometry?.type === 'Polygon'
+            ? geometry.coordinates?.[0]
+            : geometry?.type === 'MultiPolygon'
+              ? geometry.coordinates?.[0]?.[0]
+              : null;
+        if (!Array.isArray(ring)) return 0;
+        const isClosed =
+            ring.length > 1 &&
+            ring[0]?.[0] === ring[ring.length - 1]?.[0] &&
+            ring[0]?.[1] === ring[ring.length - 1]?.[1];
+        return Math.max(0, ring.length - (isClosed ? 1 : 0));
+    } catch {
+        return 0;
     }
 }
 function toImageApiUrl(url: string) {

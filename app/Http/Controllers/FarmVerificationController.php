@@ -256,14 +256,18 @@ class FarmVerificationController extends Controller
             DB::transaction(function () use ($request, $verification, $photo, $path): void {
                 $verification->update([
                     'inspection_checklist' => [
-                        'farm_identified' => (bool) $request->validated('farm_identified'),
-                        'boundary_walked' => (bool) $request->validated('boundary_walked'),
+                        'farm_exists' => (bool) $request->validated('farm_exists'),
+                        'location_matches' => (bool) $request->validated('location_matches'),
+                        'coffee_crop_observed' => (bool) $request->validated('coffee_crop_observed'),
+                        'boundary_captured' => (bool) $request->validated('boundary_captured'),
+                        'area_checked' => (bool) $request->validated('area_checked'),
+                        'required_photos_captured' => (bool) $request->validated('required_photos_captured'),
                         'farmer_or_representative_met' => (bool) $request->validated('farmer_or_representative_met'),
                         'observations' => $request->validated('remarks'),
                     ],
                 ]);
                 $verification->photos()->create([
-                    'evidence_type' => 'field_inspection',
+                    'evidence_type' => $request->validated('evidence_type') ?? 'field_inspection',
                     'storage_path' => $path,
                     'original_name' => $photo->getClientOriginalName(),
                     'mime_type' => $photo->getMimeType() ?? 'application/octet-stream',
