@@ -41,7 +41,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             Route::get('farm-verification/photos/{photo}', [FarmVerificationController::class, 'photo'])
                 ->name('farm-verification.photos.show');
             Route::post('farms/{farm}/boundary-preview', [FarmBoundaryController::class, 'preview']);
-            Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
+            Route::middleware('role:admin,operations')->get('modules/{module}', [ModulePlaceholderController::class, 'show'])
                 ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports');
 
             Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
@@ -51,6 +51,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::get('notifications', [MobileFarmerController::class, 'notifications']);
                 Route::post('notifications/{notification}/read', [MobileFarmerController::class, 'markNotificationRead']);
                 Route::get('profile', [MobileFarmerController::class, 'profile']);
+                Route::post('profile/photo', [MobileFarmerController::class, 'updatePhoto']);
                 Route::get('profile/photo', [MobileFarmerController::class, 'photo'])
                     ->name('farmer.profile.photo');
             });
@@ -116,7 +117,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
             });
 
-            Route::middleware('role:operations,field_verifier')->group(function (): void {
+            Route::middleware('role:operations')->group(function (): void {
                 Route::get('farmers', [FarmerController::class, 'index']);
                 Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo']);
                 Route::get('farmers/{farmer}', [FarmerController::class, 'show']);

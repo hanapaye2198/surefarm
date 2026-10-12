@@ -28,7 +28,11 @@ class SaveFarmBoundaryRequest extends FormRequest
 
         return $user->role === UserRole::FieldVerifier
             && $farm->assigned_verifier_id === $user->id
-            && $farm->verification_status === FarmVerificationStatus::InProgress;
+            && in_array($farm->verification_status, [
+                FarmVerificationStatus::Pending,
+                FarmVerificationStatus::NeedsReview,
+                FarmVerificationStatus::InProgress,
+            ], true);
     }
 
     /**

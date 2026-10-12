@@ -1864,6 +1864,13 @@ function DataPage(props: {
                                 label="Verified area"
                                 value={farm.verified_area ?? 'Not verified'}
                             />
+                            <SummaryRow
+                                label="Farm status"
+                                value={String(farm.status ?? 'unknown').replaceAll(
+                                    '_',
+                                    ' ',
+                                )}
+                            />
                             <VerificationProgress
                                 status={farm.verification_status}
                             />
@@ -1891,6 +1898,13 @@ function DataPage(props: {
                     </Text>
                     <Text style={styles.muted}>{farm.location}</Text>
                     <VerificationProgress status={farm.verification_status} />
+                    <SummaryRow
+                        label="Farm status"
+                        value={String(farm.status ?? 'unknown').replaceAll(
+                            '_',
+                            ' ',
+                        )}
+                    />
                     <SummaryRow
                         label="Declared area"
                         value={farm.declared_area}
@@ -2183,6 +2197,12 @@ function DataPage(props: {
                         label="Security control"
                         value={farmer.security_control_code ?? 'Not assigned'}
                     />
+                    <Secondary
+                        title="Update face photo"
+                        onPress={() =>
+                            props.onLocalForm('farmer-profile/photo', {})
+                        }
+                    />
                 </View>
             </ScrollView>
         );
@@ -2471,7 +2491,9 @@ function DataPage(props: {
         const farm = page.data.farm ?? {};
         const canVerifierManageBoundary =
             props.user.role === 'field_verifier' &&
-            farm.verification_status === 'in_progress';
+            ['pending', 'needs_review', 'in_progress'].includes(
+                farm.verification_status,
+            );
         const inspection = page.data.inspection;
         const hasInspection = Boolean(
             inspection?.checklist?.farm_identified &&
@@ -2493,8 +2515,9 @@ function DataPage(props: {
                     <Text style={styles.cardTitle}>Verification progress</Text>
                     <VerificationProgress status={farm.verification_status} />
                     <Text style={styles.mutedSmall}>
-                        Start the visit, capture the farm perimeter, complete
-                        the inspection, then submit a result.
+                        {page.data.boundary
+                            ? 'Start the visit, complete the inspection, then submit a result.'
+                            : 'Capture and save the farm perimeter before starting the verification.'}
                     </Text>
                 </View>
                 {page.data.comparison && (
@@ -2579,18 +2602,27 @@ function DataPage(props: {
                         <View style={styles.noticeCard}>
                             <AppIcon name="lock" size={17} color={API_FOREST} />
                             <Text style={[styles.mutedSmall, styles.flex]}>
-                                This verified boundary is read-only. Ask
-                                operations to open a new verification if it
-                                needs review.
+                                The saved boundary is read-only until a new
+                                verification is started.
                             </Text>
                         </View>
                     )}
                 {props.user.role === 'field_verifier' &&
                     ['pending', 'needs_review'].includes(
                         farm.verification_status,
-                    ) && (
+                    ) &&
+                    page.data.boundary && (
                         <Primary
                             title="Start verification"
+                            busy={props.busy}
+                            onPress={() => props.onStartVerification(farm.id)}
+                        />
+                    )}
+                {props.user.role === 'field_verifier' &&
+                    farm.verification_status === 'verified' &&
+                    page.data.boundary && (
+                        <Primary
+                            title="Start re-verification"
                             busy={props.busy}
                             onPress={() => props.onStartVerification(farm.id)}
                         />

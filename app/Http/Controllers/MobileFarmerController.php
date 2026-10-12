@@ -10,6 +10,7 @@ use App\Models\FarmProduction;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\UserRole;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
@@ -161,6 +162,29 @@ class MobileFarmerController extends Controller
                 'cooperative' => $farmer->cooperative?->name,
             ],
         ]);
+    }
+
+    public function updatePhoto(Request $request): RedirectResponse
+    {
+        $farmer = $this->farmer($request);
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $path = $request->file('photo')?->store('farmers/photos', 'local');
+
+        if (! is_string($path)) {
+            return back()->withErrors(['photo' => 'The profile photo could not be saved.']);
+        }
+
+        $previousPath = $farmer->photo_path;
+        $farmer->update(['photo_path' => $path]);
+
+        if (is_string($previousPath) && $previousPath !== $path) {
+            Storage::disk('local')->delete($previousPath);
+        }
+
+        return back();
     }
 
     public function photo(Request $request): StreamedResponse

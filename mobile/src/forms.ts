@@ -47,6 +47,19 @@ export function formForPage(component: string, data: Data): FormSpec | null {
         data.activityType?.id;
 
     switch (component) {
+        case 'farmer-profile/photo':
+            return {
+                title: 'Update profile photo',
+                method: 'POST',
+                path: '/farmer/profile/photo',
+                fields: [
+                    text('photo', 'Farmer photo (face capture)', {
+                        kind: 'image',
+                        required: true,
+                        hint: 'Take a clear face photo or choose one from your device.',
+                    }),
+                ],
+            };
         case 'farmers/create':
             return {
                 title: 'Register farmer',
