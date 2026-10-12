@@ -12,13 +12,16 @@ use App\Http\Requests\StartFarmVerificationRequest;
 use App\Http\Requests\StoreFarmVerificationInspectionRequest;
 use App\Models\Farm;
 use App\Models\FarmVerification;
+use App\Models\FarmVerificationPhoto;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
+use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -254,6 +257,7 @@ class FarmVerificationController extends Controller
                         'farm_identified' => (bool) $request->validated('farm_identified'),
                         'boundary_walked' => (bool) $request->validated('boundary_walked'),
                         'farmer_or_representative_met' => (bool) $request->validated('farmer_or_representative_met'),
+                        'observations' => $request->validated('remarks'),
                     ],
                 ]);
                 $verification->photos()->create([
@@ -278,6 +282,31 @@ class FarmVerificationController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Inspection checklist and evidence saved.']);
 
         return to_route('farm-verification.show', $farm);
+    }
+
+    public function photo(Request $request, FarmVerificationPhoto $photo): StreamedResponse
+    {
+        $photo->loadMissing('verification.farm');
+        $farm = $photo->verification?->farm;
+        $user = $request->user();
+
+        abort_unless($user instanceof User && $farm instanceof Farm, 404);
+
+        $canView = $user->canAccess(UserRole::Operations)
+            || ($user->role === UserRole::FieldVerifier && $farm->assigned_verifier_id === $user->id)
+            || ($user->role === UserRole::Farmer && $user->farmer()->whereKey($farm->farmer_id)->exists());
+
+        abort_unless($canView, 404);
+        abort_unless(Storage::disk('local')->exists($photo->storage_path), 404);
+
+        return Storage::disk('local')->response($photo->storage_path);
+    }
+
+    public function signedPhoto(FarmVerificationPhoto $photo): StreamedResponse
+    {
+        abort_unless(Storage::disk('local')->exists($photo->storage_path), 404);
+
+        return Storage::disk('local')->response($photo->storage_path);
     }
 
     /**
@@ -305,8 +334,11 @@ class FarmVerificationController extends Controller
             'farm_id' => $farm->farm_id,
             'farm_name' => $farm->displayName(),
             'farmer_name' => $farm->farmer->fullName(),
+            'farmer_id' => $farm->farmer->farmer_id,
+            'location' => $farm->locationLabel(),
             'crop_label' => $farm->crop_type->label(),
             'declared_area' => $this->areas->hectares((float) $farm->declared_area_hectares),
+            'boundary_saved' => $farm->boundary !== null,
             'measured_area' => $comparison === null
                 ? 'Not yet measured'
                 : $this->areas->hectares($comparison['measured']),

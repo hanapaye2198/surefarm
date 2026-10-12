@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\BankAccountStatus;
 use App\Models\Farmer;
+use App\Notifications\FarmerRegistrationReceivedNotification;
 use Illuminate\Support\Facades\DB;
 
 class UpdateFarmerDetails
@@ -13,11 +14,18 @@ class UpdateFarmerDetails
      */
     public function handle(Farmer $farmer, array $data): Farmer
     {
-        return DB::transaction(function () use ($farmer, $data): Farmer {
+        $previousUserId = $farmer->user_id;
+        $updated = DB::transaction(function () use ($farmer, $data): Farmer {
             $attributes = [
                 'date_of_birth' => $data['date_of_birth'] ?? null,
                 'government_id' => $data['government_id'] ?? null,
             ];
+
+            foreach (['suffix', 'sitio_purok_code', 'barangay_code', 'lgu_code', 'security_control_code'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $attributes[$field] = $data[$field];
+                }
+            }
 
             if (array_key_exists('user_id', $data)) {
                 $attributes['user_id'] = $data['user_id'];
@@ -43,5 +51,12 @@ class UpdateFarmerDetails
 
             return $farmer->load('bankAccount');
         });
+
+        if ($previousUserId === null && $updated->user_id !== null) {
+            $updated->loadMissing('user');
+            $updated->user?->notify(new FarmerRegistrationReceivedNotification($updated));
+        }
+
+        return $updated;
     }
 }

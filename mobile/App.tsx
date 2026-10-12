@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -12,16 +12,18 @@ import {
     StatusBar,
     StyleSheet,
     Switch,
-    Text,
-    TextInput,
+    Text as NativeText,
+    TextInput as NativeTextInput,
     View,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
+import BoundaryMap, { type BoundaryPoint } from './src/BoundaryMap';
 import { ApiError, apiRequest, API_URL, SITE_URL } from './src/api';
 import {
     formForPage,
@@ -36,53 +38,43 @@ type User = { id: number; name: string; email: string; role: Role; farmer_profil
 type Page = { component: string; data: Record<string, any> };
 type Screen = { path: string; title: string };
 const ICONS = {
-    dashboard: 'M3 3h8v8H3z M14 3h7v5h-7z M14 10h7v11h-7z M3 14h8v7H3z',
-    farmers:
-        'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M20 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
-    farms: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z M12 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5',
-    verification: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
-    activities: 'M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01',
-    production:
-        'M12 22v-9 M12 13c-4 0-7-2.5-7-7 4.5 0 7 2.5 7 7 M12 13c0-4.5 2.5-7 7-7 0 4.5-2.5 7-7 7',
-    harvest:
-        'M12 22V2 M5 6c4 0 7 2 7 6 M19 6c-4 0-7 2-7 6 M4 12c4 0 8 2 8 6 M20 12c-4 0-8 2-8 6',
-    inventory: 'm12 3 9 5-9 5-9-5 9-5Z M3 8v9l9 5 9-5V8 M12 13v9 M7.5 5.5l9 5',
-    processing:
-        'M2 20h20 M4 20V11l5 3v-3l5 3V7l6 3v10 M7 7h.01 M7 4h.01 M17 14h.01 M17 17h.01',
-    traceability:
-        'M3 3h6v6H3z M15 3h6v6h-6z M3 15h6v6H3z M15 15h2v2h-2z M19 15h2v6h-2z M15 19h2v2h-2z',
-    cooperatives:
-        'M3 21h18 M5 21V7l7-4 7 4v14 M9 9h.01 M15 9h.01 M9 13h.01 M15 13h.01 M10 21v-4h4v4',
-    cropManagement:
-        'M20 4c-9 0-15 5-15 12a4 4 0 0 0 4 4c7 0 12-6 11-16Z M5 20c4-5 7-7 12-10',
-    finance:
-        'M12 8c-2.5 0-4 1.2-4 3s1.5 3 4 3 4 1.2 4 3-1.5 3-4 3m0-14v2m0 10v2 M6 10a6 6 0 1 1 0 4',
-    insurance: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11',
-    logistics:
-        'M3 7h11v10H3z M14 11h4l3 3v3h-7z M7 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3 M18 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3',
-    reports: 'M3 3v18h18 M7 14v3 M12 10v7 M17 6v11',
-    activityTypes:
-        'M9 6h12 M9 12h12 M9 18h12 M3 6l1 1 2-2 M3 12l1 1 2-2 M3 18l1 1 2-2',
-    home: 'm3 10 9-7 9 7 M5 9v12h14V9 M9 21v-7h6v7',
-    features: 'M3 3h8v8H3z M14 3h7v5h-7z M14 10h7v11h-7z M3 14h8v7H3z',
-    account: 'M20 21a8 8 0 0 0-16 0 M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
-    arrowRight: 'M5 12h14 M12 5l7 7-7 7',
-    chevronRight: 'm9 18 6-6-6-6',
-    empty: 'M9 3h6l2 2h3v16H4V5h3l2-2Z M9 11h6 M9 15h6 M9 19h6',
-    pending: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 6v6l4 2',
-    inProgress: 'M12 3a9 9 0 1 0 9 9 M12 7v5l3 2',
-    failed: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M15 9l-6 6 M9 9l6 6',
-    needsReview: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 8v4 M12 16h.01',
-    verified: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
-    back: 'm15 18-6-6 6-6 M20 12H9 M9 12l3-3 M9 12l3 3',
-    signOut: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
-    search: 'M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16 M21 21l-4.35-4.35',
-    leaf: 'M20 4c-9 0-15 5-15 12a4 4 0 0 0 4 4c7 0 12-6 11-16Z M5 20c4-5 7-7 12-10',
-    location: 'M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z M12 10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5',
-    calendar: 'M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Z M8 14h.01 M12 14h.01 M16 14h.01 M8 18h.01 M12 18h.01',
-    shield: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11 M9 12l2 2 4-4',
-    info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20 M12 11v5 M12 8h.01',
-    lock: 'M5 11h14v10H5z M8 11V7a4 4 0 1 1 8 0v4',
+    dashboard: 'view-dashboard-outline',
+    farmers: 'account-group-outline',
+    farms: 'map-marker-radius-outline',
+    verification: 'clipboard-check-outline',
+    activities: 'format-list-bulleted',
+    production: 'sprout',
+    harvest: 'barley',
+    inventory: 'package-variant-closed',
+    processing: 'factory',
+    traceability: 'barcode-scan',
+    cooperatives: 'domain',
+    cropManagement: 'leaf',
+    finance: 'cash-multiple',
+    insurance: 'shield-check-outline',
+    logistics: 'truck-delivery-outline',
+    reports: 'chart-box-outline',
+    activityTypes: 'clipboard-list-outline',
+    home: 'home-outline',
+    features: 'view-grid-outline',
+    account: 'account-circle-outline',
+    arrowRight: 'arrow-right',
+    chevronRight: 'chevron-right',
+    empty: 'text-box-search-outline',
+    pending: 'clock-outline',
+    inProgress: 'progress-clock',
+    failed: 'close-circle-outline',
+    needsReview: 'alert-circle-outline',
+    verified: 'check-decagram-outline',
+    back: 'arrow-left',
+    signOut: 'logout',
+    search: 'magnify',
+    leaf: 'leaf',
+    location: 'map-marker',
+    calendar: 'calendar-month-outline',
+    shield: 'shield-check-outline',
+    info: 'information-outline',
+    lock: 'lock-outline',
 } as const;
 type IconName = keyof typeof ICONS;
 type Section = {
@@ -93,6 +85,16 @@ type Section = {
     icon: IconName;
     roles?: Role[];
 };
+
+const APP_FONT_FAMILY = 'Proxima Nova';
+
+function Text(props: ComponentProps<typeof NativeText>) {
+    return <NativeText {...props} style={[{ fontFamily: APP_FONT_FAMILY }, props.style]} />;
+}
+
+function TextInput(props: ComponentProps<typeof NativeTextInput>) {
+    return <NativeTextInput {...props} style={[{ fontFamily: APP_FONT_FAMILY }, props.style]} />;
+}
 
 const TOKEN_KEY = 'surefarm.mobile.access-token';
 const LOGO_URL = `${SITE_URL}/surefarm-logo.png`;
@@ -129,32 +131,20 @@ const removeStoredToken = async (): Promise<void> => {
 
 const API_FOREST = '#254d3a';
 const GREEN = '#4b8a68';
-const CANVAS = '#f5f7f4';
-const INK = '#1f3027';
-const MUTED = '#748178';
+const CANVAS = '#f6f8f6';
+const INK = '#1d2c23';
+const MUTED = '#6f7d73';
 
 function AppIcon({
     name,
     size = 20,
     color = API_FOREST,
-    strokeWidth = 2,
 }: {
     name: IconName;
     size?: number;
     color?: string;
-    strokeWidth?: number;
 }) {
-    return (
-        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <Path
-                d={ICONS[name]}
-                stroke={color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </Svg>
-    );
+    return <MaterialCommunityIcons name={ICONS[name]} size={size} color={color} />;
 }
 
 const SECTIONS: Section[] = [
@@ -904,7 +894,7 @@ function SureFarmApp() {
                     <Text numberOfLines={1} style={styles.headerTitle}>
                         {panel === 'features' ? 'Features' : title}
                     </Text>
-                    <Text style={styles.headerSub}>
+                    <Text numberOfLines={1} style={styles.headerSub}>
                         {user.name} · {ROLE_LABEL[user.role]}
                     </Text>
                 </View>
@@ -940,6 +930,7 @@ function SureFarmApp() {
                     key={current.path}
                     spec={spec}
                     data={page.data}
+                    token={token ?? ''}
                     values={values}
                     photos={photos}
                     error={formError}
@@ -1242,6 +1233,7 @@ function Dashboard({
         const summary = page.data.summary ?? {};
         const farmsSection = sections.find((section) => section.key === 'farmer-farms');
         const activitySection = sections.find((section) => section.key === 'farmer-activities');
+        const notificationSection = sections.find((section) => section.key === 'farmer-notifications');
 
         return (
             <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -1252,12 +1244,54 @@ function Dashboard({
                 </View>
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Farm verification</Text>
-                    <SummaryRow label="My farms" value={summary.registered_farms ?? 0} />
+                    <SummaryRow label="Registered farms" value={summary.registered_farms ?? 0} />
                     <SummaryRow label="Pending" value={summary.pending_verification ?? 0} />
                     <SummaryRow label="In progress" value={summary.in_progress ?? 0} />
                     <SummaryRow label="Verified" value={summary.verified_farms ?? 0} />
                     <SummaryRow label="Needs review" value={summary.needs_review ?? 0} />
+                    <SummaryRow label="Failed" value={summary.failed ?? 0} />
                 </View>
+                <Pressable
+                    accessibilityRole="button"
+                    onPress={() => notificationSection && onOpen(notificationSection)}
+                    style={({ pressed }) => [styles.noticeCard, pressed && styles.pressed]}
+                >
+                    <AppIcon name="info" size={18} color={GREEN} />
+                    <View style={styles.flex}>
+                        <Text style={styles.recordTitle}>Notifications</Text>
+                        <Text style={styles.mutedSmall}>
+                            {page.data.unread_notifications ?? 0} unread update{page.data.unread_notifications === 1 ? '' : 's'}
+                        </Text>
+                    </View>
+                    <AppIcon name="chevronRight" size={17} color={GREEN} />
+                </Pressable>
+                {(page.data.recent_notifications ?? []).length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Recent updates</Text>
+                        {page.data.recent_notifications.map((item: any) => (
+                            <View key={item.id} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>{item.title}{item.read ? '' : ' · New'}</Text>
+                                <Text style={styles.mutedSmall}>{item.message}</Text>
+                                <Text style={styles.mutedSmall}>{item.farm_name ? `${item.farm_name} · ` : ''}{item.created_at}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Recent farm activities</Text>
+                    {(page.data.recent_activities ?? []).length ? page.data.recent_activities.map((item: any) => (
+                        <View key={item.id} style={styles.relatedRow}>
+                            <Text style={styles.recordTitle}>{item.activity ?? 'Farm activity'}</Text>
+                            <Text style={styles.mutedSmall}>{item.farm_name} · {item.activity_date} · {item.status_label}</Text>
+                        </View>
+                    )) : <Text style={styles.inlineEmpty}>Farm activity updates will appear here.</Text>}
+                </View>
+                {(page.data.recent_productions ?? []).length > 0 && (
+                    <Related title="Recent production" rows={page.data.recent_productions} />
+                )}
+                {(page.data.recent_harvests ?? []).length > 0 && (
+                    <Related title="Recent harvest" rows={page.data.recent_harvests} />
+                )}
                 {farmsSection && <Primary title="View my farms" onPress={() => onOpen(farmsSection)} />}
                 {activitySection && <Secondary title="Activities & harvest" onPress={() => onOpen(activitySection)} />}
             </ScrollView>
@@ -1299,10 +1333,12 @@ function Dashboard({
         },
     ];
     const verifierStats: { icon: IconName; label: string; value: string | number }[] = [
+        { icon: 'farms', label: 'Assigned farms', value: summary.assigned_farms ?? 0 },
         { icon: 'pending', label: 'Pending', value: summary.pending_verification ?? 0 },
         { icon: 'inProgress', label: 'In progress', value: summary.in_progress ?? 0 },
-        { icon: 'verified', label: 'Verified', value: summary.verified_farms ?? 0 },
+        { icon: 'verified', label: 'Completed', value: summary.completed_farms ?? 0 },
         { icon: 'needsReview', label: 'Needs review', value: summary.needs_review ?? 0 },
+        { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
         { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
     ];
     const stats = user?.role === 'field_verifier' ? verifierStats : operationsStats;
@@ -1396,6 +1432,23 @@ function Dashboard({
                         label="Coffee"
                         value={`${page.data.area_summary.coffee_hectares} ha`}
                     />
+                </View>
+            )}
+            {user?.role === 'field_verifier' && (
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Assigned farms</Text>
+                    {(page.data.assigned_farms_preview ?? []).length ? page.data.assigned_farms_preview.map((farm: any) => (
+                        <Pressable key={farm.id} onPress={() => onOpen({
+                            key: 'farm-verification', title: farm.farm_name,
+                            path: `/farm-verification/${farm.id}`, icon: 'verification', description: '',
+                        })} style={({ pressed }) => [styles.relatedRow, pressed && styles.pressed]}>
+                            <Text style={styles.recordTitle}>{farm.farm_name}</Text>
+                            <Text style={styles.recordCode}>{farm.farm_id}</Text>
+                            <Text style={styles.mutedSmall}>{farm.farmer_name} · {farm.location}</Text>
+                            <VerificationProgress status={farm.verification_status} />
+                        </Pressable>
+                    )) : <Text style={styles.inlineEmpty}>Assigned farms will appear here.</Text>}
+                    {verificationWorkspace && <Secondary title="Open assigned-farm queue" onPress={() => onOpen(verificationWorkspace)} />}
                 </View>
             )}
             <View style={styles.sectionHeadingRow}>
@@ -1607,7 +1660,7 @@ function DataPage(props: {
                     <SummaryRow label="Difference" value={page.data.comparison.difference} />
                 </View>}
                 {page.data.boundary && <BoundaryCard boundary={page.data.boundary} apiKey={page.data.google_maps_api_key} />}
-                <Related title="Verification history" rows={page.data.history ?? []} />
+                <VerificationHistory title="Verification history" rows={page.data.history ?? []} token={props.token} />
             </ScrollView>
         );
     }
@@ -1615,6 +1668,7 @@ function DataPage(props: {
     if (page.component === 'mobile/farmer-activities') {
         const activities: any[] = page.data.activities ?? [];
         const harvests: any[] = page.data.harvests ?? [];
+        const productions: any[] = page.data.productions ?? [];
         return (
             <ScrollView style={styles.page} contentContainerStyle={styles.content}>
                 <Text style={styles.cardTitle}>Farm activities</Text>
@@ -1629,6 +1683,15 @@ function DataPage(props: {
                     <SummaryRow label="Harvested" value={item.quantity_label ?? item.quantity} />
                     <Text style={styles.mutedSmall}>{item.harvest_date ?? ''} · {item.status_label ?? item.status}</Text>
                 </View>) : <EmptyState title="No harvest records yet" message="Harvest records will appear here." />}
+                <Text style={[styles.cardTitle, { marginTop: 12 }]}>Production</Text>
+                {productions.length ? productions.map((item) => <View key={`production-${item.id}`} style={styles.card}>
+                    <Text style={styles.recordTitle}>{item.farm?.farm_name ?? 'Farm production'}</Text>
+                    <Text style={styles.mutedSmall}>{item.crop_label} · {item.production_period}</Text>
+                    <SummaryRow label="Expected" value={item.expected_label ?? 'Not recorded'} />
+                    <SummaryRow label="Harvested" value={item.harvested_label ?? 'Not recorded'} />
+                    <SummaryRow label="Remaining" value={item.remaining_label ?? 'Not recorded'} />
+                    <Text style={styles.mutedSmall}>{item.status_label ?? item.status}</Text>
+                </View>) : <EmptyState title="No production records yet" message="Expected production and season records will appear here." />}
             </ScrollView>
         );
     }
@@ -1653,13 +1716,38 @@ function DataPage(props: {
         const farmer = page.data.farmer ?? {};
         return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
             <View style={styles.card}>
-                <Text style={styles.cardTitle}>Farmer profile</Text>
-                <SummaryRow label="Name" value={farmer.name} />
-                <SummaryRow label="Farmer ID" value={farmer.farmer_id} />
+                <View style={styles.profileHeading}>
+                    {farmer.photo_url ? (
+                        <Image
+                            source={{ uri: farmer.photo_url, headers: { Authorization: `Bearer ${props.token}` } }}
+                            style={styles.profilePhoto}
+                            accessibilityLabel="Farmer face photo"
+                        />
+                    ) : (
+                        <View style={styles.profilePhotoPlaceholder}><AppIcon name="account" size={31} color={GREEN} /></View>
+                    )}
+                    <View style={styles.flex}>
+                        <Text style={styles.cardTitle}>{farmer.name ?? 'Farmer profile'}</Text>
+                        <Text style={styles.recordCode}>{farmer.farmer_id}</Text>
+                    </View>
+                </View>
+                <Text style={styles.sectionEyebrow}>PERSONAL DETAILS</Text>
+                <SummaryRow label="First name" value={farmer.first_name ?? 'Not recorded'} />
+                <SummaryRow label="Middle name" value={farmer.middle_name ?? 'Not recorded'} />
+                <SummaryRow label="Last name" value={farmer.last_name ?? 'Not recorded'} />
+                <SummaryRow label="Suffix" value={farmer.suffix ?? '—'} />
+                <SummaryRow label="Date of birth" value={farmer.date_of_birth ?? 'Not recorded'} />
+                <SummaryRow label="Government ID" value={farmer.government_id ?? 'Not recorded'} />
+                <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>CONTACT & LOCATION</Text>
                 <SummaryRow label="Email" value={farmer.email ?? 'Not provided'} />
                 <SummaryRow label="Mobile" value={farmer.mobile_number ?? 'Not provided'} />
                 <SummaryRow label="Address" value={farmer.address ?? 'Not provided'} />
                 <SummaryRow label="Cooperative" value={farmer.cooperative ?? 'Not linked'} />
+                <Text style={[styles.sectionEyebrow, { marginTop: 14 }]}>REGISTRATION CODES</Text>
+                <SummaryRow label="Sitio / purok" value={farmer.sitio_purok_code ?? 'Not assigned'} />
+                <SummaryRow label="Barangay" value={farmer.barangay_code ?? 'Not assigned'} />
+                <SummaryRow label="LGU" value={farmer.lgu_code ?? 'Not assigned'} />
+                <SummaryRow label="Security control" value={farmer.security_control_code ?? 'Not assigned'} />
             </View>
         </ScrollView>;
     }
@@ -1962,6 +2050,7 @@ function DataPage(props: {
                                 farmId: farm.id,
                                 hasBoundary: Boolean(page.data.boundary),
                                 boundary: page.data.boundary,
+                                google_maps_api_key: page.data.google_maps_api_key,
                             })
                         }
                     />
@@ -1975,6 +2064,7 @@ function DataPage(props: {
                                     farmId: farm.id,
                                     hasBoundary: true,
                                     boundary: page.data.boundary,
+                                    google_maps_api_key: page.data.google_maps_api_key,
                                 })
                             }
                         />
@@ -1985,6 +2075,7 @@ function DataPage(props: {
                                 props.onLocalForm('farm-boundary/edit', {
                                     farmId: farm.id,
                                     hasBoundary: false,
+                                    google_maps_api_key: page.data.google_maps_api_key,
                                 })
                             }
                         />
@@ -2036,18 +2127,49 @@ function DataPage(props: {
                                     })}
                                 />
                             )}
+                            {page.data.boundary && hasInspection && (
+                                <Secondary
+                                    title="Add another evidence photo"
+                                    onPress={() => props.onLocalForm('farm-verification/inspection', {
+                                        farmId: farm.id,
+                                        farmName: farm.farm_name,
+                                        farmCode: farm.farm_id,
+                                        farmerName: farm.farmer_name,
+                                        declaredArea: page.data.comparison?.declared_area,
+                                        measuredArea: page.data.comparison?.measured_area,
+                                        farm_identified: inspection.checklist?.farm_identified,
+                                        boundary_walked: inspection.checklist?.boundary_walked,
+                                        farmer_or_representative_met: inspection.checklist?.farmer_or_representative_met,
+                                        remarks: inspection.checklist?.observations,
+                                    })}
+                                />
+                            )}
                             {inspection && (
                                 <View style={styles.card}>
                                     <Text style={styles.cardTitle}>Field inspection</Text>
                                     <SummaryRow label="Farm identified" value={inspection.checklist?.farm_identified ? 'Complete' : 'Incomplete'} />
                                     <SummaryRow label="Boundary walked" value={inspection.checklist?.boundary_walked ? 'Complete' : 'Incomplete'} />
                                     <SummaryRow label="Farmer / representative met" value={inspection.checklist?.farmer_or_representative_met ? 'Complete' : 'Incomplete'} />
-                                    {(inspection.photos ?? []).map((photo: any) => <Text key={photo.id} style={styles.mutedSmall}>Evidence: {photo.name}{photo.captured_at ? ` · ${photo.captured_at}` : ''}</Text>)}
+                                    {inspection.checklist?.observations ? <Text style={styles.muted}>{inspection.checklist.observations}</Text> : null}
+                                    <View style={styles.evidenceGrid}>
+                                        {(inspection.photos ?? []).map((photo: any) => (
+                                            <View key={photo.id} style={styles.evidenceItem}>
+                                                <Image
+                                                    source={{ uri: photo.url, headers: { Authorization: `Bearer ${props.token}` } }}
+                                                    style={styles.evidenceImage}
+                                                    accessibilityLabel={`Inspection evidence: ${photo.name}`}
+                                                />
+                                                <Text style={styles.mutedSmall}>{photo.name}</Text>
+                                                <Text style={styles.mutedSmall}>{photo.captured_at ? new Date(photo.captured_at).toLocaleString() : 'Capture time unavailable'}</Text>
+                                                {photo.latitude && photo.longitude ? <Text style={styles.mutedSmall}>{photo.latitude}, {photo.longitude}</Text> : null}
+                                            </View>
+                                        ))}
+                                    </View>
                                 </View>
                             )}
                         </>
                     )}
-                <Related title="Verification history" rows={page.data.history ?? []} />
+                <VerificationHistory title="Verification history" rows={page.data.history ?? []} token={props.token} />
             </ScrollView>
         );
     }
@@ -2358,6 +2480,7 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
 
 function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; apiKey?: string }) {
     const mapHost = useRef<HTMLDivElement | null>(null);
+    const [mapUnavailable, setMapUnavailable] = useState(false);
     const geometry = useMemo(() => {
         try {
             const parsed = typeof boundary.geojson === 'string' ? JSON.parse(boundary.geojson) : boundary.geojson;
@@ -2399,28 +2522,51 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
 
         const browserWindow = window as any;
         let cancelled = false;
+        let loadTimeout: ReturnType<typeof setTimeout> | undefined;
+        setMapUnavailable(false);
+        const previousAuthFailure = browserWindow.gm_authFailure;
+        const handleAuthFailure = () => {
+            if (!cancelled) setMapUnavailable(true);
+            if (typeof previousAuthFailure === 'function') {
+                try {
+                    previousAuthFailure();
+                } catch (error) {
+                    console.error('A previous Google Maps authentication handler failed.', error);
+                }
+            }
+        };
+        const handleScriptError = () => {
+            if (!cancelled) setMapUnavailable(true);
+        };
+        browserWindow.gm_authFailure = handleAuthFailure;
         const renderMap = () => {
             if (cancelled || !mapHost.current || !browserWindow.google?.maps) return;
-            const map = new browserWindow.google.maps.Map(mapHost.current, {
-                mapTypeId: 'hybrid',
-                mapTypeControl: true,
-                streetViewControl: false,
-                fullscreenControl: true,
-                gestureHandling: 'greedy',
-            });
-            const path = openPoints.map((point: any) => ({ lat: Number(point[1]), lng: Number(point[0]) }));
-            const polygon = new browserWindow.google.maps.Polygon({
-                paths: path,
-                strokeColor: '#17613d',
-                strokeOpacity: 0.95,
-                strokeWeight: 3,
-                fillColor: '#70b83b',
-                fillOpacity: 0.28,
-            });
-            polygon.setMap(map);
-            const bounds = new browserWindow.google.maps.LatLngBounds();
-            path.forEach((point: any) => bounds.extend(point));
-            map.fitBounds(bounds, 24);
+            try {
+                const map = new browserWindow.google.maps.Map(mapHost.current, {
+                    mapTypeId: 'hybrid',
+                    mapTypeControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                    gestureHandling: 'greedy',
+                });
+                const path = openPoints.map((point: any) => ({ lat: Number(point[1]), lng: Number(point[0]) }));
+                const polygon = new browserWindow.google.maps.Polygon({
+                    paths: path,
+                    strokeColor: '#17613d',
+                    strokeOpacity: 0.95,
+                    strokeWeight: 3,
+                    fillColor: '#70b83b',
+                    fillOpacity: 0.28,
+                });
+                polygon.setMap(map);
+                const bounds = new browserWindow.google.maps.LatLngBounds();
+                path.forEach((point: any) => bounds.extend(point));
+                map.fitBounds(bounds, 24);
+                setMapUnavailable(false);
+            } catch (error) {
+                console.error('Could not render the saved farm boundary map.', error);
+                setMapUnavailable(true);
+            }
         };
 
         if (browserWindow.google?.maps) {
@@ -2436,9 +2582,20 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
                 document.head.appendChild(script);
             }
             script.addEventListener('load', renderMap);
+            script.addEventListener('error', handleScriptError);
+            loadTimeout = setTimeout(handleScriptError, 15000);
         }
 
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            if (loadTimeout) clearTimeout(loadTimeout);
+            const script = document.querySelector<HTMLScriptElement>('#surefarm-google-maps');
+            script?.removeEventListener('load', renderMap);
+            script?.removeEventListener('error', handleScriptError);
+            if (browserWindow.gm_authFailure === handleAuthFailure) {
+                browserWindow.gm_authFailure = previousAuthFailure;
+            }
+        };
     }, [apiKey, openPoints]);
 
     return (
@@ -2446,18 +2603,20 @@ function BoundaryCard({ boundary, apiKey }: { boundary: Record<string, any>; api
             <View style={styles.sectionHeadingRow}>
                 <View>
                     <Text style={styles.cardTitle}>Saved GPS boundary</Text>
-                    <Text style={styles.mutedSmall}>{Platform.OS === 'web' && apiKey ? 'Google satellite map · saved GPS boundary' : 'Boundary outline preview'}</Text>
+                    <Text style={styles.mutedSmall}>{Platform.OS === 'web' && apiKey && !mapUnavailable ? 'Google satellite map · saved GPS boundary' : mapUnavailable ? 'Satellite map unavailable · GPS outline shown' : 'Boundary outline preview'}</Text>
                 </View>
                 <View style={styles.boundaryIcon}><AppIcon name="location" size={17} color={API_FOREST} /></View>
             </View>
-            {Platform.OS === 'web' && apiKey && openPoints.length >= 3
+            {Platform.OS === 'web' && apiKey && openPoints.length >= 3 && !mapUnavailable
                 ? createElement('div', { ref: mapHost, style: { width: '100%', height: 220, borderRadius: 14, overflow: 'hidden' } })
-                : <View style={styles.boundaryPreview}>
-                <Svg width="100%" height={140} viewBox="0 0 320 140">
-                    <Path d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140" stroke="#e6eee7" strokeWidth={1} />
-                    {previewPoints ? <Polygon points={previewPoints} fill="#88b89555" stroke={GREEN} strokeWidth={3} strokeLinejoin="round" /> : <Circle cx={160} cy={70} r={5} fill={GREEN} />}
-                </Svg>
-                </View>}
+                : Platform.OS !== 'web'
+                    ? <BoundaryMap points={openPoints.map((point: any) => ({ latitude: Number(point[1]), longitude: Number(point[0]) }))} height={220} />
+                    : <View style={styles.boundaryPreview}>
+                        <Svg width="100%" height={140} viewBox="0 0 320 140">
+                            <Path d="M0 35H320 M0 70H320 M0 105H320 M80 0V140 M160 0V140 M240 0V140" stroke="#e6eee7" strokeWidth={1} />
+                            {previewPoints ? <Polygon points={previewPoints} fill="#88b89555" stroke={GREEN} strokeWidth={3} strokeLinejoin="round" /> : <Circle cx={160} cy={70} r={5} fill={GREEN} />}
+                        </Svg>
+                    </View>}
             <View style={styles.boundaryFacts}>
                 <View style={styles.boundaryFact}>
                     <Text style={styles.boundaryValue}>{boundary.gps_measured_area_hectares ?? '—'}</Text>
@@ -2512,6 +2671,7 @@ function LinkedRecord({ row, kind, onOpen }: { row: Record<string, any>; kind: '
 function FormView(props: {
     spec: FormSpec;
     data: Record<string, any>;
+    token: string;
     values: Record<string, any>;
     photos: Record<string, ImagePicker.ImagePickerAsset>;
     error: string;
@@ -2525,12 +2685,42 @@ function FormView(props: {
         [],
     );
     const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+    const [gpsCoordinate, setGpsCoordinate] = useState<BoundaryPoint | null>(null);
+    const [measuredBoundaryPreview, setMeasuredBoundaryPreview] = useState<string | null>(() => {
+        const existingArea = props.data.boundary?.gps_measured_area_hectares;
+        return existingArea == null
+            ? null
+            : typeof existingArea === 'string'
+              ? existingArea
+              : `${Number(existingArea).toFixed(2)} ha`;
+    });
     const boundaryField = props.spec.fields.find(
         (field) => field.kind === 'geojson',
     );
     const hasCoordinates =
         props.spec.fields.some((field) => field.key === 'latitude') &&
         props.spec.fields.some((field) => field.key === 'longitude');
+    const currentBoundaryPoints = useMemo<BoundaryPoint[]>(() => {
+        const raw = props.values[boundaryField?.key ?? ''];
+        if (typeof raw === 'string' && raw.trim()) {
+            try {
+                const geometry = JSON.parse(raw);
+                const ring = geometry?.type === 'Polygon' ? geometry.coordinates?.[0] : null;
+                if (Array.isArray(ring)) {
+                    const points = ring
+                        .filter((coordinate: any) => Array.isArray(coordinate) && Number.isFinite(Number(coordinate[0])) && Number.isFinite(Number(coordinate[1])))
+                        .map((coordinate: any) => ({ latitude: Number(coordinate[1]), longitude: Number(coordinate[0]) }));
+                    const first = points[0];
+                    const last = points[points.length - 1];
+                    if (first && last && first.latitude === last.latitude && first.longitude === last.longitude) points.pop();
+                    return points;
+                }
+            } catch {
+                // Keep any points captured during this edit if the GeoJSON is being corrected.
+            }
+        }
+        return boundaryPoints.map(([longitude, latitude]) => ({ latitude, longitude }));
+    }, [boundaryField?.key, boundaryPoints, props.values]);
 
     const captureLocation = async () => {
         const permission = await Location.requestForegroundPermissionsAsync();
@@ -2551,42 +2741,15 @@ function FormView(props: {
                 position.coords.longitude,
                 position.coords.latitude,
             ];
+            setGpsCoordinate({ latitude: point[1], longitude: point[0] });
 
             if (boundaryField) {
-                let existing: [number, number][] = boundaryPoints;
-                const raw = props.values[boundaryField.key];
-                if (typeof raw === 'string' && raw.trim()) {
-                    try {
-                        const geometry = JSON.parse(raw);
-                        const ring = geometry?.coordinates?.[0];
-                        if (
-                            geometry?.type === 'Polygon' &&
-                            Array.isArray(ring)
-                        ) {
-                            existing = ring.map(
-                                (coordinate: any) =>
-                                    [
-                                        Number(coordinate[0]),
-                                        Number(coordinate[1]),
-                                    ] as [number, number],
-                            );
-                            const first = existing[0];
-                            const last = existing[existing.length - 1];
-                            if (
-                                first &&
-                                last &&
-                                first[0] === last[0] &&
-                                first[1] === last[1]
-                            )
-                                existing = existing.slice(0, -1);
-                        }
-                    } catch {
-                        /* The boundary can also be captured from a blank form. */
-                    }
-                }
-
-                const nextPoints = [...existing, point];
+                const nextPoints: [number, number][] = [
+                    ...currentBoundaryPoints.map((item): [number, number] => [item.longitude, item.latitude]),
+                    point,
+                ];
                 setBoundaryPoints(nextPoints);
+                setMeasuredBoundaryPreview(null);
                 props.onChange(
                     boundaryField.key,
                     JSON.stringify(
@@ -2607,28 +2770,8 @@ function FormView(props: {
         }
     };
 
-    const closeBoundary = () => {
-        const raw = props.values[boundaryField?.key ?? ''];
-        let points = boundaryPoints;
-        if (typeof raw === 'string') {
-            try {
-                const geometry = JSON.parse(raw);
-                if (
-                    geometry?.type === 'Polygon' &&
-                    Array.isArray(geometry.coordinates?.[0])
-                ) {
-                    points = geometry.coordinates[0].map(
-                        (coordinate: any) =>
-                            [Number(coordinate[0]), Number(coordinate[1])] as [
-                                number,
-                                number,
-                            ],
-                    );
-                }
-            } catch {
-                /* The server will return a field error if the text is malformed. */
-            }
-        }
+    const closeBoundary = async () => {
+        const points: [number, number][] = currentBoundaryPoints.map((item): [number, number] => [item.longitude, item.latitude]);
 
         if (points.length < 3 || !boundaryField) {
             Alert.alert(
@@ -2639,15 +2782,41 @@ function FormView(props: {
         }
 
         const ring = [...points, points[0]];
+        const geojson = { type: 'Polygon', coordinates: [ring] };
         props.onChange(
             boundaryField.key,
-            JSON.stringify({ type: 'Polygon', coordinates: [ring] }, null, 2),
+            JSON.stringify(geojson, null, 2),
         );
         setBoundaryPoints(points);
-        Alert.alert(
-            'Boundary closed',
-            `${points.length} GPS points are ready to save.`,
-        );
+        setMeasuredBoundaryPreview(null);
+        try {
+            const preview = await apiRequest<{ measured_area: string }>(
+                `/farms/${props.data.farmId}/boundary-preview`,
+                props.token,
+                { method: 'POST', body: { boundary_geojson: geojson } },
+            );
+            setMeasuredBoundaryPreview(preview.measured_area);
+            Alert.alert(
+                'Boundary ready',
+                `${points.length} GPS points · estimated measured area ${preview.measured_area}. Review the outline before saving.`,
+            );
+        } catch (error) {
+            Alert.alert(
+                'Boundary needs attention',
+                error instanceof Error ? error.message : 'The boundary could not be measured. Review the points and try again.',
+            );
+        }
+    };
+
+    const undoBoundaryPoint = () => {
+        if (!boundaryField || currentBoundaryPoints.length === 0) return;
+        const next = currentBoundaryPoints.slice(0, -1);
+        setBoundaryPoints(next.map((point): [number, number] => [point.longitude, point.latitude]));
+        setMeasuredBoundaryPreview(null);
+        props.onChange(boundaryField.key, JSON.stringify({
+            type: 'Polygon',
+            coordinates: [next.map((point) => [point.longitude, point.latitude])],
+        }, null, 2));
     };
 
     return (
@@ -2703,24 +2872,36 @@ function FormView(props: {
                         </Text>
                         <Text style={styles.mutedSmall}>
                             Record a GPS point at each farm corner in order. Add
-                            at least three corners, then close the polygon.
+                            at least three corners, review the map, then close the polygon. Undo removes the most recent point before you submit.
                         </Text>
+                        <BoundaryMap points={currentBoundaryPoints} height={210} apiKey={props.data.google_maps_api_key} />
                         <Secondary
                             title="Add GPS point"
                             onPress={() => void captureLocation()}
                         />
+                        {currentBoundaryPoints.length > 0 && (
+                            <Secondary title="Undo last point" onPress={undoBoundaryPoint} />
+                        )}
                         <Secondary
                             title="Close boundary"
                             onPress={closeBoundary}
                         />
                         <Text style={styles.mutedSmall}>
-                            {boundaryPoints.length} new GPS point
-                            {boundaryPoints.length === 1 ? '' : 's'} recorded
+                            {currentBoundaryPoints.length} GPS point
+                            {currentBoundaryPoints.length === 1 ? '' : 's'} on this boundary
                         </Text>
+                        {gpsCoordinate && (
+                            <Text style={styles.coordinateText}>
+                                Latest: {gpsCoordinate.latitude.toFixed(6)}, {gpsCoordinate.longitude.toFixed(6)}
+                            </Text>
+                        )}
                         {gpsAccuracy !== null && (
                             <Text style={styles.gpsAccuracy}>
                                 Last point accuracy: about {Math.round(gpsAccuracy)} m
                             </Text>
+                        )}
+                        {measuredBoundaryPreview && (
+                            <SummaryRow label="Measured area preview" value={measuredBoundaryPreview} />
                         )}
                     </View>
                 )}
@@ -2756,9 +2937,10 @@ function FormView(props: {
                             value={props.values[field.key]}
                             options={options}
                             photo={props.photos[field.key]}
-                            onChange={(value) =>
-                                props.onChange(field.key, value)
-                            }
+                            onChange={(value) => {
+                                if (field.kind === 'geojson') setMeasuredBoundaryPreview(null);
+                                props.onChange(field.key, value);
+                            }}
                             onImage={(camera) =>
                                 props.onImage(field.key, camera)
                             }
@@ -3029,6 +3211,49 @@ function Related({ title, rows }: { title: string; rows: any[] }) {
     );
 }
 
+function VerificationHistory({ title, rows, token }: { title: string; rows: any[]; token: string }) {
+    return (
+        <View style={styles.card}>
+            <Text style={styles.cardTitle}>{title} <Text style={styles.sectionCount}>{rows.length}</Text></Text>
+            {rows.length === 0 ? <Text style={styles.inlineEmpty}>No inspection history has been recorded.</Text> : rows.map((item: any) => (
+                <View key={item.id} style={styles.historyItem}>
+                    <View style={styles.historyHeading}>
+                        <View style={styles.flex}>
+                            <Text style={styles.recordTitle}>{item.reference ?? `Verification ${item.id}`}</Text>
+                            <Text style={styles.mutedSmall}>{item.date}{item.verified_by ? ` · ${item.verified_by}` : ''}</Text>
+                        </View>
+                        <Text style={[styles.status, statusStyle(String(item.result ?? 'in_progress'))]}>
+                            {String(item.result ?? 'In progress').replaceAll('_', ' ')}
+                        </Text>
+                    </View>
+                    <SummaryRow label="Declared area" value={item.declared_area ?? '—'} />
+                    <SummaryRow label="Measured area" value={item.measured_area ?? 'Not measured'} />
+                    <SummaryRow label="Difference" value={item.difference ?? '—'} />
+                    <SummaryRow label="Variance" value={item.variance ?? '—'} />
+                    {item.remarks ? <Text style={styles.muted}>{item.remarks}</Text> : null}
+                    {item.inspection_checklist?.observations ? <Text style={styles.muted}>{item.inspection_checklist.observations}</Text> : null}
+                    {(item.photos ?? []).length > 0 && (
+                        <View style={styles.evidenceGrid}>
+                            {item.photos.map((photo: any) => (
+                                <View key={photo.id} style={styles.evidenceItem}>
+                                    <Image
+                                        source={{ uri: photo.url, headers: { Authorization: `Bearer ${token}` } }}
+                                        style={styles.evidenceImage}
+                                        accessibilityLabel={`Verification evidence: ${photo.name}`}
+                                    />
+                                    <Text style={styles.mutedSmall}>{photo.name}</Text>
+                                    <Text style={styles.mutedSmall}>{photo.captured_at ? new Date(photo.captured_at).toLocaleString() : 'Capture time unavailable'}</Text>
+                                    {photo.latitude != null && photo.longitude != null ? <Text style={styles.mutedSmall}>{photo.latitude}, {photo.longitude}</Text> : null}
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            ))}
+        </View>
+    );
+}
+
 function EmptyState({ title, message }: { title: string; message: string }) {
     return (
         <View style={styles.card}>
@@ -3250,7 +3475,6 @@ function BottomItem({
                     name={icon}
                     size={18}
                     color={active ? API_FOREST : MUTED}
-                    strokeWidth={active ? 2.2 : 1.8}
                 />
             </View>
             <Text
@@ -3394,12 +3618,14 @@ function recordTitle(row: Record<string, any>) {
 function recordSubtitle(row: Record<string, any>) {
     return [
         row.farmer_name ?? row.farmer?.name ?? row.farmer?.full_name,
+        row.farmer_id ? `Farmer ID ${row.farmer_id}` : null,
         row.farm_name ?? row.farm?.farm_name,
         row.cooperative,
         row.location,
         row.crop_label,
         row.declared_area,
         row.measured_area,
+        row.boundary_saved != null ? (row.boundary_saved ? 'Boundary saved' : 'Boundary not captured') : null,
         row.variance,
         row.activity_type,
         row.quantity_label,
@@ -3546,6 +3772,7 @@ function detailActions(
                     farmId: id,
                     hasBoundary: Boolean(data.boundary),
                     boundary: data.boundary,
+                    google_maps_api_key: data.google_maps_api_key,
                 },
             },
         );
@@ -3608,17 +3835,17 @@ const styles = StyleSheet.create({
         backgroundColor: CANVAS,
     },
     header: {
-        minHeight: 70,
-        paddingHorizontal: 17,
+        minHeight: 66,
+        paddingHorizontal: 16,
         backgroundColor: '#ffffff',
         flexDirection: 'row',
         alignItems: 'center',
         borderBottomWidth: 1,
-        borderBottomColor: '#e9eeea',
+        borderBottomColor: '#e9efea',
     },
-    backButton: { width: 42, justifyContent: 'center', minHeight: 48 },
-    brandButton: { width: 126 },
-    headerLogo: { width: 120, height: 36, alignSelf: 'flex-start' },
+    backButton: { width: 42, justifyContent: 'center', alignItems: 'flex-start', minHeight: 48 },
+    brandButton: { width: 112 },
+    headerLogo: { width: 108, height: 32 },
     logo: {
         width: 39,
         height: 39,
@@ -3628,37 +3855,37 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     logoText: { color: '#ffffff', fontWeight: '800', fontSize: 20 },
-    headerCopy: { flex: 1, marginLeft: 5 },
-    headerTitle: { color: INK, fontSize: 16, fontWeight: '800' },
-    headerSub: { color: MUTED, fontSize: 10, marginTop: 3 },
+    headerCopy: { flex: 1, minWidth: 0, marginLeft: 4 },
+    headerTitle: { color: INK, fontSize: 16, fontWeight: '700' },
+    headerSub: { color: MUTED, fontSize: 11, marginTop: 3 },
     signOut: {
-        width: 40,
-        height: 40,
-        borderRadius: 14,
-        backgroundColor: '#f0f4f0',
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: '#f1f5f1',
         alignItems: 'center',
         justifyContent: 'center',
     },
     page: { flex: 1, backgroundColor: CANVAS },
     content: {
         width: '100%',
-        maxWidth: 720,
+        maxWidth: 680,
         alignSelf: 'center',
-        paddingHorizontal: 18,
-        paddingTop: 18,
-        paddingBottom: 30,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 28,
     },
     welcome: {
         position: 'relative',
         overflow: 'hidden',
-        padding: 20,
-        borderRadius: 24,
+        padding: 21,
+        borderRadius: 22,
         backgroundColor: API_FOREST,
         shadowColor: '#17392b',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.13,
-        shadowRadius: 16,
-        elevation: 4,
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 2,
     },
     welcomeOrb: {
         position: 'absolute',
@@ -3693,39 +3920,39 @@ const styles = StyleSheet.create({
     welcomeTitle: {
         color: '#ffffff',
         marginTop: 12,
-        fontSize: 26,
-        lineHeight: 32,
+        fontSize: 27,
+        lineHeight: 34,
         fontWeight: '800',
     },
     welcomeBody: {
         maxWidth: 290,
         color: '#d4e3d8',
         marginTop: 8,
-        fontSize: 13,
-        lineHeight: 20,
+        fontSize: 14,
+        lineHeight: 21,
     },
     heroAction: {
-        minHeight: 45,
-        marginTop: 17,
+        minHeight: 48,
+        marginTop: 19,
         paddingHorizontal: 14,
-        borderRadius: 14,
+        borderRadius: 15,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#ffffff',
     },
-    heroActionText: { color: API_FOREST, fontSize: 12, fontWeight: '800' },
+    heroActionText: { color: API_FOREST, fontSize: 13, fontWeight: '700' },
     dashboardHeading: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 23,
-        marginBottom: 12,
+        marginTop: 25,
+        marginBottom: 13,
     },
-    dashboardTitle: { color: INK, fontSize: 17, fontWeight: '800' },
-    dashboardDate: { color: MUTED, fontSize: 11, marginTop: 4 },
+    dashboardTitle: { color: INK, fontSize: 18, fontWeight: '700' },
+    dashboardDate: { color: MUTED, fontSize: 12, marginTop: 4 },
     livePill: {
-        minHeight: 28,
+        minHeight: 30,
         paddingHorizontal: 9,
         borderRadius: 14,
         flexDirection: 'row',
@@ -3739,12 +3966,12 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: GREEN,
     },
-    liveText: { color: API_FOREST, fontSize: 9, fontWeight: '800' },
-    statTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    liveText: { color: API_FOREST, fontSize: 10, fontWeight: '700' },
+    statTop: { flexDirection: 'row', alignItems: 'center', gap: 9 },
     statCode: {
-        width: 29,
-        height: 29,
-        borderRadius: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 11,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#edf4ee',
@@ -3761,78 +3988,87 @@ const styles = StyleSheet.create({
     },
     sectionHint: {
         color: GREEN,
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: '800',
         letterSpacing: 0.8,
     },
-    stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     stat: {
-        width: '48%',
-        minHeight: 96,
-        padding: 12,
-        borderRadius: 18,
+        width: '47%',
+        minHeight: 102,
+        padding: 13,
+        borderRadius: 17,
         justifyContent: 'center',
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.035,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.025,
+        shadowRadius: 6,
+        elevation: 0.5,
     },
     statValue: {
         color: INK,
         fontSize: 25,
-        fontWeight: '900',
+        fontWeight: '800',
         marginTop: 9,
     },
-    statLabel: { flex: 1, color: MUTED, fontSize: 10, fontWeight: '700' },
-    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    statLabel: { flex: 1, color: MUTED, fontSize: 11, fontWeight: '600' },
+    quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     quickCard: {
-        width: '48%',
-        minHeight: 136,
+        width: '47%',
+        minHeight: 142,
         padding: 14,
-        borderRadius: 19,
+        borderRadius: 17,
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.035,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.025,
+        shadowRadius: 6,
+        elevation: 0.5,
     },
     quickIcon: {
-        width: 38,
-        height: 38,
+        width: 40,
+        height: 40,
         borderRadius: 13,
         backgroundColor: '#edf4ee',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    quickTitle: { color: INK, marginTop: 9, fontSize: 12, fontWeight: '700' },
+    quickTitle: { color: INK, marginTop: 10, fontSize: 13, fontWeight: '700' },
     quickDescription: {
         color: MUTED,
         marginTop: 4,
-        fontSize: 10,
-        lineHeight: 14,
+        fontSize: 11,
+        lineHeight: 16,
     },
     card: {
-        marginBottom: 12,
+        marginBottom: 13,
         padding: 16,
-        borderRadius: 19,
+        borderRadius: 18,
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         backgroundColor: '#ffffff',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.035,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.025,
+        shadowRadius: 6,
+        elevation: 0.5,
     },
-    cardTitle: { color: INK, fontSize: 15, fontWeight: '800', marginBottom: 8 },
+    cardTitle: { color: INK, fontSize: 16, fontWeight: '700', marginBottom: 9 },
     sectionCount: { color: MUTED, fontSize: 11, fontWeight: '600' },
+    sectionEyebrow: { color: GREEN, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 6 },
+    profileHeading: { flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 15 },
+    profilePhoto: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#edf4ee' },
+    profilePhotoPlaceholder: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    historyItem: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#edf0ed' },
+    historyHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
+    evidenceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 9 },
+    evidenceItem: { width: '47%', minWidth: 120, gap: 3 },
+    evidenceImage: { width: '100%', height: 132, borderRadius: 12, backgroundColor: '#e6ece6' },
     keyRow: {
         minHeight: 39,
         paddingVertical: 8,
@@ -3843,12 +4079,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 10,
     },
-    keyLabel: { flex: 1, color: MUTED, fontSize: 11 },
+    keyLabel: { flex: 1, color: MUTED, fontSize: 12 },
     keyValue: {
         flex: 1.2,
         color: INK,
         textAlign: 'right',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '600',
     },
     relatedRow: {
@@ -3856,22 +4092,22 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#edf0ed',
     },
-    recordTitle: { color: INK, fontSize: 13, fontWeight: '700' },
-    recordCode: { color: MUTED, fontSize: 9, fontWeight: '700', letterSpacing: 0.5, marginTop: 3 },
-    mutedSmall: { color: MUTED, fontSize: 10, lineHeight: 15, marginTop: 4 },
-    muted: { color: MUTED, fontSize: 12, lineHeight: 18 },
+    recordTitle: { color: INK, fontSize: 14, fontWeight: '700' },
+    recordCode: { color: MUTED, fontSize: 10, fontWeight: '600', letterSpacing: 0.35, marginTop: 4 },
+    mutedSmall: { color: MUTED, fontSize: 11, lineHeight: 16, marginTop: 4 },
+    muted: { color: MUTED, fontSize: 13, lineHeight: 19 },
     recordCard: {
-        marginTop: 9,
+        marginTop: 10,
         padding: 15,
-        borderRadius: 18,
+        borderRadius: 17,
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         backgroundColor: '#ffffff',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.035,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.025,
+        shadowRadius: 6,
+        elevation: 0.5,
     },
     recordTop: {
         flexDirection: 'row',
@@ -3880,13 +4116,13 @@ const styles = StyleSheet.create({
     },
     status: {
         alignSelf: 'flex-start',
-        paddingHorizontal: 9,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         marginTop: 8,
-        borderRadius: 18,
+        borderRadius: 20,
         backgroundColor: '#edf4ed',
         color: API_FOREST,
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: '700',
         textTransform: 'capitalize',
     },
@@ -3895,26 +4131,26 @@ const styles = StyleSheet.create({
     statusNegative: { color: '#9a3c35', backgroundColor: '#fbe9e7' },
     statusNeutral: { color: '#58655c', backgroundColor: '#edf0ed' },
     featureCard: {
-        minHeight: 76,
+        minHeight: 78,
         padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 11,
-        borderRadius: 18,
+        gap: 12,
+        borderRadius: 17,
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         backgroundColor: '#ffffff',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.035,
-        shadowRadius: 8,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.025,
+        shadowRadius: 6,
+        elevation: 0.5,
     },
-    collectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-    collectionHeaderIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center' },
-    collectionTitle: { color: INK, fontSize: 19, fontWeight: '800' },
-    rowIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    rowIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    collectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+    collectionHeaderIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center' },
+    collectionTitle: { color: INK, fontSize: 20, fontWeight: '700' },
+    rowIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
+    rowIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
     featureIcon: {
         width: 43,
         height: 43,
@@ -3924,28 +4160,28 @@ const styles = StyleSheet.create({
         backgroundColor: '#edf4ee',
     },
     bottomBar: {
-        minHeight: 68,
-        paddingTop: 4,
-        paddingBottom: 4,
+        minHeight: 72,
+        paddingTop: 5,
+        paddingBottom: 5,
         borderTopWidth: 1,
-        borderTopColor: '#e5eae5',
+        borderTopColor: '#e7ece7',
         flexDirection: 'row',
-        justifyContent: 'space-evenly',
+        justifyContent: 'space-around',
         alignItems: 'center',
         backgroundColor: '#ffffff',
     },
     bottomItem: {
-        minWidth: 76,
-        minHeight: 54,
+        flex: 1,
+        minHeight: 58,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2,
+        gap: 3,
     },
     bottomIcon: {
         minWidth: 50,
-        height: 31,
+        height: 32,
         paddingHorizontal: 13,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -3953,57 +4189,59 @@ const styles = StyleSheet.create({
     bottomLabel: {
         color: MUTED,
         marginTop: 1,
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '600',
     },
     bottomLabelActive: { color: API_FOREST, fontWeight: '800' },
     primary: {
-        minHeight: 47,
+        minHeight: 49,
         marginTop: 10,
-        paddingHorizontal: 15,
-        borderRadius: 13,
+        paddingHorizontal: 17,
+        borderRadius: 14,
         backgroundColor: API_FOREST,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    primaryText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
+    primaryText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
     secondary: {
-        minHeight: 41,
+        minHeight: 44,
         marginTop: 6,
-        paddingHorizontal: 13,
+        paddingHorizontal: 15,
         borderWidth: 1,
         borderColor: '#dce5dc',
-        borderRadius: 12,
+        borderRadius: 13,
         backgroundColor: '#ffffff',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    secondaryText: { color: API_FOREST, fontSize: 11, fontWeight: '700' },
+    secondaryText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
     pressed: { opacity: 0.72 },
     notice: {
         marginTop: 10,
-        padding: 11,
-        borderRadius: 12,
+        padding: 12,
+        borderRadius: 14,
         color: '#52655a',
         backgroundColor: '#e9f0e9',
-        fontSize: 11,
-        lineHeight: 17,
+        fontSize: 12,
+        lineHeight: 18,
     },
     summaryStrip: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginBottom: 9,
-        borderRadius: 14,
+        marginBottom: 10,
+        gap: 8,
+        borderRadius: 15,
         backgroundColor: '#ffffff',
     },
     summaryCell: {
-        width: '50%',
-        padding: 11,
-        borderWidth: 0.5,
-        borderColor: '#edf0ed',
+        flex: 1,
+        minWidth: '44%',
+        padding: 12,
+        borderRadius: 13,
+        backgroundColor: '#f7f9f7',
     },
-    summaryNumber: { color: API_FOREST, fontSize: 17, fontWeight: '800' },
-    inlineEmpty: { color: MUTED, fontSize: 11, lineHeight: 17, paddingVertical: 10 },
+    summaryNumber: { color: API_FOREST, fontSize: 19, fontWeight: '700' },
+    inlineEmpty: { color: MUTED, fontSize: 12, lineHeight: 18, paddingVertical: 10 },
     noticeCard: { marginBottom: 12, padding: 13, borderRadius: 15, backgroundColor: '#edf4ee', flexDirection: 'row', alignItems: 'center', gap: 10 },
     searchRow: {
         flexDirection: 'row',
@@ -4013,9 +4251,9 @@ const styles = StyleSheet.create({
     },
     searchInput: { flex: 1, marginBottom: 0 },
     searchBtn: {
-        minHeight: 44,
+        minHeight: 49,
         paddingHorizontal: 14,
-        borderRadius: 12,
+        borderRadius: 14,
         flexDirection: 'row',
         gap: 7,
         alignItems: 'center',
@@ -4023,17 +4261,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#e6efe6',
     },
     searchText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
-    filterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    filterField: { width: '48%', minWidth: 145 },
-    filterLabel: { color: MUTED, fontSize: 9, fontWeight: '800', marginBottom: 4 },
-    filterPicker: { minHeight: 43, overflow: 'hidden', borderWidth: 1, borderColor: '#dfe6df', borderRadius: 11, backgroundColor: '#ffffff', justifyContent: 'center' },
-    filterPickerControl: { height: 45, color: INK, fontSize: 11 },
+    filterGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 9 },
+    filterField: { flex: 1, minWidth: 145 },
+    filterLabel: { color: MUTED, fontSize: 10, fontWeight: '700', marginBottom: 5 },
+    filterPicker: { minHeight: 46, overflow: 'hidden', borderWidth: 1, borderColor: '#e1e8e2', borderRadius: 13, backgroundColor: '#ffffff', justifyContent: 'center' },
+    filterPickerControl: { height: 47, color: INK, fontSize: 12 },
     formContent: { padding: 16, paddingBottom: 30 },
-    formIntro: { padding: 15, marginBottom: 3, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ede8' },
-    reviewCard: { marginTop: 12, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#dce8dd', backgroundColor: '#f0f6f1' },
+    formIntro: { padding: 17, marginBottom: 4, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e7ede8' },
+    reviewCard: { marginTop: 13, padding: 15, borderRadius: 17, borderWidth: 1, borderColor: '#dce8dd', backgroundColor: '#eff5f0' },
     reviewHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
-    formTitle: { color: INK, fontSize: 18, fontWeight: '800', marginBottom: 4 },
-    gpsAccuracy: { color: API_FOREST, fontSize: 10, fontWeight: '700', marginTop: 6 },
+    formTitle: { color: INK, fontSize: 20, fontWeight: '700', marginBottom: 5 },
+    gpsAccuracy: { color: API_FOREST, fontSize: 11, fontWeight: '600', marginTop: 7 },
     locationCard: {
         marginTop: 13,
         padding: 13,
@@ -4047,90 +4285,90 @@ const styles = StyleSheet.create({
     fieldLabel: {
         color: '#34443a',
         marginBottom: 6,
-        fontSize: 12,
-        fontWeight: '700',
+        fontSize: 13,
+        fontWeight: '600',
         textTransform: 'capitalize',
     },
     input: {
-        minHeight: 46,
-        paddingHorizontal: 12,
+        minHeight: 49,
+        paddingHorizontal: 14,
         borderWidth: 1,
-        borderColor: '#dfe6df',
-        borderRadius: 12,
+        borderColor: '#dfe7e0',
+        borderRadius: 13,
         backgroundColor: '#ffffff',
         color: INK,
-        fontSize: 13,
+        fontSize: 14,
     },
-    multiline: { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' },
+    multiline: { minHeight: 100, paddingTop: 13, textAlignVertical: 'top' },
     pickerBox: {
-        minHeight: 48,
+        minHeight: 50,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#dfe6df',
-        borderRadius: 12,
+        borderColor: '#dfe7e0',
+        borderRadius: 13,
         backgroundColor: '#ffffff',
         justifyContent: 'center',
     },
-    picker: { height: 50, color: INK },
+    picker: { height: 52, color: INK },
     toggle: {
-        minHeight: 50,
+        minHeight: 54,
         marginTop: 12,
         paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: '#e1e7e1',
-        borderRadius: 13,
+        borderRadius: 14,
         backgroundColor: '#ffffff',
         flexDirection: 'row',
         alignItems: 'center',
     },
-    hint: { color: MUTED, fontSize: 10, marginBottom: 6 },
+    hint: { color: MUTED, fontSize: 11, marginBottom: 6 },
     photoPreview: {
         width: '100%',
-        height: 170,
+        height: 180,
         marginBottom: 7,
-        borderRadius: 13,
+        borderRadius: 15,
     },
     imageActions: { flexDirection: 'row', gap: 8 },
     inline: { flexDirection: 'row', gap: 18, marginTop: 8 },
     link: { alignSelf: 'flex-start', paddingVertical: 8 },
-    linkText: { color: API_FOREST, fontSize: 11, fontWeight: '700' },
-    errorText: { color: '#a33c32', fontSize: 12, marginTop: 10 },
+    linkText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
+    errorText: { color: '#a33c32', fontSize: 13, marginTop: 10 },
     entity: {
-        marginBottom: 12,
-        padding: 15,
-        borderRadius: 17,
+        marginBottom: 13,
+        padding: 16,
+        borderRadius: 18,
         borderWidth: 1,
-        borderColor: '#e5eae5',
+        borderColor: '#e7ede8',
         backgroundColor: '#ffffff',
     },
     entityTitle: {
         color: INK,
-        fontSize: 18,
+        fontSize: 19,
         fontWeight: '700',
         marginBottom: 5,
     },
     entityTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
     entityPhoto: {
         width: '100%',
-        height: 170,
-        borderRadius: 13,
+        height: 180,
+        borderRadius: 15,
         marginBottom: 12,
         backgroundColor: '#e6ece6',
     },
-    empty: { alignItems: 'center', padding: 40 },
-    setupCard: { marginTop: 17, padding: 19, borderRadius: 22, borderWidth: 1, borderColor: '#e5ebe5', backgroundColor: '#ffffff' },
-    setupIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#eaf2eb', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    accountInfo: { minHeight: 44, paddingHorizontal: 11, marginTop: 15, borderRadius: 13, backgroundColor: '#f5f8f5', flexDirection: 'row', alignItems: 'center', gap: 9 },
-    accountInfoText: { color: INK, fontSize: 12, fontWeight: '700' },
+    empty: { alignItems: 'center', padding: 36, gap: 8 },
+    setupCard: { marginTop: 17, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#e7ede8', backgroundColor: '#ffffff' },
+    setupIcon: { width: 50, height: 50, borderRadius: 17, backgroundColor: '#eaf2eb', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+    accountInfo: { minHeight: 46, paddingHorizontal: 12, marginTop: 16, borderRadius: 14, backgroundColor: '#f5f8f5', flexDirection: 'row', alignItems: 'center', gap: 10 },
+    accountInfoText: { color: INK, fontSize: 13, fontWeight: '600' },
     setupNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#edf0ed' },
-    setupNoteText: { flex: 1, color: MUTED, fontSize: 10, lineHeight: 15 },
-    moduleHero: { alignItems: 'center', padding: 22, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ede8' },
-    moduleIcon: { width: 66, height: 66, borderRadius: 22, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    moduleEyebrow: { color: GREEN, fontSize: 9, fontWeight: '800', letterSpacing: 1.4 },
+    setupNoteText: { flex: 1, color: MUTED, fontSize: 11, lineHeight: 16 },
+    moduleHero: { alignItems: 'center', padding: 24, borderRadius: 22, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e7ede8' },
+    moduleIcon: { width: 68, height: 68, borderRadius: 22, backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+    moduleEyebrow: { color: GREEN, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
     moduleTitle: { color: INK, fontSize: 22, fontWeight: '800', textAlign: 'center', marginTop: 8, marginBottom: 7 },
     comingSoonPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 15, backgroundColor: '#f1f3ee', marginTop: 15 },
     comingSoonDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#a58d44' },
-    comingSoonText: { color: '#71663d', fontSize: 10, fontWeight: '800' },
+    comingSoonText: { color: '#71663d', fontSize: 11, fontWeight: '700' },
     progressTrack: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 12 },
     progressStep: { flex: 1, alignItems: 'center', gap: 6 },
     progressDot: { width: 27, height: 27, borderRadius: 14, borderWidth: 1, borderColor: '#dce5dc', backgroundColor: '#f5f7f4', alignItems: 'center', justifyContent: 'center' },
@@ -4138,24 +4376,24 @@ const styles = StyleSheet.create({
     progressDotActive: { backgroundColor: '#e8f0e8', borderColor: GREEN },
     progressNumber: { color: MUTED, fontSize: 10, fontWeight: '700' },
     progressNumberActive: { color: API_FOREST },
-    progressLabel: { color: MUTED, fontSize: 9 },
+    progressLabel: { color: MUTED, fontSize: 10 },
     progressLabelActive: { color: API_FOREST, fontWeight: '800' },
-    boundaryIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
-    boundaryPreview: { overflow: 'hidden', marginTop: 10, borderRadius: 14, backgroundColor: '#f7faf7' },
+    boundaryIcon: { width: 36, height: 36, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
+    boundaryPreview: { overflow: 'hidden', marginTop: 11, borderRadius: 15, backgroundColor: '#f7faf7' },
     boundaryFacts: { flexDirection: 'row', paddingTop: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#edf0ed' },
     boundaryFact: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-    boundaryValue: { color: INK, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+    boundaryValue: { color: INK, fontSize: 12, fontWeight: '700', textAlign: 'center' },
     linkedFarmer: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, marginBottom: 12, borderRadius: 16, borderWidth: 1, borderColor: '#e5eae5', backgroundColor: '#ffffff' },
     linkedFarmerIcon: { width: 39, height: 39, borderRadius: 13, backgroundColor: '#edf4ee', alignItems: 'center', justifyContent: 'center' },
-    heading: { color: INK, fontSize: 18, fontWeight: '700', marginBottom: 6 },
+    heading: { color: INK, fontSize: 19, fontWeight: '700', marginBottom: 6 },
     loginSafe: { flex: 1, backgroundColor: CANVAS },
     loginWrap: {
         width: '100%',
-        maxWidth: 470,
+        maxWidth: 480,
         flexGrow: 1,
         alignSelf: 'center',
         justifyContent: 'center',
-        padding: 22,
+        padding: 24,
     },
     loginBrand: {
         flexDirection: 'row',
@@ -4182,23 +4420,23 @@ const styles = StyleSheet.create({
     },
     loginTagline: { color: MUTED, fontSize: 11, marginTop: 3 },
     loginCard: {
-        padding: 22,
-        borderRadius: 24,
+        padding: 23,
+        borderRadius: 22,
         borderWidth: 1,
-        borderColor: '#e8ede8',
+        borderColor: '#e7ede8',
         backgroundColor: '#ffffff',
         shadowColor: '#20392a',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.07,
-        shadowRadius: 18,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 15,
+        elevation: 2,
     },
-    loginHeading: { color: INK, fontSize: 21, fontWeight: '800' },
-    loginHelp: { color: MUTED, fontSize: 12, marginTop: 6, marginBottom: 8 },
+    loginHeading: { color: INK, fontSize: 22, fontWeight: '700' },
+    loginHelp: { color: MUTED, fontSize: 13, marginTop: 7, marginBottom: 10 },
     loginFoot: {
         color: MUTED,
         textAlign: 'center',
         marginTop: 17,
-        fontSize: 10,
+        fontSize: 11,
     },
 });

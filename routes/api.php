@@ -27,6 +27,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
     Route::post('login', [MobileAuthController::class, 'login'])->middleware('throttle:6,1');
     Route::post('two-factor', [MobileAuthController::class, 'completeTwoFactor'])->middleware('throttle:6,1');
+    Route::get('media/farmers/{farmer}/photo', [MobileFarmerController::class, 'signedPhoto'])
+        ->middleware('signed')->name('media.farmer-photo');
+    Route::get('media/farm-verification/{photo}', [FarmVerificationController::class, 'signedPhoto'])
+        ->middleware('signed')->name('media.farm-verification-photo');
 
     Route::middleware(['auth:sanctum', 'verified', 'abilities:mobile'])->group(function (): void {
         Route::get('me', [MobileAuthController::class, 'me']);
@@ -34,6 +38,9 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
 
         Route::middleware('App\\Http\\Middleware\\NormalizeMobileApiResponse')->group(function (): void {
             Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('farm-verification/photos/{photo}', [FarmVerificationController::class, 'photo'])
+                ->name('farm-verification.photos.show');
+            Route::post('farms/{farm}/boundary-preview', [FarmBoundaryController::class, 'preview']);
             Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
                 ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports');
 
@@ -44,6 +51,8 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::get('notifications', [MobileFarmerController::class, 'notifications']);
                 Route::post('notifications/{notification}/read', [MobileFarmerController::class, 'markNotificationRead']);
                 Route::get('profile', [MobileFarmerController::class, 'profile']);
+                Route::get('profile/photo', [MobileFarmerController::class, 'photo'])
+                    ->name('farmer.profile.photo');
             });
 
             Route::middleware('role:operations')->group(function (): void {

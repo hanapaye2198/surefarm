@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmHarvest;
+use App\Models\FarmProduction;
 use App\Models\Farmer;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MobileFarmerController extends Controller
 {
@@ -79,9 +83,17 @@ class MobileFarmerController extends Controller
             ->map(fn (FarmHarvest $harvest): array => $harvest->present())
             ->values()->all();
 
+        $productions = FarmProduction::query()
+            ->with('farm:id,farm_id,farm_name,farmer_id,crop_type')
+            ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
+            ->latest('id')->limit(30)->get()
+            ->map(fn (FarmProduction $production): array => $production->present())
+            ->values()->all();
+
         return Inertia::render('mobile/farmer-activities', [
             'activities' => $activities,
             'harvests' => $harvests,
+            'productions' => $productions,
         ]);
     }
 
@@ -121,12 +133,53 @@ class MobileFarmerController extends Controller
             'farmer' => [
                 'farmer_id' => $farmer->farmer_id,
                 'name' => $farmer->fullName(),
+                'first_name' => $farmer->first_name,
+                'middle_name' => $farmer->middle_name,
+                'last_name' => $farmer->last_name,
+                'suffix' => $farmer->suffix,
+                'date_of_birth' => $farmer->date_of_birth?->format('M j, Y'),
+                'government_id' => $farmer->government_id,
                 'email' => $farmer->email,
                 'mobile_number' => $farmer->mobile_number,
                 'address' => $farmer->addressLabel(),
+                'purok_sitio' => $farmer->purok_sitio,
+                'barangay' => $farmer->barangay,
+                'municipality' => $farmer->municipality,
+                'province' => $farmer->province,
+                'sitio_purok_code' => $farmer->sitio_purok_code,
+                'barangay_code' => $farmer->barangay_code,
+                'lgu_code' => $farmer->lgu_code,
+                'security_control_code' => $farmer->security_control_code,
+                'photo_url' => $farmer->photo_path === null ? null : URL::temporarySignedRoute(
+                    'api.mobile.media.farmer-photo',
+                    now()->addMinutes(15),
+                    ['farmer' => $farmer->id],
+                ),
                 'cooperative' => $farmer->cooperative?->name,
             ],
         ]);
+    }
+
+    public function photo(Request $request): StreamedResponse
+    {
+        $farmer = $this->farmer($request);
+
+        abort_unless(
+            $farmer->photo_path !== null && Storage::disk('local')->exists($farmer->photo_path),
+            404,
+        );
+
+        return Storage::disk('local')->response($farmer->photo_path);
+    }
+
+    public function signedPhoto(Farmer $farmer): StreamedResponse
+    {
+        abort_unless(
+            $farmer->photo_path !== null && Storage::disk('local')->exists($farmer->photo_path),
+            404,
+        );
+
+        return Storage::disk('local')->response($farmer->photo_path);
     }
 
     private function farmer(Request $request): Farmer

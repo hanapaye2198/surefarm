@@ -86,14 +86,21 @@ class DecideFarmVerification
         });
 
         $farm->loadMissing('farmer.user');
+        $remarks = $this->remarks($remarks);
+        $message = match ($result) {
+            FarmVerificationResult::Verified => 'Your farm verification was marked verified.',
+            FarmVerificationResult::Failed => 'Your farm verification needs follow-up.',
+            FarmVerificationResult::NeedsReview => 'Your farm verification needs another review.',
+        };
+
+        if ($remarks !== null) {
+            $message .= ' Verifier note: '.$remarks;
+        }
+
         $farm->farmer?->user?->notify(new FarmVerificationStatusNotification(
             $farm,
             $result->value,
-            match ($result) {
-                FarmVerificationResult::Verified => 'Your farm verification was marked verified.',
-                FarmVerificationResult::Failed => 'Your farm verification needs follow-up.',
-                FarmVerificationResult::NeedsReview => 'Your farm verification needs another review.',
-            },
+            $message,
         ));
 
         return $verification;

@@ -7,6 +7,8 @@ use App\FarmStatus;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmHarvest;
+use App\Models\FarmProduction;
 use App\Models\Farmer;
 use App\Models\User;
 use App\Services\InventoryStock;
@@ -26,6 +28,15 @@ class DashboardController extends Controller
 
         if ($user instanceof User && $user->role === UserRole::FieldVerifier) {
             $assignedFarms = Farm::query()->where('assigned_verifier_id', $user->id);
+            $assignedPreview = (clone $assignedFarms)->with('farmer')->latest('id')->limit(4)->get()
+                ->map(fn (Farm $farm): array => [
+                    'id' => $farm->id,
+                    'farm_id' => $farm->farm_id,
+                    'farm_name' => $farm->displayName(),
+                    'farmer_name' => $farm->farmer?->fullName(),
+                    'location' => $farm->locationLabel(),
+                    'verification_status' => $farm->verification_status->value,
+                ])->values()->all();
             $declared = (float) (clone $assignedFarms)->sum('declared_area_hectares');
             $coffee = (float) (clone $assignedFarms)
                 ->where('crop_type', CropType::Coffee)
@@ -37,9 +48,11 @@ class DashboardController extends Controller
             return Inertia::render('dashboard', [
                 'mobile_dashboard_mode' => 'verifier_dashboard',
                 'summary' => [
+                    'assigned_farms' => (clone $assignedFarms)->count(),
                     'registered_farms' => (clone $assignedFarms)->count(),
                     'pending_verification' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
                     'in_progress' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
+                    'completed_farms' => (clone $assignedFarms)->whereIn('verification_status', [FarmVerificationStatus::Verified, FarmVerificationStatus::Failed])->count(),
                     'verified_farms' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
                     'needs_review' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
                     'failed' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
@@ -50,6 +63,7 @@ class DashboardController extends Controller
                     'coffee_hectares' => round($coffee, 2),
                     'other_crop_hectares' => round($declared - $coffee, 2),
                 ],
+                'assigned_farms_preview' => $assignedPreview,
                 'recent_activities' => [],
                 'recent_harvests' => [],
                 'recent_lots' => [],
@@ -62,11 +76,47 @@ class DashboardController extends Controller
 
             if ($farmer !== null) {
                 $farms = $farmer->farms();
+                $recentActivities = FarmActivity::query()
+                    ->with(['farm', 'activityType'])
+                    ->whereHas('farm', fn (Builder $query) => $query->where('farmer_id', $farmer->id))
+                    ->latest('activity_date')->latest('id')->limit(4)->get()
+                    ->map(fn (FarmActivity $activity): array => $activity->summaryRow())
+                    ->values()->all();
+                $recentHarvests = FarmHarvest::query()
+                    ->with(['farm.farmer', 'production'])
+                    ->whereHas('farm', fn (Builder $query) => $query->where('farmer_id', $farmer->id))
+                    ->latest('harvest_date')->latest('id')->limit(3)->get()
+                    ->map(fn (FarmHarvest $harvest): array => $harvest->summaryRow())
+                    ->values()->all();
+                $recentProductions = FarmProduction::query()
+                    ->with(['farm.farmer'])
+                    ->whereHas('farm', fn (Builder $query) => $query->where('farmer_id', $farmer->id))
+                    ->latest('id')->limit(3)->get()
+                    ->map(fn (FarmProduction $production): array => $production->present())
+                    ->values()->all();
+                $recentNotifications = $user->notifications()->latest()->limit(4)->get()
+                    ->map(fn ($notification): array => [
+                        'id' => $notification->id,
+                        'title' => $notification->data['title'] ?? 'SureFarm update',
+                        'message' => $notification->data['message'] ?? '',
+                        'farm_name' => $notification->data['farm_name'] ?? null,
+                        'status' => $notification->data['status'] ?? null,
+                        'created_at' => $notification->created_at?->format('M j, Y g:i A'),
+                        'read' => $notification->read_at !== null,
+                    ])->values()->all();
 
                 return Inertia::render('dashboard', [
                     'mobile_dashboard_mode' => 'farmer_dashboard',
                     'account' => ['name' => $user->name, 'email' => $user->email],
-                    'farmer' => ['name' => $farmer->fullName(), 'farmer_id' => $farmer->farmer_id],
+                    'farmer' => [
+                        'name' => $farmer->fullName(),
+                        'farmer_id' => $farmer->farmer_id,
+                    ],
+                    'unread_notifications' => $user->unreadNotifications()->count(),
+                    'recent_notifications' => $recentNotifications,
+                    'recent_activities' => $recentActivities,
+                    'recent_harvests' => $recentHarvests,
+                    'recent_productions' => $recentProductions,
                     'summary' => [
                         'registered_farms' => (clone $farms)->count(),
                         'pending_verification' => (clone $farms)->where('verification_status', FarmVerificationStatus::Pending)->count(),

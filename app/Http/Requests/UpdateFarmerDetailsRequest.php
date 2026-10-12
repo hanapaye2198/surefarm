@@ -28,6 +28,11 @@ class UpdateFarmerDetailsRequest extends FormRequest
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'government_id' => ['nullable', 'string', 'max:64'],
+            'suffix' => ['nullable', 'string', 'max:24'],
+            'sitio_purok_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'barangay_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'lgu_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'security_control_code' => ['nullable', 'regex:/^\d{3}$/'],
             'user_id' => [
                 'nullable',
                 'integer',
@@ -103,6 +108,19 @@ class UpdateFarmerDetailsRequest extends FormRequest
             $values['user_id'] = $this->filled('user_id') ? $this->input('user_id') : null;
         }
 
+        foreach (['suffix', 'sitio_purok_code', 'barangay_code', 'lgu_code', 'security_control_code'] as $field) {
+            if ($this->exists($field)) {
+                $values[$field] = $this->cleanOptional($field);
+            }
+        }
+
         $this->merge($values);
+    }
+
+    private function cleanOptional(string $key): ?string
+    {
+        $value = $this->string($key)->trim()->toString();
+
+        return $value === '' ? null : $value;
     }
 }

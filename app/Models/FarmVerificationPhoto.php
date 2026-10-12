@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\URL;
 
 #[Fillable([
     'farm_verification_id',
@@ -49,6 +50,11 @@ class FarmVerificationPhoto extends Model
             'id' => $this->id,
             'type' => $this->evidence_type,
             'name' => $this->original_name,
+            'url' => URL::temporarySignedRoute(
+                'api.mobile.media.farm-verification-photo',
+                now()->addMinutes(15),
+                ['photo' => $this->id],
+            ),
             'captured_at' => $this->captured_at?->toIso8601String(),
             'latitude' => $this->latitude === null ? null : (float) $this->latitude,
             'longitude' => $this->longitude === null ? null : (float) $this->longitude,

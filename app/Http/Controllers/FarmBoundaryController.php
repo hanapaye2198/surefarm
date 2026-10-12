@@ -5,14 +5,33 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DestroyFarmBoundaryRequest;
 use App\Http\Requests\SaveFarmBoundaryRequest;
 use App\Models\Farm;
+use App\Services\FarmAreaComparison;
 use App\Services\FarmBoundaryGeometry;
 use App\UserRole;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
 class FarmBoundaryController extends Controller
 {
+    public function preview(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry, FarmAreaComparison $areas): JsonResponse
+    {
+        $inspection = $geometry->inspect($request->validated('boundary_geojson'));
+        $hectares = $inspection['hectares'];
+
+        if ($hectares === null) {
+            return response()->json([
+                'message' => $inspection['error'] ?? 'The boundary could not be measured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'measured_area_hectares' => $hectares,
+            'measured_area' => $areas->hectares($hectares),
+        ]);
+    }
+
     public function store(SaveFarmBoundaryRequest $request, Farm $farm, FarmBoundaryGeometry $geometry): RedirectResponse
     {
         if ($farm->boundary()->exists()) {

@@ -20,10 +20,15 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'first_name',
     'middle_name',
     'last_name',
+    'suffix',
     'date_of_birth',
     'government_id',
     'photo_path',
     'purok_sitio',
+    'sitio_purok_code',
+    'barangay_code',
+    'lgu_code',
+    'security_control_code',
     'barangay',
     'municipality',
     'province',
@@ -91,7 +96,7 @@ class Farmer extends Model
 
     public function fullName(): string
     {
-        return collect([$this->first_name, $this->middle_name, $this->last_name])
+        return collect([$this->first_name, $this->middle_name, $this->last_name, $this->suffix])
             ->filter()
             ->implode(' ');
     }

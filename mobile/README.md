@@ -8,7 +8,7 @@ Native Android and iOS client built with Expo and React Native. Laravel remains 
 - Role-aware dashboard and workspaces for administration, operations, and field verification.
 - Farmer and farm records, farm activities, production, harvest, inventory, coffee processing, traceability, insurance, financing, and activity-type settings.
 - Laravel form validation, existing server-side actions, search, details, and pagination.
-- Farmer/farm photo upload, phone GPS coordinates, and walked farm-boundary capture.
+- Farmer/farm photo upload, phone GPS coordinates, walked farm-boundary capture, and native map previews.
 
 The app keeps the four Laravel roles: `admin`, `operations`, `field_verifier`, and `farmer`. Access is enforced again by Laravel on every protected API route.
 
@@ -27,6 +27,8 @@ The default API URL is `https://surefarm.io`. To use staging, set `EXPO_PUBLIC_S
 $env:EXPO_PUBLIC_SUREFARM_URL = 'https://staging.example.com'
 npx expo start
 ```
+
+Set `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` in the environment used for native Android/iOS builds to enable Google basemaps. `VITE_GOOGLE_MAPS_API_KEY` is also accepted. The key is inserted by the Expo config plugin at build time; add it to your EAS environment for cloud builds. Rebuild the native app after adding or changing the key. The browser deployment continues to receive its Maps JavaScript key from Laravel.
 
 Open the QR code with Expo Go for development, or use an EAS build for an installable app.
 
