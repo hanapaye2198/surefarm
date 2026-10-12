@@ -1599,31 +1599,6 @@ function Dashboard({
             value: summary.registered_farmers ?? 0,
         },
         { icon: 'farms', label: 'Farms', value: summary.registered_farms ?? 0 },
-        {
-            icon: 'pending',
-            label: 'Pending',
-            value: summary.pending_verification ?? 0,
-        },
-        {
-            icon: 'inProgress',
-            label: 'In progress',
-            value: summary.in_progress ?? 0,
-        },
-        {
-            icon: 'verified',
-            label: 'Verified',
-            value: summary.verified_farms ?? 0,
-        },
-        {
-            icon: 'needsReview',
-            label: 'Needs review',
-            value: summary.needs_review ?? 0,
-        },
-        {
-            icon: 'failed',
-            label: 'Failed',
-            value: summary.failed ?? 0,
-        },
     ];
     const verifierStats: {
         icon: IconName;
@@ -1641,16 +1616,6 @@ function Dashboard({
             value: summary.assigned_today ?? 0,
         },
         {
-            icon: 'pending',
-            label: 'Pending',
-            value: summary.pending_verification ?? 0,
-        },
-        {
-            icon: 'inProgress',
-            label: 'In progress',
-            value: summary.in_progress ?? 0,
-        },
-        {
             icon: 'verified',
             label: 'Completed',
             value: summary.completed_farms ?? 0,
@@ -1660,15 +1625,52 @@ function Dashboard({
             label: 'Verified today',
             value: summary.verified_today ?? 0,
         },
+    ];
+    const stats =
+        user?.role === 'field_verifier' ? verifierStats : operationsStats;
+    const verificationStats: {
+        icon: IconName;
+        label: string;
+        value: string | number;
+        color: string;
+        background: string;
+    }[] = [
+        {
+            icon: 'pending',
+            label: 'Pending',
+            value: summary.pending_verification ?? 0,
+            color: '#9a6810',
+            background: '#fbf4e5',
+        },
+        {
+            icon: 'inProgress',
+            label: 'In progress',
+            value: summary.in_progress ?? 0,
+            color: '#3975ad',
+            background: '#edf4fb',
+        },
+        {
+            icon: 'verified',
+            label: 'Verified',
+            value: summary.verified_farms ?? 0,
+            color: '#33845a',
+            background: '#eaf5ee',
+        },
         {
             icon: 'needsReview',
             label: 'Needs review',
             value: summary.needs_review ?? 0,
+            color: '#a76522',
+            background: '#fbf0e5',
         },
-        { icon: 'failed', label: 'Failed', value: summary.failed ?? 0 },
+        {
+            icon: 'failed',
+            label: 'Failed',
+            value: summary.failed ?? 0,
+            color: '#b54740',
+            background: '#fbebea',
+        },
     ];
-    const stats =
-        user?.role === 'field_verifier' ? verifierStats : operationsStats;
     const hour = new Date().getHours();
     const greeting =
         hour < 12
@@ -1758,6 +1760,56 @@ function Dashboard({
                         <Text style={styles.statValue}>{String(value)}</Text>
                     </View>
                 ))}
+            </View>
+            <View style={styles.verificationSummaryCard}>
+                <View style={styles.verificationSummaryHeader}>
+                    <View>
+                        <Text style={styles.cardTitle}>Farm verification</Text>
+                        <Text style={styles.verificationSummaryHint}>
+                            {user?.role === 'field_verifier'
+                                ? 'Current status across assigned farms'
+                                : 'Current status across registered farms'}
+                        </Text>
+                    </View>
+                    <View style={styles.verificationSummaryIcon}>
+                        <AppIcon name="verified" size={18} color={API_FOREST} />
+                    </View>
+                </View>
+                <View style={styles.verificationSummaryGrid}>
+                    {verificationStats.map(
+                        ({ icon, label, value, color, background }) => (
+                            <View key={label} style={styles.verificationMetric}>
+                                <View
+                                    style={[
+                                        styles.verificationMetricIcon,
+                                        { backgroundColor: background },
+                                    ]}
+                                >
+                                    <AppIcon
+                                        name={icon}
+                                        size={15}
+                                        color={color}
+                                    />
+                                </View>
+                                <View style={styles.verificationMetricCopy}>
+                                    <Text
+                                        style={styles.verificationMetricLabel}
+                                    >
+                                        {label}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.verificationMetricValue,
+                                            { color },
+                                        ]}
+                                    >
+                                        {String(value)}
+                                    </Text>
+                                </View>
+                            </View>
+                        ),
+                    )}
+                </View>
             </View>
             {page.data.area_summary && (
                 <View style={styles.card}>
@@ -6009,6 +6061,73 @@ const styles = StyleSheet.create({
         letterSpacing: 0.8,
     },
     stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    verificationSummaryCard: {
+        marginTop: 18,
+        padding: 16,
+        borderRadius: 21,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e4ebe5',
+        shadowColor: '#20392a',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.055,
+        shadowRadius: 14,
+        elevation: 2,
+    },
+    verificationSummaryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14,
+    },
+    verificationSummaryHint: {
+        color: MUTED,
+        fontSize: 11,
+        marginTop: 3,
+    },
+    verificationSummaryIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#eaf3eb',
+    },
+    verificationSummaryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        rowGap: 9,
+    },
+    verificationMetric: {
+        width: '48.5%',
+        minHeight: 60,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 9,
+        backgroundColor: '#f7f9f7',
+    },
+    verificationMetricIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 11,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    verificationMetricCopy: { flex: 1, gap: 2 },
+    verificationMetricLabel: {
+        color: MUTED,
+        fontSize: 10,
+        fontWeight: '600',
+    },
+    verificationMetricValue: {
+        fontSize: 20,
+        lineHeight: 23,
+        fontWeight: '800',
+    },
     stat: {
         width: '47%',
         minHeight: 102,
