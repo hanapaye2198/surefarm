@@ -1,4 +1,10 @@
-import React, { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+    createElement,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Platform, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -91,10 +97,12 @@ export default function FarmAssignmentMap({
         const previousAuthFailure = browserWindow.gm_authFailure;
         const handleAuthFailure = () => {
             if (!cancelled) setMapUnavailable(true);
-            if (typeof previousAuthFailure === 'function') previousAuthFailure();
+            if (typeof previousAuthFailure === 'function')
+                previousAuthFailure();
         };
         const renderMap = () => {
-            if (cancelled || !mapHost.current || !browserWindow.google?.maps) return;
+            if (cancelled || !mapHost.current || !browserWindow.google?.maps)
+                return;
             if (timeout) clearTimeout(timeout);
             try {
                 const googleMaps = browserWindow.google.maps;
@@ -125,7 +133,9 @@ export default function FarmAssignmentMap({
                             strokeWeight: 2,
                         },
                     });
-                    marker.addListener('click', () => onSelectRef.current(farm));
+                    marker.addListener('click', () =>
+                        onSelectRef.current(farm),
+                    );
                     return marker;
                 });
                 if (pins.length === 1) {
@@ -252,7 +262,8 @@ export default function FarmAssignmentMap({
                     }}
                 >
                     <Text style={{ color: '#58675c', fontSize: 12 }}>
-                        Google Maps is unavailable. Showing assignment pins; tap one to open its record.
+                        Google Maps is unavailable. Showing assignment pins; tap
+                        one to open its record.
                     </Text>
                 </View>
             ) : null}

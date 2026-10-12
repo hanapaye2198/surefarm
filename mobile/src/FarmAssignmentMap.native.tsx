@@ -14,13 +14,17 @@ export type FarmPin = {
 };
 
 function pinColor(status: string): string {
-    return ({
-        pending: '#d69219',
-        in_progress: '#4384d5',
-        verified: '#348758',
-        failed: '#c74848',
-        needs_review: '#bd6c25',
-    } as Record<string, string>)[status] ?? '#60746a';
+    return (
+        (
+            {
+                pending: '#d69219',
+                in_progress: '#4384d5',
+                verified: '#348758',
+                failed: '#c74848',
+                needs_review: '#bd6c25',
+            } as Record<string, string>
+        )[status] ?? '#60746a'
+    );
 }
 
 type Props = {
@@ -30,7 +34,11 @@ type Props = {
     height?: number;
 };
 
-export default function FarmAssignmentMap({ farms, onSelect, height = 230 }: Props) {
+export default function FarmAssignmentMap({
+    farms,
+    onSelect,
+    height = 230,
+}: Props) {
     const map = useRef<MapView | null>(null);
     const pins = useMemo(
         () =>

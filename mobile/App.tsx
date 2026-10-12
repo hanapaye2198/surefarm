@@ -1421,7 +1421,10 @@ function Dashboard({
                     {page.data.farmer?.photo_url ? (
                         <Image
                             source={{ uri: page.data.farmer.photo_url }}
-                            style={[styles.profilePhoto, { borderRadius: 36, marginBottom: 14 }]}
+                            style={[
+                                styles.profilePhoto,
+                                { borderRadius: 36, marginBottom: 14 },
+                            ]}
                             accessibilityLabel="Farmer face photo"
                         />
                     ) : (
@@ -1444,8 +1447,14 @@ function Dashboard({
                     <Text style={styles.welcomeBody}>
                         Your farms and verification updates, in one place.
                     </Text>
-                    <Text style={[styles.recordCode, { color: '#d4e3d8', marginTop: 8 }]}>
-                        Farmer ID / {page.data.farmer?.farmer_id ?? 'Not assigned'}
+                    <Text
+                        style={[
+                            styles.recordCode,
+                            { color: '#d4e3d8', marginTop: 8 },
+                        ]}
+                    >
+                        Farmer ID /{' '}
+                        {page.data.farmer?.farmer_id ?? 'Not assigned'}
                     </Text>
                 </View>
                 <View style={styles.card}>
@@ -1797,7 +1806,9 @@ function Dashboard({
                                     {item.farmer_name} · {item.created_at}
                                 </Text>
                                 <Text style={styles.muted}>{item.reason}</Text>
-                                <Text style={styles.status}>Open farm record</Text>
+                                <Text style={styles.status}>
+                                    Open farm record
+                                </Text>
                             </Pressable>
                         ))}
                     </View>
@@ -2225,77 +2236,118 @@ function DataPage(props: {
                         }
                     />
                 )}
-                {farm.verification_status === 'verified' && page.data.boundary && (
-                    <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Boundary correction</Text>
-                        {page.data.boundary_update_request?.status === 'pending' ? (
-                            <Text style={styles.mutedSmall}>
-                                Your review request was submitted on{' '}
-                                {page.data.boundary_update_request.created_at}. SureFarm staff will review it.
+                {farm.verification_status === 'verified' &&
+                    page.data.boundary && (
+                        <View style={styles.card}>
+                            <Text style={styles.cardTitle}>
+                                Boundary correction
                             </Text>
-                        ) : (
-                            <>
-                                {page.data.boundary_update_request?.status === 'addressed' && (
-                                    <Text style={styles.mutedSmall}>
-                                        Your previous request was addressed on{' '}
-                                        {page.data.boundary_update_request.resolved_at}.
-                                    </Text>
-                                )}
+                            {page.data.boundary_update_request?.status ===
+                            'pending' ? (
                                 <Text style={styles.mutedSmall}>
-                                    Ask SureFarm staff to review the official boundary. This will not change the saved boundary.
-                                </Text>
-                                <Secondary
-                                    title="Request boundary review"
-                                    onPress={() =>
-                                        props.onLocalForm('farmer-boundary-update/request', {
-                                            farmId: farm.id,
-                                            farmName: farm.farm_name,
-                                        })
+                                    Your review request was submitted on{' '}
+                                    {
+                                        page.data.boundary_update_request
+                                            .created_at
                                     }
-                                />
-                            </>
-                        )}
-                    </View>
-                )}
+                                    . SureFarm staff will review it.
+                                </Text>
+                            ) : (
+                                <>
+                                    {page.data.boundary_update_request
+                                        ?.status === 'addressed' && (
+                                        <Text style={styles.mutedSmall}>
+                                            Your previous request was addressed
+                                            on{' '}
+                                            {
+                                                page.data
+                                                    .boundary_update_request
+                                                    .resolved_at
+                                            }
+                                            .
+                                        </Text>
+                                    )}
+                                    <Text style={styles.mutedSmall}>
+                                        Ask SureFarm staff to review the
+                                        official boundary. This will not change
+                                        the saved boundary.
+                                    </Text>
+                                    <Secondary
+                                        title="Request boundary review"
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'farmer-boundary-update/request',
+                                                {
+                                                    farmId: farm.id,
+                                                    farmName: farm.farm_name,
+                                                },
+                                            )
+                                        }
+                                    />
+                                </>
+                            )}
+                        </View>
+                    )}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Recent farm activities</Text>
                     {(page.data.activities ?? []).length > 0 ? (
                         page.data.activities.map((item: any) => (
-                            <View key={`farm-activity-${item.id}`} style={styles.relatedRow}>
+                            <View
+                                key={`farm-activity-${item.id}`}
+                                style={styles.relatedRow}
+                            >
                                 <Text style={styles.recordTitle}>
-                                    {item.activity_type ?? item.description ?? 'Farm activity'}
+                                    {item.activity_type ??
+                                        item.description ??
+                                        'Farm activity'}
                                 </Text>
                                 <Text style={styles.mutedSmall}>
-                                    {item.activity_date ?? 'Date not recorded'} · {item.status_label ?? item.status}
+                                    {item.activity_date ?? 'Date not recorded'}{' '}
+                                    · {item.status_label ?? item.status}
                                 </Text>
                                 {item.remarks ? (
-                                    <Text style={styles.mutedSmall}>{item.remarks}</Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {item.remarks}
+                                    </Text>
                                 ) : null}
                             </View>
                         ))
                     ) : (
-                        <Text style={styles.inlineEmpty}>No activities recorded for this farm yet.</Text>
+                        <Text style={styles.inlineEmpty}>
+                            No activities recorded for this farm yet.
+                        </Text>
                     )}
                 </View>
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Recent harvests</Text>
                     {(page.data.harvests ?? []).length > 0 ? (
                         page.data.harvests.map((item: any) => (
-                            <View key={`farm-harvest-${item.id}`} style={styles.relatedRow}>
+                            <View
+                                key={`farm-harvest-${item.id}`}
+                                style={styles.relatedRow}
+                            >
                                 <Text style={styles.recordTitle}>
-                                    {item.quantity_label ?? `${item.quantity ?? 0} ${item.unit ?? ''}`}
+                                    {item.quantity_label ??
+                                        `${item.quantity ?? 0} ${item.unit ?? ''}`}
                                 </Text>
                                 <Text style={styles.mutedSmall}>
-                                    {item.harvest_date ?? 'Date not recorded'} · {item.status_label ?? item.status}
-                                    {item.quality_grade ? ` · ${item.quality_grade}` : ''}
+                                    {item.harvest_date ?? 'Date not recorded'} ·{' '}
+                                    {item.status_label ?? item.status}
+                                    {item.quality_grade
+                                        ? ` · ${item.quality_grade}`
+                                        : ''}
                                 </Text>
                                 {item.notes ? (
-                                    <Text style={styles.mutedSmall}>{item.notes}</Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {item.notes}
+                                    </Text>
                                 ) : null}
                             </View>
                         ))
                     ) : (
-                        <Text style={styles.inlineEmpty}>No harvest records for this farm yet.</Text>
+                        <Text style={styles.inlineEmpty}>
+                            No harvest records for this farm yet.
+                        </Text>
                     )}
                 </View>
                 <VerificationHistory
@@ -2344,9 +2396,7 @@ function DataPage(props: {
                 )}
                 {activitiesPage?.next_page_url && (
                     <Secondary
-                        title={
-                            props.busy ? 'Loading…' : 'Load more activities'
-                        }
+                        title={props.busy ? 'Loading…' : 'Load more activities'}
                         onPress={() =>
                             props.onLoadMore(
                                 nextPath(activitiesPage.next_page_url),
@@ -2430,9 +2480,7 @@ function DataPage(props: {
                 )}
                 {productionsPage?.next_page_url && (
                     <Secondary
-                        title={
-                            props.busy ? 'Loading…' : 'Load more production'
-                        }
+                        title={props.busy ? 'Loading…' : 'Load more production'}
                         onPress={() =>
                             props.onLoadMore(
                                 nextPath(productionsPage.next_page_url),
@@ -3060,8 +3108,7 @@ function DataPage(props: {
                         />
                     )}
                 {props.user.role === 'field_verifier' &&
-                    farm.verification_status === 'verified' &&
-                    (
+                    farm.verification_status === 'verified' && (
                         <Primary
                             title="Start re-verification"
                             busy={props.busy}
@@ -3113,19 +3160,44 @@ function DataPage(props: {
                                                     farmId: farm.id,
                                                     farmName: farm.farm_name,
                                                     farmCode: farm.farm_id,
-                                                    farmerName: farm.farmer_name,
-                                                    declaredArea: page.data.comparison?.declared_area,
-                                                    measuredArea: page.data.comparison?.measured_area,
-                                                    difference: page.data.comparison?.difference,
-                                                    variance: page.data.comparison?.variance,
-                                                    farm_exists: inspection.checklist.farm_exists,
-                                                    location_matches: inspection.checklist.location_matches,
-                                                    coffee_crop_observed: inspection.checklist.coffee_crop_observed,
-                                                    boundary_captured: inspection.checklist.boundary_captured,
-                                                    area_checked: inspection.checklist.area_checked,
-                                                    required_photos_captured: inspection.checklist.required_photos_captured,
-                                                    farmer_or_representative_met: inspection.checklist.farmer_or_representative_met,
-                                                    remarks: inspection.checklist.observations,
+                                                    farmerName:
+                                                        farm.farmer_name,
+                                                    declaredArea:
+                                                        page.data.comparison
+                                                            ?.declared_area,
+                                                    measuredArea:
+                                                        page.data.comparison
+                                                            ?.measured_area,
+                                                    difference:
+                                                        page.data.comparison
+                                                            ?.difference,
+                                                    variance:
+                                                        page.data.comparison
+                                                            ?.variance,
+                                                    farm_exists:
+                                                        inspection.checklist
+                                                            .farm_exists,
+                                                    location_matches:
+                                                        inspection.checklist
+                                                            .location_matches,
+                                                    coffee_crop_observed:
+                                                        inspection.checklist
+                                                            .coffee_crop_observed,
+                                                    boundary_captured:
+                                                        inspection.checklist
+                                                            .boundary_captured,
+                                                    area_checked:
+                                                        inspection.checklist
+                                                            .area_checked,
+                                                    required_photos_captured:
+                                                        inspection.checklist
+                                                            .required_photos_captured,
+                                                    farmer_or_representative_met:
+                                                        inspection.checklist
+                                                            .farmer_or_representative_met,
+                                                    remarks:
+                                                        inspection.checklist
+                                                            .observations,
                                                 },
                                             )
                                         }
@@ -3139,20 +3211,27 @@ function DataPage(props: {
                                                     farmId: farm.id,
                                                     farmName: farm.farm_name,
                                                     farmCode: farm.farm_id,
-                                                    farmerName: farm.farmer_name,
+                                                    farmerName:
+                                                        farm.farmer_name,
                                                     declaredArea:
-                                                        page.data.comparison?.declared_area,
+                                                        page.data.comparison
+                                                            ?.declared_area,
                                                     measuredArea:
-                                                        page.data.comparison?.measured_area,
+                                                        page.data.comparison
+                                                            ?.measured_area,
                                                     difference:
-                                                        page.data.comparison?.difference,
+                                                        page.data.comparison
+                                                            ?.difference,
                                                     variance:
-                                                        page.data.comparison?.variance,
-                                                    gpsPoints: boundaryPointCount(
-                                                        page.data.boundary,
-                                                    ),
+                                                        page.data.comparison
+                                                            ?.variance,
+                                                    gpsPoints:
+                                                        boundaryPointCount(
+                                                            page.data.boundary,
+                                                        ),
                                                     evidencePhotos:
-                                                        inspection.photos.length,
+                                                        inspection.photos
+                                                            .length,
                                                     requiredChecksPassed:
                                                         inspectionChecks
                                                             .slice(0, 6)
@@ -3232,19 +3311,22 @@ function DataPage(props: {
                                     <SummaryRow
                                         label="Location matches registration"
                                         value={checklistAnswer(
-                                            inspection.checklist?.location_matches,
+                                            inspection.checklist
+                                                ?.location_matches,
                                         )}
                                     />
                                     <SummaryRow
                                         label="Coffee crop observed"
                                         value={checklistAnswer(
-                                            inspection.checklist?.coffee_crop_observed,
+                                            inspection.checklist
+                                                ?.coffee_crop_observed,
                                         )}
                                     />
                                     <SummaryRow
                                         label="GPS boundary captured"
                                         value={checklistAnswer(
-                                            inspection.checklist?.boundary_captured,
+                                            inspection.checklist
+                                                ?.boundary_captured,
                                         )}
                                     />
                                     <SummaryRow
@@ -3256,13 +3338,15 @@ function DataPage(props: {
                                     <SummaryRow
                                         label="Required photos captured"
                                         value={checklistAnswer(
-                                            inspection.checklist?.required_photos_captured,
+                                            inspection.checklist
+                                                ?.required_photos_captured,
                                         )}
                                     />
                                     <SummaryRow
                                         label="Farmer or representative met"
                                         value={checklistAnswer(
-                                            inspection.checklist?.farmer_or_representative_met,
+                                            inspection.checklist
+                                                ?.farmer_or_representative_met,
                                         )}
                                     />
                                     {inspection.checklist?.observations ? (
@@ -3294,7 +3378,10 @@ function DataPage(props: {
                                                             styles.mutedSmall
                                                         }
                                                     >
-                                                        {String(photo.type ?? 'field_inspection').replaceAll('_', ' ')}
+                                                        {String(
+                                                            photo.type ??
+                                                                'field_inspection',
+                                                        ).replaceAll('_', ' ')}
                                                     </Text>
                                                     <Text
                                                         style={
@@ -3806,7 +3893,9 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
                     Math.cos(endLatitude) *
                     Math.sin(longitudeDelta / 2) ** 2;
             const meters =
-                earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                earthRadiusMeters *
+                2 *
+                Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             setDistance({
                 meters,
                 accuracy: position.coords.accuracy,
@@ -5044,7 +5133,10 @@ function VerificationHistory({
                                             accessibilityLabel={`Verification evidence: ${photo.name}`}
                                         />
                                         <Text style={styles.mutedSmall}>
-                                            {String(photo.type ?? 'field_inspection').replaceAll('_', ' ')}
+                                            {String(
+                                                photo.type ??
+                                                    'field_inspection',
+                                            ).replaceAll('_', ' ')}
                                         </Text>
                                         <Text style={styles.mutedSmall}>
                                             {photo.name}
@@ -5557,11 +5649,12 @@ function boundaryPointCount(boundary: any): number {
             typeof boundary?.geojson === 'string'
                 ? JSON.parse(boundary.geojson)
                 : boundary?.geojson;
-        const ring = geometry?.type === 'Polygon'
-            ? geometry.coordinates?.[0]
-            : geometry?.type === 'MultiPolygon'
-              ? geometry.coordinates?.[0]?.[0]
-              : null;
+        const ring =
+            geometry?.type === 'Polygon'
+                ? geometry.coordinates?.[0]
+                : geometry?.type === 'MultiPolygon'
+                  ? geometry.coordinates?.[0]?.[0]
+                  : null;
         if (!Array.isArray(ring)) return 0;
         const isClosed =
             ring.length > 1 &&

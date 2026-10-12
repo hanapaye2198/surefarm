@@ -888,7 +888,10 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     yesNo('coffee_crop_observed', 'Coffee crop observed'),
                     yesNo('boundary_captured', 'GPS boundary captured'),
                     yesNo('area_checked', 'Farm area checked'),
-                    yesNo('required_photos_captured', 'Required photos captured'),
+                    yesNo(
+                        'required_photos_captured',
+                        'Required photos captured',
+                    ),
                     yesNo(
                         'farmer_or_representative_met',
                         'Farmer or representative met',
@@ -903,7 +906,10 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                             { value: 'farm_entrance', label: 'Farm entrance' },
                             { value: 'coffee_plants', label: 'Coffee plants' },
                             { value: 'farm_boundary', label: 'Farm boundary' },
-                            { value: 'general_farm_view', label: 'General farm view' },
+                            {
+                                value: 'general_farm_view',
+                                label: 'General farm view',
+                            },
                             { value: 'other', label: 'Other' },
                         ],
                     },
