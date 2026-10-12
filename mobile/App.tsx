@@ -3893,11 +3893,24 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
         meters: number;
         accuracy: number | null;
     } | null>(null);
+    const [measuringDistance, setMeasuringDistance] = useState(false);
+    const [distanceMessage, setDistanceMessage] = useState<{
+        text: string;
+        isError: boolean;
+    } | null>(null);
+    const farmLatitude = Number(farm.latitude);
+    const farmLongitude = Number(farm.longitude);
     const hasCoordinates =
         farm.latitude !== null &&
         farm.latitude !== undefined &&
         farm.longitude !== null &&
-        farm.longitude !== undefined;
+        farm.longitude !== undefined &&
+        Number.isFinite(farmLatitude) &&
+        farmLatitude >= -90 &&
+        farmLatitude <= 90 &&
+        Number.isFinite(farmLongitude) &&
+        farmLongitude >= -180 &&
+        farmLongitude <= 180;
     const address =
         farm.location ??
         [farm.purok_sitio, farm.barangay, farm.municipality, farm.province]
@@ -3916,28 +3929,66 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
         }
     };
     const measureDistance = async () => {
-        const permission = await Location.requestForegroundPermissionsAsync();
-        if (!permission.granted) {
-            Alert.alert(
-                'Location permission needed',
-                'Allow location access while using SureFarm to estimate the distance to this farm.',
-            );
-            return;
-        }
-
+        if (measuringDistance) return;
+        setMeasuringDistance(true);
+        setDistance(null);
+        setDistanceMessage(null);
         try {
-            const position = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High,
-            });
+            let latitude: number;
+            let longitude: number;
+            let accuracy: number | null;
+
+            if (Platform.OS === 'web') {
+                if (!globalThis.isSecureContext) {
+                    throw new Error(
+                        'Location access requires a secure HTTPS connection.',
+                    );
+                }
+
+                if (!navigator.geolocation) {
+                    throw new Error(
+                        'This browser does not provide location access.',
+                    );
+                }
+
+                const position = await new Promise<GeolocationPosition>(
+                    (resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                            resolve,
+                            reject,
+                            {
+                                enableHighAccuracy: true,
+                                maximumAge: 0,
+                                timeout: 20000,
+                            },
+                        );
+                    },
+                );
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                accuracy = position.coords.accuracy;
+            } else {
+                const permission =
+                    await Location.requestForegroundPermissionsAsync();
+                if (!permission.granted) {
+                    throw new Error(
+                        'Allow location access in your device settings, then try again.',
+                    );
+                }
+
+                const position = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.High,
+                });
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                accuracy = position.coords.accuracy;
+            }
+
             const radians = (degrees: number) => (degrees * Math.PI) / 180;
-            const latitudeDelta = radians(
-                Number(farm.latitude) - position.coords.latitude,
-            );
-            const longitudeDelta = radians(
-                Number(farm.longitude) - position.coords.longitude,
-            );
-            const startLatitude = radians(position.coords.latitude);
-            const endLatitude = radians(Number(farm.latitude));
+            const latitudeDelta = radians(farmLatitude - latitude);
+            const longitudeDelta = radians(farmLongitude - longitude);
+            const startLatitude = radians(latitude);
+            const endLatitude = radians(farmLatitude);
             const earthRadiusMeters = 6_371_000;
             const a =
                 Math.sin(latitudeDelta / 2) ** 2 +
@@ -3950,13 +4001,27 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
                 Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             setDistance({
                 meters,
-                accuracy: position.coords.accuracy,
+                accuracy,
             });
-        } catch {
-            Alert.alert(
-                'Could not read location',
-                'Move outdoors and try again.',
-            );
+            setDistanceMessage({
+                text: 'Distance measured from your current location.',
+                isError: false,
+            });
+        } catch (error) {
+            const code = (error as { code?: number } | null)?.code;
+            const message =
+                code === 1
+                    ? 'Location permission is blocked. Allow it in your browser or device settings, then try again.'
+                    : code === 2
+                      ? 'Your location is unavailable. Turn on GPS and try again outdoors.'
+                      : code === 3
+                        ? 'Getting your location took too long. Check GPS reception and try again.'
+                        : error instanceof Error
+                          ? error.message
+                          : 'Could not read your location. Turn on GPS and try again.';
+            setDistanceMessage({ text: message, isError: true });
+        } finally {
+            setMeasuringDistance(false);
         }
     };
 
@@ -3982,10 +4047,52 @@ function FarmLocationCard({ farm }: { farm: Record<string, any> }) {
                         title="Open directions in Maps"
                         onPress={() => void openMap()}
                     />
-                    <Secondary
-                        title="Measure distance from my location"
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: measuringDistance }}
+                        disabled={measuringDistance}
                         onPress={() => void measureDistance()}
-                    />
+                        style={({ pressed }) => [
+                            styles.secondary,
+                            styles.locationMeasureButton,
+                            pressed && styles.pressed,
+                            measuringDistance && styles.locationMeasureDisabled,
+                        ]}
+                    >
+                        {measuringDistance ? (
+                            <>
+                                <ActivityIndicator size="small" color={GREEN} />
+                                <Text style={styles.secondaryText}>
+                                    Getting your location…
+                                </Text>
+                            </>
+                        ) : (
+                            <>
+                                <AppIcon
+                                    name="location"
+                                    size={16}
+                                    color={GREEN}
+                                />
+                                <Text style={styles.secondaryText}>
+                                    Measure distance from my location
+                                </Text>
+                            </>
+                        )}
+                    </Pressable>
+                    {distanceMessage && (
+                        <Text
+                            accessibilityLiveRegion="polite"
+                            style={[
+                                styles.gpsAccuracy,
+                                distanceMessage.isError &&
+                                    styles.locationMeasureError,
+                                !distanceMessage.isError &&
+                                    styles.locationMeasureSuccess,
+                            ]}
+                        >
+                            {distanceMessage.text}
+                        </Text>
+                    )}
                     {distance && (
                         <Text style={styles.gpsAccuracy}>
                             About {(distance.meters / 1000).toFixed(2)} km away
@@ -6421,6 +6528,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    locationMeasureButton: {
+        minHeight: 48,
+        marginTop: 9,
+        flexDirection: 'row',
+        gap: 8,
+    },
+    locationMeasureDisabled: { opacity: 0.7 },
     secondaryText: { color: API_FOREST, fontSize: 12, fontWeight: '700' },
     pressed: { opacity: 0.72 },
     notice: {
@@ -6534,6 +6648,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 7,
     },
+    locationMeasureError: { color: '#a23b34' },
+    locationMeasureSuccess: { color: '#28724c' },
     locationCard: {
         marginTop: 13,
         padding: 13,
