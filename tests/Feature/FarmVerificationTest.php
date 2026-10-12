@@ -9,7 +9,10 @@ use App\Models\Farmer;
 use App\Models\FarmVerification;
 use App\Models\User;
 use App\UserRole;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
 
 test('a pending farm appears in the verification list', function () {
     $farm = farmReadyToVerify();
@@ -48,12 +51,14 @@ test('verification search stays on the server', function () {
 });
 
 test('verification cannot start without a boundary', function () {
+    $verifier = fieldVerifier();
     $farm = Farm::factory()->create([
+        'assigned_verifier_id' => $verifier->id,
         'declared_area_hectares' => 2.84,
         'verification_status' => FarmVerificationStatus::Pending,
     ]);
 
-    $this->actingAs(fieldVerifier())
+    $this->actingAs($verifier)
         ->from(route('farm-verification.show', $farm))
         ->post(route('farm-verification.store', $farm))
         ->assertRedirect(route('farm-verification.show', $farm))
@@ -101,6 +106,8 @@ test('approval stores the measured area without changing the declared area', fun
     $this->actingAs($verifier)
         ->post(route('farm-verification.store', $farm))
         ->assertRedirect();
+
+    submitFarmInspection($this, $farm, $verifier);
 
     $this->actingAs($verifier)
         ->put(route('farm-verification.update', $farm), [
@@ -153,6 +160,7 @@ test('a failed verification does not set verified area', function () {
     $verifier = fieldVerifier();
 
     $this->actingAs($verifier)->post(route('farm-verification.store', $farm));
+    submitFarmInspection($this, $farm, $verifier);
     $this->actingAs($verifier)->put(route('farm-verification.update', $farm), [
         'result' => 'failed',
         'remarks' => 'The boundary does not match the farm.',
@@ -171,6 +179,7 @@ test('needs review does not set verified area', function () {
     $verifier = fieldVerifier();
 
     $this->actingAs($verifier)->post(route('farm-verification.store', $farm));
+    submitFarmInspection($this, $farm, $verifier);
     $this->actingAs($verifier)->put(route('farm-verification.update', $farm), [
         'result' => 'needs_review',
         'remarks' => 'Check the north corner.',
@@ -189,11 +198,13 @@ test('a later verification keeps the earlier history and verified area', functio
     $verifier = fieldVerifier();
 
     $this->actingAs($verifier)->post(route('farm-verification.store', $farm));
+    submitFarmInspection($this, $farm, $verifier);
     $this->actingAs($verifier)->put(route('farm-verification.update', $farm), [
         'result' => 'verified',
         'remarks' => 'First review.',
     ]);
     $this->actingAs($verifier)->post(route('farm-verification.store', $farm));
+    submitFarmInspection($this, $farm, $verifier);
     $this->actingAs($verifier)->put(route('farm-verification.update', $farm), [
         'result' => 'failed',
         'remarks' => 'Second review.',
@@ -213,7 +224,9 @@ test('a later verification keeps the earlier history and verified area', functio
 
 test('verification references are unique', function () {
     $first = farmReadyToVerify();
+    $verifier = fieldVerifier();
     $second = Farm::factory()->create([
+        'assigned_verifier_id' => $verifier->id,
         'farm_id' => 'FARM-000002',
         'declared_area_hectares' => 1.5,
     ]);
@@ -221,8 +234,6 @@ test('verification references are unique', function () {
         'farm_id' => $second->id,
         'gps_measured_area_hectares' => 1.23,
     ]);
-    $verifier = fieldVerifier();
-
     $this->actingAs($verifier)->post(route('farm-verification.store', $first));
     $this->actingAs($verifier)->post(route('farm-verification.store', $second));
 
@@ -270,6 +281,7 @@ test('approval rolls back when saving the farm fails', function () {
     $verifier = fieldVerifier();
 
     $this->actingAs($verifier)->post(route('farm-verification.store', $farm));
+    submitFarmInspection($this, $farm, $verifier);
 
     Farm::updating(function (): void {
         throw new RuntimeException('Verification stopped.');
@@ -299,6 +311,7 @@ test('approval rolls back when saving the farm fails', function () {
 
 function farmReadyToVerify(): Farm
 {
+    $verifier = fieldVerifier();
     $farmer = Farmer::factory()->create([
         'first_name' => 'Juan',
         'middle_name' => 'Dela',
@@ -306,6 +319,7 @@ function farmReadyToVerify(): Farm
     ]);
 
     $farm = Farm::factory()->create([
+        'assigned_verifier_id' => $verifier->id,
         'farmer_id' => $farmer->id,
         'farm_id' => 'FARM-000001',
         'farm_name' => 'North Coffee Farm',
@@ -326,8 +340,22 @@ function farmReadyToVerify(): Farm
 
 function fieldVerifier(): User
 {
-    return User::factory()->create([
+    return User::query()->where('role', UserRole::FieldVerifier->value)->first() ?? User::factory()->create([
         'role' => UserRole::FieldVerifier,
         'name' => 'John Doe',
     ]);
+}
+
+function submitFarmInspection(TestCase $test, Farm $farm, User $verifier): void
+{
+    Storage::fake('local');
+
+    $test->actingAs($verifier)
+        ->post(route('farm-verification.inspection', $farm), [
+            'farm_identified' => '1',
+            'boundary_walked' => '1',
+            'farmer_or_representative_met' => '1',
+            'evidence_photo' => UploadedFile::fake()->image('inspection.jpg'),
+        ])
+        ->assertRedirect(route('farm-verification.show', $farm));
 }

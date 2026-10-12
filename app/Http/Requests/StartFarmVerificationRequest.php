@@ -39,6 +39,7 @@ class StartFarmVerificationRequest extends FormRequest
             && in_array($farm->verification_status, [
                 FarmVerificationStatus::Pending,
                 FarmVerificationStatus::NeedsReview,
+                FarmVerificationStatus::Verified,
             ], true);
     }
 }

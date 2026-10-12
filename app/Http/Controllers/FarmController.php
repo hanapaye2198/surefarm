@@ -256,6 +256,7 @@ class FarmController extends Controller
 
         $user = $request->user();
         $canManageCoverage = $user instanceof User && $user->canAccess(UserRole::Operations);
+        $canViewCoverage = $user instanceof User && $user->canAccess(UserRole::Operations, UserRole::FieldVerifier);
         $reference = $this->portfolio->card($farm, 1, $farm->farmer->fullName());
 
         if (! $canManageCoverage) {
@@ -319,11 +320,11 @@ class FarmController extends Controller
                 'productions' => $this->farmProductions($farm),
                 'harvests' => $this->farmHarvests($farm),
                 'can_manage_coverage' => $canManageCoverage,
-                'insurances' => ! $canManageCoverage ? [] : $farm->insurances
+                'insurances' => ! $canViewCoverage ? [] : $farm->insurances
                     ->map(fn (FarmInsurance $insurance): array => $insurance->present())
                     ->values()
                     ->all(),
-                'financings' => ! $canManageCoverage ? [] : $farm->financings
+                'financings' => ! $canViewCoverage ? [] : $farm->financings
                     ->map(fn (FarmFinancing $financing): array => $financing->present())
                     ->values()
                     ->all(),

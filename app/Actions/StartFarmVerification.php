@@ -32,15 +32,22 @@ class StartFarmVerification
             if (! in_array($locked->verification_status, [
                 FarmVerificationStatus::Pending,
                 FarmVerificationStatus::NeedsReview,
+                FarmVerificationStatus::Verified,
             ], true)) {
                 throw ValidationException::withMessages([
-                    'verification' => 'Only pending or needs-review farms can start a new verification.',
+                    'verification' => 'This farm cannot start another verification in its current status.',
+                ]);
+            }
+
+            if ($locked->boundary === null) {
+                throw ValidationException::withMessages([
+                    'verification' => 'Farm boundary is required before verification.',
                 ]);
             }
 
             $comparison = $this->areas->calculate(
                 $locked->declared_area_hectares,
-                $locked->boundary?->gps_measured_area_hectares,
+                $locked->boundary->gps_measured_area_hectares,
             );
 
             $verification = $locked->verifications()->create([
