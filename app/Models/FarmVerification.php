@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property FarmVerificationStatus|null $previous_status
  * @property FarmVerificationResult|null $result
+ * @property array<string, mixed>|null $inspection_checklist
  */
 #[Fillable([
     'farm_id',

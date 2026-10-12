@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\FarmVerificationStatus;
 use App\Http\Requests\DestroyFarmBoundaryRequest;
 use App\Http\Requests\SaveFarmBoundaryRequest;
 use App\Models\Farm;
@@ -126,7 +127,7 @@ class FarmBoundaryController extends Controller
                         'resolved_at' => now(),
                     ]);
 
-                if ($farm->verification_status !== \App\FarmVerificationStatus::InProgress) {
+                if ($farm->verification_status !== FarmVerificationStatus::InProgress) {
                     return;
                 }
 

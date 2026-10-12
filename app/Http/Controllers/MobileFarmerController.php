@@ -10,12 +10,14 @@ use App\Models\FarmProduction;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\UserRole;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -68,8 +70,10 @@ class MobileFarmerController extends Controller
                 'id' => $boundaryUpdateRequest->id,
                 'status' => $boundaryUpdateRequest->status,
                 'reason' => $boundaryUpdateRequest->reason,
-                'created_at' => $boundaryUpdateRequest->created_at?->format('M j, Y'),
-                'resolved_at' => $boundaryUpdateRequest->resolved_at?->format('M j, Y'),
+                'created_at' => Carbon::parse($boundaryUpdateRequest->created_at)->format('M j, Y'),
+                'resolved_at' => $boundaryUpdateRequest->resolved_at === null
+                    ? null
+                    : Carbon::parse($boundaryUpdateRequest->resolved_at)->format('M j, Y'),
             ],
             'boundary' => $farm->boundary === null ? null : [
                 'geojson' => $farm->boundary->boundary_geojson,
@@ -88,7 +92,7 @@ class MobileFarmerController extends Controller
         ]);
     }
 
-    public function requestBoundaryUpdate(Request $request, Farm $farm): \Illuminate\Http\JsonResponse
+    public function requestBoundaryUpdate(Request $request, Farm $farm): JsonResponse
     {
         $farmer = $this->farmer($request);
         abort_unless($farm->farmer_id === $farmer->id, 404);
@@ -99,7 +103,7 @@ class MobileFarmerController extends Controller
         ]);
 
         if ($farm->boundaryUpdateRequests()->where('status', 'pending')->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'reason' => 'A boundary review request is already open for this farm.',
             ]);
         }
