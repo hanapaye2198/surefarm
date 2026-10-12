@@ -1866,10 +1866,9 @@ function DataPage(props: {
                             />
                             <SummaryRow
                                 label="Farm status"
-                                value={String(farm.status ?? 'unknown').replaceAll(
-                                    '_',
-                                    ' ',
-                                )}
+                                value={String(
+                                    farm.status ?? 'unknown',
+                                ).replaceAll('_', ' ')}
                             />
                             <VerificationProgress
                                 status={farm.verification_status}
