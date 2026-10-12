@@ -254,6 +254,16 @@ jobs:
             | ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
                 "mkdir -p '$HOSTINGER_DEPLOY_PATH' && tar -xzf - -C '$HOSTINGER_DEPLOY_PATH'"
 
+          mobile_entry="$(grep -oE '_expo/static/js/web/AppEntry-[A-Za-z0-9_-]+\.js' public/mobile/index.html | head -n 1)"
+          test -n "$mobile_entry" || { echo "::error::Could not find the exported mobile app bundle in public/mobile/index.html"; exit 1; }
+
+          tar -C public -czf - mobile \
+            | ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
+                "mkdir -p '$HOSTINGER_DEPLOY_PATH/public' && tar -xzf - -C '$HOSTINGER_DEPLOY_PATH/public'"
+
+          ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
+            "test -f '$HOSTINGER_DEPLOY_PATH/public/mobile/index.html' && grep -Fq '$mobile_entry' '$HOSTINGER_DEPLOY_PATH/public/mobile/index.html'"
+
       - name: Install production dependencies and migrate
         run: |
           set -euo pipefail
