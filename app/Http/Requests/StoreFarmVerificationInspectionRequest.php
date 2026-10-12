@@ -26,6 +26,16 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        if (! $this->isMobileWorkflow()) {
+            return [
+                'farm_identified' => ['required', 'boolean'],
+                'boundary_walked' => ['required', 'boolean'],
+                'farmer_or_representative_met' => ['required', 'boolean'],
+                'evidence_photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+                'remarks' => ['nullable', 'string', 'max:2000'],
+            ];
+        }
+
         return [
             'farm_exists' => ['required', 'boolean'],
             'location_matches' => ['required', 'boolean'],
@@ -41,5 +51,10 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
             'captured_at' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    public function isMobileWorkflow(): bool
+    {
+        return $this->is('api/mobile/*');
     }
 }

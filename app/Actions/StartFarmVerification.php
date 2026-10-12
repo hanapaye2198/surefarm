@@ -20,12 +20,13 @@ class StartFarmVerification
     ) {}
 
     /**
-     * Open one verification attempt before the verifier starts field capture.
+     * Open one verification attempt. The mobile workflow may begin before
+     * boundary capture; the established web workflow still requires a boundary.
      * Declared area on the farm is not changed.
      */
-    public function handle(Farm $farm): FarmVerification
+    public function handle(Farm $farm, bool $mobileWorkflow = false): FarmVerification
     {
-        $verification = DB::transaction(function () use ($farm): FarmVerification {
+        $verification = DB::transaction(function () use ($farm, $mobileWorkflow): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');
 
@@ -37,6 +38,12 @@ class StartFarmVerification
             ], true)) {
                 throw ValidationException::withMessages([
                     'verification' => 'This farm cannot start another verification in its current status.',
+                ]);
+            }
+
+            if (! $mobileWorkflow && $locked->boundary === null) {
+                throw ValidationException::withMessages([
+                    'verification' => 'Farm boundary is required before verification.',
                 ]);
             }
 
@@ -54,6 +61,7 @@ class StartFarmVerification
                 'measured_area_hectares' => $comparison['measured'] ?? null,
                 'difference_hectares' => $comparison['difference'] ?? null,
                 'variance_percentage' => $comparison['variance'] ?? null,
+                'mobile_workflow' => $mobileWorkflow,
             ]);
 
             $verification->update([

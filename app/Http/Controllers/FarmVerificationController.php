@@ -176,7 +176,7 @@ class FarmVerificationController extends Controller
     public function store(StartFarmVerificationRequest $request, Farm $farm, StartFarmVerification $start): RedirectResponse
     {
         try {
-            $start->handle($farm);
+            $start->handle($farm, $request->is('api/mobile/*'));
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
@@ -254,8 +254,8 @@ class FarmVerificationController extends Controller
 
         try {
             DB::transaction(function () use ($request, $verification, $photo, $path): void {
-                $verification->update([
-                    'inspection_checklist' => [
+                $checklist = $request->isMobileWorkflow()
+                    ? [
                         'farm_exists' => (bool) $request->validated('farm_exists'),
                         'location_matches' => (bool) $request->validated('location_matches'),
                         'coffee_crop_observed' => (bool) $request->validated('coffee_crop_observed'),
@@ -264,7 +264,16 @@ class FarmVerificationController extends Controller
                         'required_photos_captured' => (bool) $request->validated('required_photos_captured'),
                         'farmer_or_representative_met' => (bool) $request->validated('farmer_or_representative_met'),
                         'observations' => $request->validated('remarks'),
-                    ],
+                    ]
+                    : [
+                        'farm_identified' => (bool) $request->validated('farm_identified'),
+                        'boundary_walked' => (bool) $request->validated('boundary_walked'),
+                        'farmer_or_representative_met' => (bool) $request->validated('farmer_or_representative_met'),
+                        'observations' => $request->validated('remarks'),
+                    ];
+
+                $verification->update([
+                    'inspection_checklist' => $checklist,
                 ]);
                 $verification->photos()->create([
                     'evidence_type' => $request->validated('evidence_type') ?? 'field_inspection',

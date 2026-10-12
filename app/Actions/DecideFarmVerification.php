@@ -52,13 +52,13 @@ class DecideFarmVerification
                 ]);
             }
 
-            if ($open->inspection_checklist === null || ! $open->photos()->exists()) {
+            if ($open->mobile_workflow && ($open->inspection_checklist === null || ! $open->photos()->exists())) {
                 throw ValidationException::withMessages([
                     'verification' => 'Complete the field inspection checklist and upload evidence before saving a result.',
                 ]);
             }
 
-            if ($result === FarmVerificationResult::Verified) {
+            if ($open->mobile_workflow && $result === FarmVerificationResult::Verified) {
                 $requiredChecks = [
                     'farm_exists',
                     'location_matches',

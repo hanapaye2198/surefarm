@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property FarmVerificationStatus|null $previous_status
  * @property FarmVerificationResult|null $result
  * @property array<string, mixed>|null $inspection_checklist
+ * @property bool $mobile_workflow
  */
 #[Fillable([
     'farm_id',
@@ -30,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'result',
     'remarks',
     'inspection_checklist',
+    'mobile_workflow',
     'verified_by',
     'verified_at',
 ])]
@@ -50,6 +52,7 @@ class FarmVerification extends Model
             'difference_hectares' => 'decimal:2',
             'variance_percentage' => 'decimal:2',
             'inspection_checklist' => 'array',
+            'mobile_workflow' => 'boolean',
             'result' => FarmVerificationResult::class,
             'verified_at' => 'datetime',
         ];
