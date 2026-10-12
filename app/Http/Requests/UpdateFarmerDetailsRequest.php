@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\BankAccountStatus;
+use App\Models\Farmer;
 use App\Models\User;
 use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -24,6 +25,8 @@ class UpdateFarmerDetailsRequest extends FormRequest
     public function rules(): array
     {
         $recordingBankAccount = $this->boolean('has_bank_account');
+        $farmerRoute = $this->route('farmer');
+        $farmerId = $farmerRoute instanceof Farmer ? $farmerRoute->getKey() : $farmerRoute;
 
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
@@ -37,7 +40,7 @@ class UpdateFarmerDetailsRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->where('role', UserRole::Farmer->value),
-                Rule::unique('farmers', 'user_id')->ignore($this->route('farmer')?->id),
+                Rule::unique('farmers', 'user_id')->ignore($farmerId),
             ],
             'has_bank_account' => ['boolean'],
             'bank_name' => [

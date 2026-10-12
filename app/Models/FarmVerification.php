@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A historical verification attempt. Declared area on this record is a
@@ -70,9 +71,9 @@ class FarmVerification extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<FarmVerificationPhoto, $this>
+     * @return HasMany<FarmVerificationPhoto, $this>
      */
-    public function photos(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function photos(): HasMany
     {
         return $this->hasMany(FarmVerificationPhoto::class);
     }

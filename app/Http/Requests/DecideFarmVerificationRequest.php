@@ -3,10 +3,10 @@
 namespace App\Http\Requests;
 
 use App\FarmVerificationResult;
-use App\Models\User;
-use App\UserRole;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
+use App\Models\User;
+use App\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

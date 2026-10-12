@@ -16,11 +16,11 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
-use App\Models\User;
 use App\Models\FarmHarvest;
 use App\Models\FarmInsurance;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
+use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
@@ -201,17 +201,18 @@ class FarmController extends Controller
                 ],
             ],
             ...$this->portfolio->filterOptions(),
-            'verifiers' => User::query()
-                ->where('role', UserRole::FieldVerifier)
-                ->orderBy('name')
-                ->get(['id', 'name', 'email'])
-                ->map(fn (User $verifier): array => [
-                    'value' => (string) $verifier->id,
-                    'label' => $verifier->name.' · '.$verifier->email,
-                ])
-                ->prepend(['value' => '', 'label' => 'Unassigned'])
-                ->values()
-                ->all(),
+            'verifiers' => array_merge(
+                [['value' => '', 'label' => 'Unassigned']],
+                User::query()
+                    ->where('role', UserRole::FieldVerifier)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'email'])
+                    ->map(fn (User $verifier): array => [
+                        'value' => (string) $verifier->id,
+                        'label' => $verifier->name.' · '.$verifier->email,
+                    ])
+                    ->all(),
+            ),
         ]);
     }
 

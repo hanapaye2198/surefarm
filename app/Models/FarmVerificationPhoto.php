@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\URL;
 
 #[Fillable([
@@ -55,7 +56,9 @@ class FarmVerificationPhoto extends Model
                 now()->addMinutes(15),
                 ['photo' => $this->id],
             ),
-            'captured_at' => $this->captured_at?->toIso8601String(),
+            'captured_at' => $this->captured_at === null
+                ? null
+                : Carbon::parse($this->captured_at)->toIso8601String(),
             'latitude' => $this->latitude === null ? null : (float) $this->latitude,
             'longitude' => $this->longitude === null ? null : (float) $this->longitude,
             'uploaded_by' => $this->uploader?->name,

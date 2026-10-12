@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
-use App\Models\Farmer;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
 use App\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
@@ -137,7 +138,9 @@ class MobileFarmerController extends Controller
                 'middle_name' => $farmer->middle_name,
                 'last_name' => $farmer->last_name,
                 'suffix' => $farmer->suffix,
-                'date_of_birth' => $farmer->date_of_birth?->format('M j, Y'),
+                'date_of_birth' => $farmer->date_of_birth === null
+                    ? null
+                    : Carbon::parse($farmer->date_of_birth)->format('M j, Y'),
                 'government_id' => $farmer->government_id,
                 'email' => $farmer->email,
                 'mobile_number' => $farmer->mobile_number,

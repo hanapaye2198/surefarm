@@ -21,9 +21,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class FarmVerificationController extends Controller
@@ -37,7 +37,7 @@ class FarmVerificationController extends Controller
         $crop = $request->string('crop')->trim()->toString();
         $province = $request->string('province')->trim()->toString();
         $municipality = $request->string('municipality')->trim()->toString();
-        $verifierId = $request->user()?->role === \App\UserRole::FieldVerifier
+        $verifierId = $request->user()?->role === UserRole::FieldVerifier
             ? $request->user()->id
             : null;
 
@@ -265,7 +265,7 @@ class FarmVerificationController extends Controller
                     'storage_path' => $path,
                     'original_name' => $photo->getClientOriginalName(),
                     'mime_type' => $photo->getMimeType() ?? 'application/octet-stream',
-                    'file_size' => $photo->getSize() ?? 0,
+                    'file_size' => $photo->getSize(),
                     'captured_at' => now(),
                     'latitude' => $request->validated('latitude'),
                     'longitude' => $request->validated('longitude'),
@@ -424,7 +424,7 @@ class FarmVerificationController extends Controller
 
     private function authorizeAssignedFarm(mixed $user, Farm $farm): void
     {
-        if ($user instanceof User && $user->role === \App\UserRole::FieldVerifier) {
+        if ($user instanceof User && $user->role === UserRole::FieldVerifier) {
             abort_unless($farm->assigned_verifier_id === $user->id, 404);
         }
     }

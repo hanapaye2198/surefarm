@@ -25,7 +25,7 @@ class StartFarmVerification
      */
     public function handle(Farm $farm): FarmVerification
     {
-        return DB::transaction(function () use ($farm): FarmVerification {
+        $verification = DB::transaction(function () use ($farm): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');
 
