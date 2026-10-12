@@ -111,9 +111,12 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::put('settings/activity-types/{activityType}', [ActivityTypeController::class, 'update']);
             });
 
-            Route::middleware('role:operations')->group(function (): void {
+            Route::middleware('role:operations,field_verifier')->group(function (): void {
                 Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
                 Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
+            });
+
+            Route::middleware('role:operations')->group(function (): void {
                 Route::get('farmers', [FarmerController::class, 'index']);
                 Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo']);
                 Route::get('farmers/{farmer}', [FarmerController::class, 'show']);
@@ -135,8 +138,6 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             });
 
             Route::middleware('role:field_verifier')->group(function (): void {
-                Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
-                Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
                 Route::get('farm-verification', [FarmVerificationController::class, 'index']);
                 Route::get('farm-verification/{farm}', [FarmVerificationController::class, 'show']);
                 Route::post('farm-verification/{farm}', [FarmVerificationController::class, 'store']);
