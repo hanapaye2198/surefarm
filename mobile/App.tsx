@@ -102,6 +102,36 @@ type Section = {
 
 const APP_FONT_FAMILY = 'Proxima Nova';
 
+function imageCaptureTimestamp(
+    asset: ImagePicker.ImagePickerAsset,
+): string | null {
+    const metadata = asset.exif;
+    if (!metadata || typeof metadata !== 'object') return null;
+
+    const raw =
+        metadata.DateTimeOriginal ??
+        metadata.DateTimeDigitized ??
+        metadata.DateTime;
+    if (typeof raw !== 'string') return null;
+
+    const match = raw.match(
+        /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+    );
+    if (!match) return null;
+
+    const [, year, month, day, hour, minute, second] = match;
+    const capturedAt = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+    );
+
+    return Number.isNaN(capturedAt.getTime()) ? null : capturedAt.toISOString();
+}
+
 function Text(props: ComponentProps<typeof NativeText>) {
     return (
         <NativeText
@@ -809,14 +839,27 @@ function SureFarmApp() {
         const result = camera
             ? await ImagePicker.launchCameraAsync({
                   mediaTypes: ['images'],
+                  exif: true,
                   quality: 0.8,
               })
             : await ImagePicker.launchImageLibraryAsync({
                   mediaTypes: ['images'],
+                  exif: true,
                   quality: 0.8,
               });
-        if (!result.canceled && result.assets[0])
-            setPhotos((old) => ({ ...old, [field]: result.assets[0] }));
+        if (!result.canceled && result.assets[0]) {
+            const asset = result.assets[0];
+            setPhotos((old) => ({ ...old, [field]: asset }));
+            if (
+                page?.component === 'farm-verification/inspection' &&
+                field === 'evidence_photo'
+            ) {
+                const capturedAt =
+                    imageCaptureTimestamp(asset) ??
+                    (camera ? new Date().toISOString() : '');
+                setValues((old) => ({ ...old, captured_at: capturedAt }));
+            }
+        }
     };
 
     const startVerification = async (farmId: number) => {
@@ -974,7 +1017,7 @@ function SureFarmApp() {
                 </View>
             ) : spec && page ? (
                 <FormView
-                    key={current.path}
+                    key={`${current.path}:${page.data.farmId ?? ''}`}
                     spec={spec}
                     data={page.data}
                     token={token ?? ''}
@@ -1001,6 +1044,7 @@ function SureFarmApp() {
                     user={user}
                     sections={sections}
                     onOpen={(item) => void navigate(item.path, item.title)}
+                    onLocalForm={openLocalForm}
                 />
             ) : page ? (
                 <DataPage
@@ -1235,11 +1279,13 @@ function Dashboard({
     user,
     sections,
     onOpen,
+    onLocalForm,
 }: {
     page: Page;
     user: User | null;
     sections: Section[];
     onOpen: (item: Section) => void;
+    onLocalForm: (component: string, data: Record<string, any>) => void;
 }) {
     if (page.data.mobile_dashboard_mode === 'farmer_account_not_linked') {
         return (
@@ -1368,6 +1414,11 @@ function Dashboard({
                         <Text style={styles.cardTitle}>Recent updates</Text>
                         {page.data.recent_notifications.map((item: any) => (
                             <View key={item.id} style={styles.relatedRow}>
+                                {item.kind === 'announcement' && (
+                                    <Text style={styles.status}>
+                                        Announcement
+                                    </Text>
+                                )}
                                 <Text style={styles.recordTitle}>
                                     {item.title}
                                     {item.read ? '' : ' · New'}
@@ -1549,6 +1600,21 @@ function Dashboard({
                     >
                         <Text style={styles.heroActionText}>
                             Review farm verification
+                        </Text>
+                        <AppIcon name="arrowRight" size={17} color={GREEN} />
+                    </Pressable>
+                )}
+                {(user?.role === 'admin' || user?.role === 'operations') && (
+                    <Pressable
+                        accessibilityRole="button"
+                        onPress={() => onLocalForm('announcements/create', {})}
+                        style={({ pressed }) => [
+                            styles.heroAction,
+                            pressed && styles.pressed,
+                        ]}
+                    >
+                        <Text style={styles.heroActionText}>
+                            Publish farmer announcement
                         </Text>
                         <AppIcon name="arrowRight" size={17} color={GREEN} />
                     </Pressable>
@@ -2073,6 +2139,9 @@ function DataPage(props: {
                                 pressed && styles.pressed,
                             ]}
                         >
+                            {item.kind === 'announcement' && (
+                                <Text style={styles.status}>Announcement</Text>
+                            )}
                             <Text style={styles.recordTitle}>
                                 {item.title}
                                 {item.read ? '' : ' · New'}
@@ -3522,6 +3591,24 @@ function BoundaryCard({
                     <Text style={styles.mutedSmall}>Captured</Text>
                 </View>
             </View>
+            {Array.isArray(boundary.gps_point_accuracies) &&
+                boundary.gps_point_accuracies.length > 0 && (
+                    <View style={styles.boundaryAccuracyList}>
+                        {boundary.gps_point_accuracies.map(
+                            (accuracy: number | null, index: number) => (
+                                <Text
+                                    key={`gps-accuracy-${index}`}
+                                    style={styles.mutedSmall}
+                                >
+                                    Point {index + 1}:{' '}
+                                    {accuracy == null
+                                        ? 'accuracy unavailable'
+                                        : `±${Number(accuracy).toFixed(0)} m`}
+                                </Text>
+                            ),
+                        )}
+                    </View>
+                )}
         </View>
     );
 }
@@ -3620,6 +3707,18 @@ function FormView(props: {
     const [boundaryPoints, setBoundaryPoints] = useState<[number, number][]>(
         [],
     );
+    const [boundaryPointAccuracies, setBoundaryPointAccuracies] = useState<
+        (number | null)[]
+    >(() =>
+        Array.isArray(props.data.boundary?.gps_point_accuracies)
+            ? props.data.boundary.gps_point_accuracies.map(
+                  (accuracy: unknown) =>
+                      typeof accuracy === 'number' && Number.isFinite(accuracy)
+                          ? accuracy
+                          : null,
+              )
+            : [],
+    );
     const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
     const [gpsCoordinate, setGpsCoordinate] = useState<BoundaryPoint | null>(
         null,
@@ -3704,6 +3803,9 @@ function FormView(props: {
             setGpsCoordinate({ latitude: point[1], longitude: point[0] });
 
             if (boundaryField) {
+                const existingAccuracies = currentBoundaryPoints.map(
+                    (_, index) => boundaryPointAccuracies[index] ?? null,
+                );
                 const nextPoints: [number, number][] = [
                     ...currentBoundaryPoints.map((item): [number, number] => [
                         item.longitude,
@@ -3711,7 +3813,13 @@ function FormView(props: {
                     ]),
                     point,
                 ];
+                const nextAccuracies = [
+                    ...existingAccuracies,
+                    position.coords.accuracy,
+                ];
                 setBoundaryPoints(nextPoints);
+                setBoundaryPointAccuracies(nextAccuracies);
+                props.onChange('gps_point_accuracies', nextAccuracies);
                 setMeasuredBoundaryPreview(null);
                 props.onChange(
                     boundaryField.key,
@@ -3749,6 +3857,11 @@ function FormView(props: {
         const ring = [...points, points[0]];
         const geojson = { type: 'Polygon', coordinates: [ring] };
         props.onChange(boundaryField.key, JSON.stringify(geojson, null, 2));
+        const accuracies = points.map(
+            (_, index) => boundaryPointAccuracies[index] ?? null,
+        );
+        setBoundaryPointAccuracies(accuracies);
+        props.onChange('gps_point_accuracies', accuracies);
         setBoundaryPoints(points);
         setMeasuredBoundaryPreview(null);
         try {
@@ -3775,12 +3888,15 @@ function FormView(props: {
     const undoBoundaryPoint = () => {
         if (!boundaryField || currentBoundaryPoints.length === 0) return;
         const next = currentBoundaryPoints.slice(0, -1);
+        const nextAccuracies = boundaryPointAccuracies.slice(0, -1);
         setBoundaryPoints(
             next.map((point): [number, number] => [
                 point.longitude,
                 point.latitude,
             ]),
         );
+        setBoundaryPointAccuracies(nextAccuracies);
+        props.onChange('gps_point_accuracies', nextAccuracies);
         setMeasuredBoundaryPreview(null);
         props.onChange(
             boundaryField.key,
@@ -3906,6 +4022,17 @@ function FormView(props: {
                             {currentBoundaryPoints.length === 1 ? '' : 's'} on
                             this boundary
                         </Text>
+                        {currentBoundaryPoints.map((_, index) => (
+                            <Text
+                                key={`captured-point-${index}`}
+                                style={styles.mutedSmall}
+                            >
+                                Point {index + 1}:{' '}
+                                {boundaryPointAccuracies[index] == null
+                                    ? 'accuracy unavailable'
+                                    : `±${Math.round(boundaryPointAccuracies[index] as number)} m`}
+                            </Text>
+                        ))}
                         {gpsCoordinate && (
                             <Text style={styles.coordinateText}>
                                 Latest: {gpsCoordinate.latitude.toFixed(6)},{' '}
@@ -3958,6 +4085,11 @@ function FormView(props: {
                             value={props.values[field.key]}
                             options={options}
                             photo={props.photos[field.key]}
+                            captureTime={
+                                field.key === 'evidence_photo'
+                                    ? props.values.captured_at
+                                    : undefined
+                            }
                             onChange={(value) => {
                                 if (field.kind === 'geojson')
                                     setMeasuredBoundaryPreview(null);
@@ -3998,6 +4130,7 @@ function InputField(props: {
     value: any;
     options: { value: string; label: string }[];
     photo?: ImagePicker.ImagePickerAsset;
+    captureTime?: string;
     onChange: (value: any) => void;
     onImage: (camera: boolean) => void;
 }) {
@@ -4051,10 +4184,17 @@ function InputField(props: {
             <View style={styles.field}>
                 <Label text={field.label} />
                 {props.photo && (
-                    <Image
-                        source={{ uri: props.photo.uri }}
-                        style={styles.photoPreview}
-                    />
+                    <>
+                        <Image
+                            source={{ uri: props.photo.uri }}
+                            style={styles.photoPreview}
+                        />
+                        <Text style={styles.mutedSmall}>
+                            {props.captureTime
+                                ? `Captured ${new Date(props.captureTime).toLocaleString()}`
+                                : 'Capture time unavailable. The upload time will be recorded.'}
+                        </Text>
+                    </>
                 )}
                 <View style={styles.imageActions}>
                     <Secondary
@@ -5808,6 +5948,12 @@ const styles = StyleSheet.create({
         borderTopColor: '#edf0ed',
     },
     boundaryFact: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
+    boundaryAccuracyList: {
+        marginTop: 8,
+        paddingTop: 7,
+        borderTopWidth: 1,
+        borderTopColor: '#edf0ed',
+    },
     boundaryValue: {
         color: INK,
         fontSize: 12,

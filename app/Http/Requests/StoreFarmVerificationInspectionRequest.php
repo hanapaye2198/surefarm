@@ -33,6 +33,7 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
             'evidence_photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'captured_at' => ['nullable', 'date'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ];
     }

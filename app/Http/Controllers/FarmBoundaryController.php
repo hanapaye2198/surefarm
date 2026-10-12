@@ -86,8 +86,18 @@ class FarmBoundaryController extends Controller
             ]);
         }
 
+        $pointAccuracies = $request->validated('gps_point_accuracies');
+        if (! is_array($pointAccuracies)) {
+            $savedBoundary = $creating ? null : $farm->boundary;
+            $pointAccuracies = $savedBoundary !== null
+                && $savedBoundary->boundary_geojson == $inspection['polygon']
+                    ? $savedBoundary->gps_point_accuracies
+                    : null;
+        }
+
         $attributes = [
             'boundary_geojson' => $inspection['polygon'],
+            'gps_point_accuracies' => $pointAccuracies,
             'gps_measured_area_hectares' => $inspection['hectares'],
             'updated_by' => $request->user()?->id,
         ];

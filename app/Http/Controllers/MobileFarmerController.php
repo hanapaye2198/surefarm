@@ -44,6 +44,7 @@ class MobileFarmerController extends Controller
             'farm' => $this->farmRow($farm, $areas),
             'boundary' => $farm->boundary === null ? null : [
                 'geojson' => $farm->boundary->boundary_geojson,
+                'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
                 'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
                 'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),
             ],
@@ -114,6 +115,7 @@ class MobileFarmerController extends Controller
                     'status' => $notification->data['status'] ?? null,
                     'created_at' => $notification->created_at?->format('M j, Y g:i A'),
                     'read' => $notification->read_at !== null,
+                    'kind' => $notification->data['kind'] ?? 'update',
                 ])->values()->all(),
         ]);
     }

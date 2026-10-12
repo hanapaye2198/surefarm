@@ -16,6 +16,7 @@ use App\Http\Controllers\InventoryAdjustmentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryDamageController;
 use App\Http\Controllers\InventoryProcessingController;
+use App\Http\Controllers\MobileAnnouncementController;
 use App\Http\Controllers\MobileFarmerController;
 use App\Http\Controllers\ModulePlaceholderController;
 use App\Http\Controllers\Settings\ActivityTypeController;
@@ -41,6 +42,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             Route::get('farm-verification/photos/{photo}', [FarmVerificationController::class, 'photo'])
                 ->name('farm-verification.photos.show');
             Route::post('farms/{farm}/boundary-preview', [FarmBoundaryController::class, 'preview']);
+            Route::middleware('role:admin,operations')->post('announcements', [MobileAnnouncementController::class, 'store']);
             Route::middleware('role:admin,operations')->get('modules/{module}', [ModulePlaceholderController::class, 'show'])
                 ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports');
 

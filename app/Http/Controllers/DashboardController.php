@@ -103,6 +103,7 @@ class DashboardController extends Controller
                         'status' => $notification->data['status'] ?? null,
                         'created_at' => $notification->created_at?->format('M j, Y g:i A'),
                         'read' => $notification->read_at !== null,
+                        'kind' => $notification->data['kind'] ?? 'update',
                     ])->values()->all();
 
                 return Inertia::render('dashboard', [

@@ -285,6 +285,7 @@ class FarmController extends Controller
                 'variance' => $comparison['variance'],
                 'boundary' => $farm->boundary === null ? null : [
                     'geojson' => $farm->boundary->boundary_geojson,
+                    'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
                     'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
                     'captured_by' => $farm->boundary->creator?->name,
                     'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),

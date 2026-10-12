@@ -47,6 +47,22 @@ export function formForPage(component: string, data: Data): FormSpec | null {
         data.activityType?.id;
 
     switch (component) {
+        case 'announcements/create':
+            return {
+                title: 'Publish farmer announcement',
+                method: 'POST',
+                path: '/announcements',
+                fields: [
+                    text('title', 'Announcement title', {
+                        required: true,
+                        hint: 'This will be sent to every linked farmer account.',
+                    }),
+                    text('message', 'Message', {
+                        required: true,
+                        multiline: true,
+                    }),
+                ],
+            };
         case 'farmer-profile/photo':
             return {
                 title: 'Update profile photo',

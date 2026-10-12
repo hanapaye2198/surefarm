@@ -18,6 +18,7 @@ use App\Services\FarmAreaComparison;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -153,6 +154,7 @@ class FarmVerificationController extends Controller
             ],
             'boundary' => $farm->boundary === null ? null : [
                 'geojson' => $farm->boundary->boundary_geojson,
+                'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
                 'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
                 'captured_by' => $farm->boundary->creator?->name,
                 'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),
@@ -266,7 +268,9 @@ class FarmVerificationController extends Controller
                     'original_name' => $photo->getClientOriginalName(),
                     'mime_type' => $photo->getMimeType() ?? 'application/octet-stream',
                     'file_size' => $photo->getSize(),
-                    'captured_at' => now(),
+                    'captured_at' => filled($request->validated('captured_at'))
+                        ? Carbon::parse($request->validated('captured_at'))
+                        : now(),
                     'latitude' => $request->validated('latitude'),
                     'longitude' => $request->validated('longitude'),
                     'uploaded_by' => $request->user()?->id,
