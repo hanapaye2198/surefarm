@@ -1,4 +1,6 @@
-export function withoutDemoWordText(value: string | undefined): string | undefined {
+export function withoutDemoWordText(
+    value: string | undefined,
+): string | undefined {
     if (value === undefined) return undefined;
 
     return value

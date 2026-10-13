@@ -124,9 +124,10 @@ export default function FarmAssignmentMap({
                     const marker = new googleMaps.Marker({
                         map,
                         position,
-                        title: `${withoutDemoWordText(farm.farm_name)} · ${
-                            farm.verification_status.replaceAll('_', ' ')
-                        }`,
+                        title: `${withoutDemoWordText(farm.farm_name)} · ${farm.verification_status.replaceAll(
+                            '_',
+                            ' ',
+                        )}`,
                         icon: {
                             path: googleMaps.SymbolPath.CIRCLE,
                             scale: 8,
