@@ -33,6 +33,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 import BoundaryMap, { type BoundaryPoint } from './src/BoundaryMap';
 import FarmAssignmentMap, { type FarmPin } from './src/FarmAssignmentMap';
+import { withoutDemoWordText } from './src/displayText';
 import { ApiError, apiRequest, API_URL, SITE_URL } from './src/api';
 import {
     formForPage,
@@ -133,12 +134,28 @@ function imageCaptureTimestamp(
     return Number.isNaN(capturedAt.getTime()) ? null : capturedAt.toISOString();
 }
 
+function withoutDemoWords(
+    value: ComponentProps<typeof NativeText>['children'],
+): ComponentProps<typeof NativeText>['children'] {
+    if (typeof value === 'string') return withoutDemoWordText(value);
+
+    if (Array.isArray(value)) {
+        return value.map((child) => withoutDemoWords(child));
+    }
+
+    return value;
+}
+
 function Text(props: ComponentProps<typeof NativeText>) {
     return (
         <NativeText
             {...props}
+            accessibilityHint={withoutDemoWordText(props.accessibilityHint)}
+            accessibilityLabel={withoutDemoWordText(props.accessibilityLabel)}
             style={[{ fontFamily: APP_FONT_FAMILY }, props.style]}
-        />
+        >
+            {withoutDemoWords(props.children)}
+        </NativeText>
     );
 }
 
@@ -146,7 +163,12 @@ function TextInput(props: ComponentProps<typeof NativeTextInput>) {
     return (
         <NativeTextInput
             {...props}
+            accessibilityHint={withoutDemoWordText(props.accessibilityHint)}
+            accessibilityLabel={withoutDemoWordText(props.accessibilityLabel)}
+            defaultValue={withoutDemoWordText(props.defaultValue)}
+            placeholder={withoutDemoWordText(props.placeholder)}
             style={[{ fontFamily: APP_FONT_FAMILY }, props.style]}
+            value={withoutDemoWordText(props.value)}
         />
     );
 }
@@ -3423,7 +3445,9 @@ function DataPage(props: {
                                                         style={
                                                             styles.evidenceImage
                                                         }
-                                                        accessibilityLabel={`Inspection evidence: ${photo.name}`}
+                                                        accessibilityLabel={withoutDemoWordText(
+                                                            `Inspection evidence: ${photo.name}`,
+                                                        )}
                                                     />
                                                     <Text
                                                         style={
@@ -5289,7 +5313,9 @@ function VerificationHistory({
                                                 },
                                             }}
                                             style={styles.evidenceImage}
-                                            accessibilityLabel={`Verification evidence: ${photo.name}`}
+                                            accessibilityLabel={withoutDemoWordText(
+                                                `Verification evidence: ${photo.name}`,
+                                            )}
                                         />
                                         <Text style={styles.mutedSmall}>
                                             {String(

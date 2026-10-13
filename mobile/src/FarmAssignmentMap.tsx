@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { Platform, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { withoutDemoWordText } from './displayText';
 
 export type FarmPin = {
     id: number;
@@ -123,7 +124,9 @@ export default function FarmAssignmentMap({
                     const marker = new googleMaps.Marker({
                         map,
                         position,
-                        title: `${farm.farm_name} · ${farm.verification_status.replaceAll('_', ' ')}`,
+                        title: `${withoutDemoWordText(farm.farm_name)} · ${
+                            farm.verification_status.replaceAll('_', ' ')
+                        }`,
                         icon: {
                             path: googleMaps.SymbolPath.CIRCLE,
                             scale: 8,
