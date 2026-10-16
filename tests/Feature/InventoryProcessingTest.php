@@ -357,6 +357,27 @@ test('farm farmer and dashboard inventory summaries use available stock', functi
             ->where('inventory_summary.has_records', true));
 });
 
+test('a harvest cannot be received in a different unit', function () {
+    $harvest = FarmHarvest::factory()->create([
+        'quantity' => 100,
+        'unit' => 'kg',
+        'status' => HarvestStatus::Completed,
+        'crop_type' => CropType::Coffee,
+    ]);
+
+    $this->actingAs(inventoryOperationsUser())
+        ->post(route('harvest.receive.store', $harvest), [
+            'quantity' => 1000,
+            'unit' => 'tons',
+            'processing_stage_id' => inventoryStage('COFFEE_CHERRY')->id,
+            'received_date' => '2026-10-07',
+        ])
+        ->assertSessionHasErrors('unit');
+
+    expect(Inventory::query()->count())->toBe(0)
+        ->and((float) $harvest->refresh()->quantity)->toBe(100.0);
+});
+
 test('field verifiers can view inventory and cannot change it', function () {
     $harvest = FarmHarvest::factory()->create([
         'quantity' => 100,

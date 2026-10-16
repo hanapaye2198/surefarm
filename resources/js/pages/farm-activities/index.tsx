@@ -271,6 +271,7 @@ export default function FarmActivitiesIndex({
                     ]}
                     rows={activities.data.map((activity) => ({
                         id: activity.id,
+                        href: show(activity.id),
                         cells: [
                             activity.activity_date,
                             activity.farm ? (

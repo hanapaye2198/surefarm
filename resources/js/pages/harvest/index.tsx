@@ -265,6 +265,7 @@ export default function HarvestIndex({
                     ]}
                     rows={harvests.data.map((harvest) => ({
                         id: harvest.id,
+                        href: show(harvest.id),
                         cells: [
                             harvest.harvest_date,
                             harvest.farm ? (

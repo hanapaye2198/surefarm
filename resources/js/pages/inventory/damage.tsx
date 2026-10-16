@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { ConfirmAction } from '@/components/confirm-action';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import { show } from '@/routes/inventory';
 type InventoryDetail = {
     id: number;
     quantity_label: string;
+    unit: string;
     stage: { name: string } | null;
 };
 
@@ -22,6 +25,7 @@ export default function DamageInventory({
     inventory: InventoryDetail;
     today: string;
 }) {
+    const [confirming, setConfirming] = useState(false);
     const form = useForm({
         quantity: '',
         reason: '',
@@ -30,7 +34,24 @@ export default function DamageInventory({
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url(inventory.id));
+
+        if (
+            form.data.quantity.trim() === '' ||
+            form.data.reason.trim() === '' ||
+            form.data.movement_date.trim() === ''
+        ) {
+            form.post(store.url(inventory.id));
+
+            return;
+        }
+
+        setConfirming(true);
+    }
+
+    function saveDamage() {
+        form.post(store.url(inventory.id), {
+            onError: () => setConfirming(false),
+        });
     }
 
     return (
@@ -56,11 +77,20 @@ export default function DamageInventory({
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="quantity">
-                                    Damaged quantity
+                                    Damaged quantity ({inventory.unit})
+                                    <span
+                                        className="text-destructive"
+                                        aria-hidden="true"
+                                    >
+                                        {' '}
+                                        *
+                                    </span>
                                 </Label>
                                 <Input
                                     id="quantity"
                                     inputMode="decimal"
+                                    required
+                                    aria-required="true"
                                     value={form.data.quantity}
                                     onChange={(event) =>
                                         form.setData(
@@ -89,9 +119,20 @@ export default function DamageInventory({
                                 />
                             </div>
                             <div className="grid gap-2 sm:col-span-2">
-                                <Label htmlFor="reason">Reason</Label>
+                                <Label htmlFor="reason">
+                                    Reason
+                                    <span
+                                        className="text-destructive"
+                                        aria-hidden="true"
+                                    >
+                                        {' '}
+                                        *
+                                    </span>
+                                </Label>
                                 <Input
                                     id="reason"
+                                    required
+                                    aria-required="true"
                                     value={form.data.reason}
                                     onChange={(event) =>
                                         form.setData(
@@ -106,10 +147,20 @@ export default function DamageInventory({
                     </Card>
                     <div>
                         <Button type="submit" disabled={form.processing}>
-                            Save damage
+                            {form.processing ? 'Saving...' : 'Record damage'}
                         </Button>
                     </div>
                 </form>
+                <ConfirmAction
+                    open={confirming}
+                    title="Record damaged coffee?"
+                    description={`This removes ${form.data.quantity} ${inventory.unit} from the available ${inventory.quantity_label}. The damaged quantity stays in the movement history.`}
+                    confirmLabel="Record damage"
+                    pending={form.processing}
+                    destructive
+                    onOpenChange={setConfirming}
+                    onConfirm={saveDamage}
+                />
             </div>
         </>
     );

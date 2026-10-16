@@ -215,6 +215,7 @@ export default function ActivityTypesIndex({
                     ]}
                     rows={activityTypes.map((type) => ({
                         id: type.id,
+                        href: edit(type.id),
                         cells: [
                             type.name,
                             type.code ?? '—',

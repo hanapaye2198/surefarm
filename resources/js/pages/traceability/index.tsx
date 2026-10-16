@@ -228,6 +228,7 @@ export default function TraceabilityIndex({
                     ]}
                     rows={lots.data.map((row) => ({
                         id: row.id,
+                        href: show(row.id),
                         cells: [
                             row.lot_code,
                             row.farmer ? (

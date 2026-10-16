@@ -17,12 +17,18 @@ class AdminUserSeeder extends Seeder
         $admin = User::query()->firstOrNew([
             'email' => 'admin@surefarm.io',
         ]);
+        $isNew = ! $admin->exists;
 
-        $admin->forceFill([
+        $attributes = [
             'name' => 'SureFarm Administrator',
             'role' => UserRole::Admin,
-            'password' => Hash::make('password!'),
             'email_verified_at' => $admin->email_verified_at ?? now(),
-        ])->save();
+        ];
+
+        if ($isNew) {
+            $attributes['password'] = Hash::make('password!');
+        }
+
+        $admin->forceFill($attributes)->save();
     }
 }

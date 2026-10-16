@@ -1,6 +1,6 @@
 import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Plus, Search, Sprout, Tractor, Wheat } from 'lucide-react';
+import { Leaf, Plus, Search, Sprout, Tractor } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { DataTable } from '@/components/data-table';
 import { PageHeader } from '@/components/page-header';
@@ -138,7 +138,7 @@ export default function ProductionIndex({
                     <StatCard
                         label="Total Expected Production"
                         value={summary.total_expected}
-                        icon={Wheat}
+                        icon={Leaf}
                     />
                     <StatCard
                         label="Farms in Production"
@@ -263,6 +263,7 @@ export default function ProductionIndex({
                     ]}
                     rows={productions.data.map((production) => ({
                         id: production.id,
+                        href: show(production.id),
                         cells: [
                             production.farm ? (
                                 <Link

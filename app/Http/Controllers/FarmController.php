@@ -113,6 +113,42 @@ class FarmController extends Controller
         ]);
     }
 
+    public function chooseFarmer(Request $request): Response
+    {
+        $search = $request->string('search')->trim()->toString();
+
+        $farmers = Farmer::query()
+            ->withCount('farms')
+            ->when($search !== '', function ($query) use ($search): void {
+                $like = '%'.addcslashes($search, '%_\\').'%';
+
+                $query->where(function ($query) use ($like): void {
+                    $query->where('farmer_id', 'like', $like)
+                        ->orWhere('first_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('mobile_number', 'like', $like);
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('id')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Farmer $farmer): array => [
+                'id' => $farmer->id,
+                'farmer_id' => $farmer->farmer_id,
+                'name' => $farmer->fullName(),
+                'location' => $farmer->locationLabel(),
+                'farms_count' => $farmer->farms_count,
+            ]);
+
+        return Inertia::render('farms/register', [
+            'farmers' => $farmers,
+            'filters' => [
+                'search' => $search,
+            ],
+        ]);
+    }
+
     public function create(Farmer $farmer, FarmIdGenerator $farmIds): Response
     {
         $nextSequence = ((int) Farm::query()->max('id')) + 1;
@@ -250,6 +286,7 @@ class FarmController extends Controller
             'boundary.creator:id,name',
             'boundary.editor:id,name',
             'verifications.verifier:id,name',
+            'verifications.photos.uploader:id,name',
             'insurances' => fn ($query) => $query->latest('id'),
             'financings' => fn ($query) => $query->orderByDesc('date_granted')->orderByDesc('id'),
         ]);
@@ -281,6 +318,7 @@ class FarmController extends Controller
                     ->map(fn (FarmVerification $verification): array => $verification->present())
                     ->values()
                     ->all(),
+                'documents' => $this->documents($farm),
                 'difference' => $comparison['difference'],
                 'variance' => $comparison['variance'],
                 'boundary' => $farm->boundary === null ? null : [
@@ -338,20 +376,20 @@ class FarmController extends Controller
 
     public function droneImage(Farm $farm): StreamedResponse
     {
-        if ($farm->drone_image_path === null || ! Storage::exists($farm->drone_image_path)) {
+        if ($farm->drone_image_path === null || ! Storage::disk('local')->exists($farm->drone_image_path)) {
             abort(404);
         }
 
-        return Storage::response($farm->drone_image_path);
+        return Storage::disk('local')->response($farm->drone_image_path);
     }
 
     public function signedDroneImage(Farm $farm): StreamedResponse
     {
-        if ($farm->drone_image_path === null || ! Storage::exists($farm->drone_image_path)) {
+        if ($farm->drone_image_path === null || ! Storage::disk('local')->exists($farm->drone_image_path)) {
             abort(404);
         }
 
-        return Storage::response($farm->drone_image_path);
+        return Storage::disk('local')->response($farm->drone_image_path);
     }
 
     /**
@@ -463,6 +501,43 @@ class FarmController extends Controller
             ->first();
 
         return $latest?->activityType?->name ?? 'No farm activities recorded yet.';
+    }
+
+    /**
+     * Files already stored for this farm. There is no separate documents table.
+     *
+     * @return list<array{id: string, label: string, name: string, href: string, recorded_at: string|null}>
+     */
+    private function documents(Farm $farm): array
+    {
+        $documents = [];
+
+        if ($farm->drone_image_path !== null) {
+            $documents[] = [
+                'id' => 'drone-'.$farm->id,
+                'label' => 'Drone image',
+                'name' => $farm->displayName(),
+                'href' => route('farms.drone-image', $farm),
+                'recorded_at' => $farm->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        foreach ($farm->verifications as $verification) {
+            foreach ($verification->photos as $photo) {
+                $presented = $photo->present();
+                $name = $presented['name'] ?? null;
+
+                $documents[] = [
+                    'id' => 'photo-'.$photo->id,
+                    'label' => 'Verification photo',
+                    'name' => is_string($name) && $name !== '' ? $name : 'Photo',
+                    'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farms.show', $farm),
+                    'recorded_at' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y'),
+                ];
+            }
+        }
+
+        return $documents;
     }
 
     private function decimalInput(mixed $amount): string

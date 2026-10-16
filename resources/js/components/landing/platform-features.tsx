@@ -13,7 +13,7 @@ const features: {
     title: string;
     description: string;
     icon: LucideIcon;
-    status: 'Available' | 'Planned';
+    status: 'Available' | 'Partial' | 'Planned';
 }[] = [
     {
         title: 'Farmer Management',
@@ -44,16 +44,16 @@ const features: {
     {
         title: 'Agricultural Operations',
         description:
-            'A foundation for activities, production, inventory, and logistics is planned.',
+            'Activities, production, harvest, inventory, and traceability are available. Logistics and export are still planned.',
         icon: Tractor,
-        status: 'Planned',
+        status: 'Partial',
     },
     {
         title: 'Reports & Insights',
         description:
-            'Dashboard summaries are available today. A full reports module is planned.',
+            'Dashboard summaries are available today. A separate reports workspace is still planned.',
         icon: BarChart3,
-        status: 'Planned',
+        status: 'Partial',
     },
 ];
 

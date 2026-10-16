@@ -28,7 +28,7 @@ class RegisterFarm
         try {
             $farm = DB::transaction(function () use ($farmer, $data, $droneImage, &$storedPath): Farm {
                 if ($droneImage !== null) {
-                    $storedPath = $droneImage->store('farms/drone-images');
+                    $storedPath = $droneImage->store('farms/drone-images', 'local');
 
                     if ($storedPath === false) {
                         throw new \RuntimeException('Farm drone image could not be stored.');
@@ -68,7 +68,7 @@ class RegisterFarm
 
         } catch (Throwable $exception) {
             if (is_string($storedPath)) {
-                Storage::delete($storedPath);
+                Storage::disk('local')->delete($storedPath);
             }
 
             throw $exception;

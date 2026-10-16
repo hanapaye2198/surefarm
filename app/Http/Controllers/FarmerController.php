@@ -15,6 +15,8 @@ use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmInsurance;
+use App\Models\FarmVerification;
+use App\Models\FarmVerificationPhoto;
 use App\Models\User;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
@@ -246,6 +248,8 @@ class FarmerController extends Controller
                 'production_summary' => $ledger->farmerSummary($farmer),
                 'inventory_summary' => $stock->balances(farmerId: $farmer->id),
                 'traceability_summary' => $traceability->metrics(farmerId: $farmer->id),
+                'documents' => $this->documents($farmer),
+                'verification_history' => $this->verificationHistory($farmer),
                 'farm_coverage' => ! $canViewSensitiveDetails ? [] : $farms->values()->map(function (Farm $farm, int $index): array {
                     return [
                         'id' => $farm->id,
@@ -268,11 +272,11 @@ class FarmerController extends Controller
 
     public function photo(Farmer $farmer): StreamedResponse
     {
-        if ($farmer->photo_path === null || ! Storage::exists($farmer->photo_path)) {
+        if ($farmer->photo_path === null || ! Storage::disk('local')->exists($farmer->photo_path)) {
             abort(404);
         }
 
-        return Storage::response($farmer->photo_path);
+        return Storage::disk('local')->response($farmer->photo_path);
     }
 
     private function activityCount(Farmer $farmer): int
@@ -298,6 +302,90 @@ class FarmerController extends Controller
             ->get()
             ->map(fn (FarmActivity $activity): array => $activity->summaryRow())
             ->values()
+            ->all();
+    }
+
+    /**
+     * Profile photo, drone images, and verification photos already stored
+     * for this farmer. There is no separate documents table.
+     *
+     * @return list<array{id: string, label: string, name: string, href: string, recorded_at: string|null}>
+     */
+    private function documents(Farmer $farmer): array
+    {
+        $documents = [];
+
+        if ($farmer->photo_path !== null) {
+            $documents[] = [
+                'id' => 'farmer-photo-'.$farmer->id,
+                'label' => 'Profile photo',
+                'name' => $farmer->fullName(),
+                'href' => route('farmers.photo', $farmer),
+                'recorded_at' => $farmer->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        foreach ($farmer->farms as $farm) {
+            if ($farm->drone_image_path === null) {
+                continue;
+            }
+
+            $documents[] = [
+                'id' => 'drone-'.$farm->id,
+                'label' => 'Drone image',
+                'name' => $farm->displayName(),
+                'href' => route('farms.drone-image', $farm),
+                'recorded_at' => $farm->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        $photos = FarmVerificationPhoto::query()
+            ->with(['verification.farm', 'uploader'])
+            ->whereHas('verification.farm', fn ($query) => $query->where('farmer_id', $farmer->id))
+            ->orderBy('id')
+            ->get();
+
+        foreach ($photos as $photo) {
+            $presented = $photo->present();
+            $name = $presented['name'] ?? null;
+            $farm = $photo->verification?->farm;
+
+            $documents[] = [
+                'id' => 'photo-'.$photo->id,
+                'label' => 'Verification photo',
+                'name' => is_string($name) && $name !== '' ? $name : ($farm?->displayName() ?? 'Photo'),
+                'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farmers.show', $farmer),
+                'recorded_at' => $photo->verification?->verified_at?->format('M j, Y')
+                    ?? $photo->created_at?->format('M j, Y'),
+            ];
+        }
+
+        return $documents;
+    }
+
+    /**
+     * Verification attempts across this farmer's farms, newest first.
+     *
+     * @return list<array{id: int, date: string, reference: string, result: string|null, verified_by: string|null, remarks: string|null, farm_record_id: int, farm_name: string}>
+     */
+    private function verificationHistory(Farmer $farmer): array
+    {
+        return FarmVerification::query()
+            ->with(['farm', 'verifier'])
+            ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (FarmVerification $verification): array => [
+                'id' => $verification->id,
+                'date' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y') ?? '—',
+                'reference' => $verification->verification_reference,
+                'result' => $verification->result?->value,
+                'verified_by' => $verification->verifier?->name,
+                'remarks' => $verification->remarks,
+                'farm_record_id' => $verification->farm_id,
+                'farm_name' => $verification->farm?->displayName() ?? 'Farm',
+            ])
             ->all();
     }
 }

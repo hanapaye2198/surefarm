@@ -48,5 +48,6 @@ test('updates an existing account with the admin email instead of creating anoth
 
     expect($admin->name)->toBe('SureFarm Administrator')
         ->and($admin->role)->toBe(UserRole::Admin)
-        ->and(Hash::check('password!', $admin->password))->toBeTrue();
+        ->and(Hash::check('password', $admin->password))->toBeTrue()
+        ->and(Hash::check('password!', $admin->password))->toBeFalse();
 });

@@ -257,6 +257,7 @@ export default function InventoryIndex({
                     ]}
                     rows={inventories.data.map((row) => ({
                         id: row.id,
+                        href: show(row.id),
                         cells: [
                             display(row.received_date),
                             row.farmer ? (

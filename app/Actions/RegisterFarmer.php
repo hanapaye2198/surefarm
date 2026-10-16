@@ -26,7 +26,7 @@ class RegisterFarmer
         try {
             return DB::transaction(function () use ($data, $photo, &$storedPath): Farmer {
                 if ($photo !== null) {
-                    $storedPath = $photo->store('farmers/photos');
+                    $storedPath = $photo->store('farmers/photos', 'local');
 
                     if ($storedPath === false) {
                         throw new \RuntimeException('Farmer photo could not be stored.');
@@ -85,7 +85,7 @@ class RegisterFarmer
             });
         } catch (Throwable $exception) {
             if (is_string($storedPath)) {
-                Storage::delete($storedPath);
+                Storage::disk('local')->delete($storedPath);
             }
 
             throw $exception;

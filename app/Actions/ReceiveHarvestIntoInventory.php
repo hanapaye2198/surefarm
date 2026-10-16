@@ -52,16 +52,19 @@ class ReceiveHarvestIntoInventory
                 ]);
             }
 
+            if ($data['unit'] !== $harvest->unit) {
+                throw ValidationException::withMessages([
+                    'unit' => 'Use the same unit as the harvest. Quantities are not converted between units.',
+                ]);
+            }
+
             $quantity = round((float) $data['quantity'], 2);
+            $remaining = $this->stock->remainingReceivable($harvest);
 
-            if ($data['unit'] === $harvest->unit) {
-                $remaining = $this->stock->remainingReceivable($harvest);
-
-                if ($quantity > $remaining) {
-                    throw ValidationException::withMessages([
-                        'quantity' => 'Quantity cannot exceed the harvest quantity that has not yet been received.',
-                    ]);
-                }
+            if ($quantity > $remaining) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Quantity cannot exceed the harvest quantity that has not yet been received.',
+                ]);
             }
 
             $inventory = Inventory::query()->create([

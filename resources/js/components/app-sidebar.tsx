@@ -7,6 +7,7 @@ import {
     Handshake,
     Landmark,
     LayoutGrid,
+    Leaf,
     ListChecks,
     MapPinned,
     Settings,
@@ -42,6 +43,8 @@ import {
     processing as processingIndex,
 } from '@/routes/inventory';
 import { index as traceabilityIndex } from '@/routes/traceability';
+import { index as financeIndex } from '@/routes/finance';
+import { index as insuranceIndex } from '@/routes/insurance';
 import { index as productionIndex } from '@/routes/production';
 import { index as farmVerificationIndex } from '@/routes/farm-verification';
 import { index as farmsIndex } from '@/routes/farms';
@@ -50,9 +53,12 @@ import { index as activityTypesIndex } from '@/routes/activity-types';
 import { edit as editProfile } from '@/routes/profile';
 import type { NavItem, UserRole } from '@/types';
 
+type FeatureStatus = 'live' | 'partial' | 'planned';
+
 type SidebarLink = NavItem & {
     roles?: UserRole[];
     match?: 'exact' | 'parent' | 'settings';
+    status?: FeatureStatus;
 };
 
 const itemClassName =
@@ -98,6 +104,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Cooperatives',
                 href: showModule('cooperatives'),
                 icon: Handshake,
+                status: 'partial',
             },
         ],
     },
@@ -108,6 +115,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Crop Management',
                 href: showModule('crop-management'),
                 icon: Sprout,
+                status: 'planned',
             },
             {
                 title: 'Farm Activities',
@@ -119,7 +127,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
             {
                 title: 'Production',
                 href: productionIndex(),
-                icon: Wheat,
+                icon: Leaf,
                 roles: ['operations', 'field_verifier'],
                 match: 'parent',
             },
@@ -157,18 +165,25 @@ const groups: { label: string; items: SidebarLink[] }[] = [
             },
             {
                 title: 'Finance',
-                href: showModule('finance'),
+                href: financeIndex(),
                 icon: Landmark,
+                roles: ['operations', 'field_verifier'],
+                match: 'parent',
+                status: 'partial',
             },
             {
                 title: 'Insurance',
-                href: showModule('insurance'),
+                href: insuranceIndex(),
                 icon: Shield,
+                roles: ['operations', 'field_verifier'],
+                match: 'parent',
+                status: 'partial',
             },
             {
                 title: 'Logistics & Export',
                 href: showModule('logistics-export'),
                 icon: Truck,
+                status: 'planned',
             },
         ],
     },
@@ -179,6 +194,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Reports',
                 href: showModule('reports'),
                 icon: BarChart3,
+                status: 'planned',
             },
             {
                 title: 'Activity Types',
@@ -243,41 +259,41 @@ export function AppSidebar() {
                         </SidebarGroupLabel>
                         <SidebarMenu>
                             {group.items.map((item) => {
-                                if (
-                                    item.roles?.length === 1 &&
-                                    item.roles[0] === 'admin' &&
-                                    role !== 'admin'
-                                ) {
+                                if (!userCanAccess(role, item.roles)) {
                                     return null;
                                 }
 
-                                if (!userCanAccess(role, item.roles)) {
-                                    return (
-                                        <SidebarMenuItem key={item.title}>
-                                            <SidebarMenuButton
-                                                tooltip="Not available for your role"
-                                                className={itemClassName}
-                                                aria-disabled
-                                                disabled
-                                            >
-                                                {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    );
-                                }
+                                const statusLabel =
+                                    item.status === 'partial'
+                                        ? 'Partial'
+                                        : item.status === 'planned'
+                                          ? 'Planned'
+                                          : null;
 
                                 return (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton
                                             asChild
                                             isActive={active(item)}
-                                            tooltip={{ children: item.title }}
+                                            tooltip={{
+                                                children: statusLabel
+                                                    ? `${item.title} (${statusLabel})`
+                                                    : item.title,
+                                            }}
                                             className={itemClassName}
                                         >
                                             <Link href={item.href} prefetch>
                                                 {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
+                                                <span className="flex min-w-0 flex-1 items-center gap-2">
+                                                    <span className="truncate">
+                                                        {item.title}
+                                                    </span>
+                                                    {statusLabel && (
+                                                        <span className="shrink-0 text-[0.6rem] font-semibold tracking-wide text-sidebar-foreground/55 uppercase group-data-[collapsible=icon]:hidden">
+                                                            {statusLabel}
+                                                        </span>
+                                                    )}
+                                                </span>
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>

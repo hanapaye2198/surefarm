@@ -114,6 +114,7 @@ export default function FarmersIndex({
                     ]}
                     rows={farmers.data.map((farmer) => ({
                         id: farmer.id,
+                        href: show(farmer.id),
                         cells: [
                             <span key="id" className="font-medium">
                                 {farmer.farmer_id}

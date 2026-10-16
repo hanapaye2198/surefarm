@@ -267,6 +267,10 @@ export default function RegisterFarm({
                     <Card className="shadow-none">
                         <CardHeader>
                             <CardTitle>Farm location</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                These fields start from the farmer's address.
+                                Change them if this farm is somewhere else.
+                            </p>
                         </CardHeader>
                         <CardContent className="grid gap-4 md:grid-cols-2">
                             <Field
@@ -389,7 +393,7 @@ export default function RegisterFarm({
                                             event.target.value,
                                         )
                                     }
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 >
                                     <option value="">Not provided</option>
                                     {stages.map((stage) => (
@@ -416,7 +420,7 @@ export default function RegisterFarm({
                                             event.target.value,
                                         )
                                     }
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 >
                                     <option value="">Not provided</option>
                                     {ownerships.map((ownership) => (
@@ -460,7 +464,7 @@ export default function RegisterFarm({
                                             event.target.value,
                                         )
                                     }
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none"
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                 >
                                     <option value="">Not provided</option>
                                     <option value="1">Yes</option>

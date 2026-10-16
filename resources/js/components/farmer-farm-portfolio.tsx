@@ -422,6 +422,7 @@ export function FarmerFarmPortfolio({
                     ]}
                     rows={visible.map((farm) => ({
                         id: farm.id,
+                        href: showFarm(farm.id),
                         cells: [
                             <span key="id" className="font-medium">
                                 {farm.farm_id}

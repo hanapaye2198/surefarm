@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { ConfirmAction } from '@/components/confirm-action';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -39,6 +41,7 @@ export default function ReceiveHarvest({
 }) {
     const cherry =
         stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
+    const [confirming, setConfirming] = useState(false);
     const form = useForm({
         quantity: remaining > 0 ? String(remaining) : '',
         unit: harvest.unit,
@@ -48,9 +51,31 @@ export default function ReceiveHarvest({
         notes: '',
     });
 
+    const stage = stages.find(
+        (item) => String(item.id) === form.data.processing_stage_id,
+    );
+
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url(harvest.id));
+
+        if (
+            form.data.quantity.trim() === '' ||
+            form.data.unit.trim() === '' ||
+            form.data.processing_stage_id.trim() === '' ||
+            form.data.received_date.trim() === ''
+        ) {
+            form.post(store.url(harvest.id));
+
+            return;
+        }
+
+        setConfirming(true);
+    }
+
+    function saveReceipt() {
+        form.post(store.url(harvest.id), {
+            onError: () => setConfirming(false),
+        });
     }
 
     return (
@@ -188,10 +213,19 @@ export default function ReceiveHarvest({
                     </Card>
                     <div>
                         <Button type="submit" disabled={form.processing}>
-                            Save inventory
+                            {form.processing ? 'Saving...' : 'Receive stock'}
                         </Button>
                     </div>
                 </form>
+                <ConfirmAction
+                    open={confirming}
+                    title="Receive this harvest into inventory?"
+                    description={`This records ${form.data.quantity} ${form.data.unit} as ${stage?.name ?? 'inventory'}. The harvest quantity stays ${harvest.quantity_label}.`}
+                    confirmLabel="Receive stock"
+                    pending={form.processing}
+                    onOpenChange={setConfirming}
+                    onConfirm={saveReceipt}
+                />
             </div>
         </>
     );

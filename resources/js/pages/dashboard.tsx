@@ -35,7 +35,13 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
+import {
+    index as verificationIndex,
+    show as showVerification,
+} from '@/routes/farm-verification';
+import { index as farmsIndex, show as showFarm } from '@/routes/farms';
 import {
     index as activitiesIndex,
     show as showActivity,
@@ -115,6 +121,358 @@ type RecentHarvest = {
     status: HarvestRecordStatus;
 };
 
+type AssignedFarm = {
+    id: number;
+    farm_id: string;
+    farm_name: string;
+    farmer_name: string | null;
+    location: string;
+    verification_status: FarmStatus;
+};
+
+type FarmerProduction = {
+    id: number;
+    production_period: string | null;
+    expected_label: string;
+    status_label: string;
+    farm: { farm_name: string } | null;
+};
+
+type FarmerNotice = {
+    id: string;
+    title: string;
+    message: string;
+    created_at: string | null;
+    read: boolean;
+};
+
+type BoundaryRequest = {
+    id: number;
+    farm_id: number;
+    farm_code: string | null;
+    farm_name: string | null;
+    farmer_name: string | null;
+    reason: string | null;
+    created_at: string | null;
+};
+
+function VerifierDashboard({
+    summary,
+    assignments,
+    locations,
+}: {
+    summary: DashboardSummary;
+    assignments: AssignedFarm[];
+    locations: FarmLocation[];
+}) {
+    const next = assignments.filter((farm) =>
+        ['pending', 'in_progress', 'needs_review'].includes(
+            farm.verification_status,
+        ),
+    );
+
+    return (
+        <>
+            <Head title="Field verifier dashboard" />
+            <div className="flex flex-col gap-5 sm:gap-6">
+                <PageHeader
+                    title="Field verification"
+                    description="These farms are assigned to your verifier account."
+                    actions={
+                        <Button asChild>
+                            <Link href={verificationIndex()}>
+                                Open verification queue
+                            </Link>
+                        </Button>
+                    }
+                />
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                    {(
+                        [
+                            ['Assigned', summary.registered_farms],
+                            ['Pending', summary.pending_verification],
+                            ['In progress', summary.in_progress],
+                            ['Needs review', summary.needs_review],
+                            ['Verified', summary.verified_farms],
+                        ] as const
+                    ).map(([label, value]) => (
+                        <Card key={label} className="shadow-sm">
+                            <CardContent className="flex items-center justify-between gap-3 py-5">
+                                <span className="text-sm text-muted-foreground">
+                                    {label}
+                                </span>
+                                <span className="text-2xl font-semibold tabular-nums">
+                                    {countFormatter.format(value)}
+                                </span>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </section>
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Next farms</CardTitle>
+                        <CardDescription>
+                            Pending, in progress, and needs-review assignments.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {next.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No assigned farms are waiting on verification.
+                            </p>
+                        ) : (
+                            <ul className="divide-y">
+                                {next.map((farm) => (
+                                    <li key={farm.id}>
+                                        <Link
+                                            href={showVerification(farm.id)}
+                                            className="flex items-center justify-between gap-3 py-3 text-sm"
+                                        >
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-medium">
+                                                    {farm.farm_name}
+                                                </span>
+                                                <span className="block truncate text-muted-foreground">
+                                                    {farm.farm_id}
+                                                    {farm.farmer_name
+                                                        ? ` · ${farm.farmer_name}`
+                                                        : ''}
+                                                    {farm.location
+                                                        ? ` · ${farm.location}`
+                                                        : ''}
+                                                </span>
+                                            </span>
+                                            <StatusBadge
+                                                status={
+                                                    farm.verification_status
+                                                }
+                                            />
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Assigned locations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <FarmLocationMap locations={locations} />
+                    </CardContent>
+                </Card>
+            </div>
+        </>
+    );
+}
+
+function FarmerDashboard({
+    farmer,
+    summary,
+    activities,
+    harvests,
+    productions,
+    notifications,
+    photoStored,
+}: {
+    farmer?: { name: string; farmer_id: string };
+    summary: DashboardSummary;
+    activities: RecentActivity[];
+    harvests: RecentHarvest[];
+    productions: FarmerProduction[];
+    notifications: FarmerNotice[];
+    photoStored: boolean;
+}) {
+    const outstanding =
+        summary.pending_verification +
+        summary.in_progress +
+        summary.needs_review;
+
+    return (
+        <>
+            <Head title="Farmer dashboard" />
+            <div className="flex flex-col gap-5 sm:gap-6">
+                <PageHeader
+                    title={`Welcome, ${farmer?.name ?? 'farmer'}`}
+                    description={`Your farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`}
+                />
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {(
+                        [
+                            ['My farms', summary.registered_farms],
+                            ['Waiting on verification', outstanding],
+                            ['Verified', summary.verified_farms],
+                        ] as const
+                    ).map(([label, value]) => (
+                        <Card key={label} className="shadow-sm">
+                            <CardContent className="flex items-center justify-between gap-3 py-5">
+                                <span className="text-sm text-muted-foreground">
+                                    {label}
+                                </span>
+                                <span className="text-2xl font-semibold tabular-nums">
+                                    {countFormatter.format(value)}
+                                </span>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </section>
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>What to check</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-2 text-sm text-muted-foreground">
+                        <p>
+                            {outstanding === 0
+                                ? 'None of your farms are pending, in progress, or marked needs review.'
+                                : `${countFormatter.format(outstanding)} of your farms still have an open verification status.`}
+                        </p>
+                        <p>
+                            {photoStored
+                                ? 'A profile photo is stored on your farmer record.'
+                                : 'No profile photo is stored on your farmer record.'}
+                        </p>
+                        <p>
+                            Crop insurance and financing stay on the farm
+                            record. Your cooperative opens those forms.
+                        </p>
+                    </CardContent>
+                </Card>
+                <section className="grid gap-4 lg:grid-cols-2">
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Recent activities</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {activities.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No activities are recorded on your farms.
+                                </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {activities.map((activity) => (
+                                        <li
+                                            key={activity.id}
+                                            className="grid gap-1 py-3 text-sm"
+                                        >
+                                            <span className="font-medium">
+                                                {activity.farm_name}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {activity.activity_date ??
+                                                    'No date'}
+                                                {activity.activity
+                                                    ? ` · ${activity.activity}`
+                                                    : ''}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Recent harvests</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {harvests.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No harvests are recorded on your farms.
+                                </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {harvests.map((harvest) => (
+                                        <li
+                                            key={harvest.id}
+                                            className="grid gap-1 py-3 text-sm"
+                                        >
+                                            <span className="font-medium">
+                                                {harvest.farm_name}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {harvest.quantity_label}
+                                                {harvest.harvest_date
+                                                    ? ` · ${harvest.harvest_date}`
+                                                    : ''}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
+                <section className="grid gap-4 lg:grid-cols-2">
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Production</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {productions.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No production records are stored for your
+                                    farms.
+                                </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {productions.map((production) => (
+                                        <li
+                                            key={production.id}
+                                            className="grid gap-1 py-3 text-sm"
+                                        >
+                                            <span className="font-medium">
+                                                {production.farm?.farm_name ??
+                                                    'Farm'}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {production.production_period ??
+                                                    'No period'}
+                                                {' · '}
+                                                {production.expected_label}
+                                                {' · '}
+                                                {production.status_label}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Updates</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {notifications.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    No notifications for your account.
+                                </p>
+                            ) : (
+                                <ul className="divide-y">
+                                    {notifications.map((notice) => (
+                                        <li
+                                            key={notice.id}
+                                            className="grid gap-1 py-3 text-sm"
+                                        >
+                                            <span className="font-medium">
+                                                {notice.title}
+                                            </span>
+                                            <span className="text-muted-foreground">
+                                                {notice.message}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
+        </>
+    );
+}
+
 export default function Dashboard({
     mobile_dashboard_mode,
     summary,
@@ -128,9 +486,14 @@ export default function Dashboard({
     traceability_summary,
     recent_lots,
     farmer,
+    assigned_farms_preview,
+    assigned_farms_map,
+    recent_productions,
+    recent_notifications,
+    boundary_update_requests,
 }: {
     mobile_dashboard_mode?: string;
-    farmer?: { name: string; farmer_id: string };
+    farmer?: { name: string; farmer_id: string; photo_url?: string | null };
     summary: DashboardSummary;
     area_summary: AreaSummary;
     locations: FarmLocation[];
@@ -153,6 +516,11 @@ export default function Dashboard({
         status_label: string;
         farm: { farm_name: string } | null;
     }[];
+    assigned_farms_preview?: AssignedFarm[];
+    assigned_farms_map?: FarmLocation[];
+    recent_productions?: FarmerProduction[];
+    recent_notifications?: FarmerNotice[];
+    boundary_update_requests?: BoundaryRequest[];
 }) {
     if (mobile_dashboard_mode === 'farmer_account_not_linked') {
         return (
@@ -188,67 +556,27 @@ export default function Dashboard({
         );
     }
 
-    if (
-        mobile_dashboard_mode === 'farmer_dashboard' ||
-        mobile_dashboard_mode === 'verifier_dashboard'
-    ) {
-        const isFarmer = mobile_dashboard_mode === 'farmer_dashboard';
-        const rows = isFarmer
-            ? [
-                  ['My farms', summary.registered_farms],
-                  ['Pending', summary.pending_verification],
-                  ['In progress', summary.in_progress],
-                  ['Verified', summary.verified_farms],
-                  ['Needs review', summary.needs_review],
-              ]
-            : [
-                  ['Assigned farms', summary.registered_farms],
-                  ['Pending', summary.pending_verification],
-                  ['In progress', summary.in_progress],
-                  ['Verified', summary.verified_farms],
-                  ['Needs review', summary.needs_review],
-              ];
-
+    if (mobile_dashboard_mode === 'verifier_dashboard') {
         return (
-            <>
-                <Head
-                    title={
-                        isFarmer
-                            ? 'Farmer dashboard'
-                            : 'Field verifier dashboard'
-                    }
-                />
-                <div className="flex flex-col gap-5 sm:gap-6">
-                    <PageHeader
-                        title={
-                            isFarmer
-                                ? `Welcome, ${farmer?.name ?? 'farmer'}`
-                                : 'Field verification'
-                        }
-                        description={
-                            isFarmer
-                                ? `Your own farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`
-                                : 'Counts include only farms assigned to your verifier account.'
-                        }
-                    />
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        {rows.map(([label, value]) => (
-                            <Card key={label} className="shadow-sm">
-                                <CardContent className="flex items-center justify-between gap-4 py-5">
-                                    <span className="text-sm text-muted-foreground">
-                                        {label}
-                                    </span>
-                                    <span className="text-2xl font-semibold tabular-nums">
-                                        {countFormatter.format(
-                                            Number(value ?? 0),
-                                        )}
-                                    </span>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            </>
+            <VerifierDashboard
+                summary={summary}
+                assignments={assigned_farms_preview ?? []}
+                locations={assigned_farms_map ?? []}
+            />
+        );
+    }
+
+    if (mobile_dashboard_mode === 'farmer_dashboard') {
+        return (
+            <FarmerDashboard
+                farmer={farmer}
+                summary={summary}
+                activities={recent_activities}
+                harvests={recent_harvests}
+                productions={recent_productions ?? []}
+                notifications={recent_notifications ?? []}
+                photoStored={Boolean(farmer?.photo_url)}
+            />
         );
     }
 
@@ -305,26 +633,98 @@ export default function Dashboard({
                 </section>
 
                 <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Verified Farm Land</CardTitle>
-                        <CardDescription>
-                            Saved boundaries of active farms that have been
-                            verified.
-                        </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between gap-3">
+                        <div>
+                            <CardTitle>Needs attention</CardTitle>
+                            <CardDescription>
+                                {countFormatter.format(
+                                    summary.pending_verification,
+                                )}{' '}
+                                farms are pending verification
+                                {summary.needs_review > 0
+                                    ? `, and ${countFormatter.format(summary.needs_review)} need review`
+                                    : ''}
+                                .
+                            </CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link
+                                href={farmsIndex.url({
+                                    query: {
+                                        verification_status: 'pending',
+                                    },
+                                })}
+                            >
+                                Review pending
+                            </Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
-                        <VerifiedFarmLandMap lands={verified_lands} />
+                        {(boundary_update_requests ?? []).length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No pending boundary update requests.
+                            </p>
+                        ) : (
+                            <ul className="divide-y">
+                                {(boundary_update_requests ?? []).map(
+                                    (request) => (
+                                        <li key={request.id}>
+                                            <Link
+                                                href={showFarm(request.farm_id)}
+                                                className="grid gap-1 py-3 text-sm hover:underline"
+                                            >
+                                                <span className="font-medium">
+                                                    {request.farm_name ??
+                                                        'Farm'}{' '}
+                                                    <span className="font-normal text-muted-foreground">
+                                                        {request.farm_code}
+                                                    </span>
+                                                </span>
+                                                <span className="text-muted-foreground">
+                                                    {request.farmer_name ??
+                                                        'Farmer'}
+                                                    {request.created_at
+                                                        ? ` · ${request.created_at}`
+                                                        : ''}
+                                                    {request.reason
+                                                        ? ` · ${request.reason}`
+                                                        : ''}
+                                                </span>
+                                            </Link>
+                                        </li>
+                                    ),
+                                )}
+                            </ul>
+                        )}
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Farm Locations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <FarmLocationMap locations={locations} />
-                    </CardContent>
-                </Card>
+                <section className="grid gap-4 xl:grid-cols-2">
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Farm Locations</CardTitle>
+                            <CardDescription>
+                                Recorded coordinates. This is separate from
+                                verified boundaries.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <FarmLocationMap locations={locations} />
+                        </CardContent>
+                    </Card>
+                    <Card className="shadow-sm">
+                        <CardHeader>
+                            <CardTitle>Verified Farm Land</CardTitle>
+                            <CardDescription>
+                                Saved boundaries of active farms that have been
+                                verified.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <VerifiedFarmLandMap lands={verified_lands} />
+                        </CardContent>
+                    </Card>
+                </section>
 
                 <section className="grid gap-4 lg:grid-cols-2">
                     <Card className="shadow-sm">

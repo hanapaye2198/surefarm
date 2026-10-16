@@ -21,6 +21,12 @@ class DatabaseSeeder extends Seeder
         $this->call(ActivityTypeSeeder::class);
         $this->call(InventoryProcessingStageSeeder::class);
 
+        if (app()->environment('production')) {
+            return;
+        }
+
+        $this->call(DemoSeeder::class);
+
         $tester = User::query()->firstOrNew([
             'email' => 'test@example.com',
         ]);

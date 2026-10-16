@@ -26,7 +26,7 @@ class UpdateFarmDetails
                 $previousImage = $farm->drone_image_path;
 
                 if ($droneImage !== null) {
-                    $storedPath = $droneImage->store('farms/drone-images');
+                    $storedPath = $droneImage->store('farms/drone-images', 'local');
 
                     if ($storedPath === false) {
                         throw new \RuntimeException('Farm drone image could not be stored.');
@@ -68,14 +68,14 @@ class UpdateFarmDetails
                 $farm->update($attributes);
 
                 if (is_string($storedPath) && is_string($previousImage)) {
-                    Storage::delete($previousImage);
+                    Storage::disk('local')->delete($previousImage);
                 }
 
                 return $farm->refresh();
             });
         } catch (Throwable $exception) {
             if (is_string($storedPath)) {
-                Storage::delete($storedPath);
+                Storage::disk('local')->delete($storedPath);
             }
 
             throw $exception;

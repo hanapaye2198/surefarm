@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { ConfirmAction } from '@/components/confirm-action';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ export default function ProcessCoffee({
 }) {
     const initial =
         lots.find((lot) => lot.id === selectedInventoryId) ?? lots[0];
+    const [confirming, setConfirming] = useState(false);
     const form = useForm({
         inventory_id: initial ? String(initial.id) : '',
         input_quantity: '',
@@ -62,7 +65,25 @@ export default function ProcessCoffee({
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url());
+
+        if (
+            selected === null ||
+            form.data.input_quantity.trim() === '' ||
+            form.data.output_quantity.trim() === '' ||
+            form.data.processing_date.trim() === ''
+        ) {
+            form.post(store.url());
+
+            return;
+        }
+
+        setConfirming(true);
+    }
+
+    function saveProcessing() {
+        form.post(store.url(), {
+            onError: () => setConfirming(false),
+        });
     }
 
     return (
@@ -227,11 +248,26 @@ export default function ProcessCoffee({
                                 type="submit"
                                 disabled={form.processing || selected === null}
                             >
-                                Save processing
+                                {form.processing
+                                    ? 'Saving...'
+                                    : 'Save processing'}
                             </Button>
                         </div>
                     </form>
                 )}
+                <ConfirmAction
+                    open={confirming}
+                    title="Process this coffee?"
+                    description={
+                        selected
+                            ? `${form.data.input_quantity} ${selected.unit} leaves ${selected.stage_name}. ${form.data.output_quantity} ${selected.unit} is recorded as ${selected.next_stage_name}.`
+                            : 'Choose an inventory lot before processing.'
+                    }
+                    confirmLabel="Save processing"
+                    pending={form.processing}
+                    onOpenChange={setConfirming}
+                    onConfirm={saveProcessing}
+                />
                 <Button variant="outline" asChild className="w-fit">
                     <Link href={inventoryIndex()}>Back to inventory</Link>
                 </Button>

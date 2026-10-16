@@ -10,7 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { userCanAccess } from '@/lib/access';
 import { index as farmersIndex } from '@/routes/farmers';
-import { index as farmsIndex, show } from '@/routes/farms';
+import {
+    index as farmsIndex,
+    register as chooseFarmer,
+    show,
+} from '@/routes/farms';
 
 type FarmRow = {
     id: number;
@@ -102,7 +106,7 @@ export default function FarmsIndex({
                     actions={
                         canRegister ? (
                             <Button asChild>
-                                <Link href={farmersIndex()}>
+                                <Link href={chooseFarmer()}>
                                     <Plus />
                                     Register Farm
                                 </Link>
@@ -171,6 +175,7 @@ export default function FarmsIndex({
                     ]}
                     rows={farms.data.map((farm) => ({
                         id: farm.id,
+                        href: show(farm.id),
                         cells: [
                             <span key="id" className="font-medium">
                                 {farm.farm_id}

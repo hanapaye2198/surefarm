@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountNotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmActivityController;
 use App\Http\Controllers\FarmBoundaryController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryDamageController;
 use App\Http\Controllers\InventoryProcessingController;
 use App\Http\Controllers\ModulePlaceholderController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\ActivityTypeController;
 use App\Http\Controllers\TraceabilityController;
 use App\Http\Controllers\TraceabilityPublicController;
@@ -29,12 +31,16 @@ Route::get('trace/{lot_code}', [TraceabilityPublicController::class, 'show'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('search', SearchController::class)->name('search');
+    Route::get('notifications', [AccountNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/{notification}/read', [AccountNotificationController::class, 'read'])->name('notifications.read');
 
     Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
-        ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports')
+        ->where('module', 'crop-management|logistics-export|cooperatives|reports')
         ->name('modules.show');
 
     Route::middleware('role:operations')->group(function () {
+        Route::get('farms/register', [FarmController::class, 'chooseFarmer'])->name('farms.register');
         Route::get('farmers/create', [FarmerController::class, 'create'])->name('farmers.create');
         Route::post('farmers', [FarmerController::class, 'store'])->name('farmers.store');
         Route::get('farmers/{farmer}/edit', [FarmerController::class, 'edit'])->name('farmers.edit');
@@ -92,6 +98,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('farmers', [FarmerController::class, 'index'])->name('farmers.index');
         Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo'])->name('farmers.photo');
         Route::get('farmers/{farmer}', [FarmerController::class, 'show'])->name('farmers.show');
+        Route::get('finance', [FarmFinancingController::class, 'index'])->name('finance.index');
+        Route::get('insurance', [FarmInsuranceController::class, 'index'])->name('insurance.index');
         Route::get('farms', [FarmController::class, 'index'])->name('farms.index');
         Route::get('farms/{farm}/drone-image', [FarmController::class, 'droneImage'])->name('farms.drone-image');
         Route::get('farms/{farm}', [FarmController::class, 'show'])->name('farms.show');

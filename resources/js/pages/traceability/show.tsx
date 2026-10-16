@@ -239,8 +239,14 @@ export function TraceabilitySheet({
                                         {stage}
                                     </span>
                                     {index < stages.length - 1 && (
-                                        <span className="hidden text-muted-foreground sm:inline">
-                                            ↓
+                                        <span
+                                            className="text-muted-foreground"
+                                            aria-hidden="true"
+                                        >
+                                            <span className="sm:hidden">↓</span>
+                                            <span className="hidden sm:inline">
+                                                →
+                                            </span>
                                         </span>
                                     )}
                                 </li>
@@ -267,7 +273,7 @@ export function TraceabilitySheet({
                                 {journey.map((step) => (
                                     <li
                                         key={`${step.date}-${step.from_stage}-${step.to_stage}`}
-                                        className="rounded-lg border px-4 py-3 text-sm"
+                                        className="rounded-lg border px-4 py-3 text-sm print:break-inside-avoid"
                                     >
                                         <p className="text-muted-foreground">
                                             {step.date}

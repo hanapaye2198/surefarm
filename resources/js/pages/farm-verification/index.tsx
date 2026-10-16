@@ -217,6 +217,7 @@ export default function FarmVerificationIndex({
                     ]}
                     rows={farms.data.map((farm) => ({
                         id: farm.id,
+                        href: show(farm.id),
                         cells: [
                             <span key="id" className="font-medium">
                                 {farm.farm_id}
