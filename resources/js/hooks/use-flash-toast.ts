@@ -9,11 +9,24 @@ export function useFlashToast(): void {
             const flash = (event as CustomEvent).detail?.flash;
             const data = flash?.toast as FlashToast | undefined;
 
-            if (!data) {
+            if (!data?.message) {
                 return;
             }
 
-            toast[data.type](data.message);
+            const titles = {
+                success: 'Completed',
+                info: 'Notice',
+                warning: 'Attention',
+                error: 'Not completed',
+            } as const;
+
+            if (!(data.type in titles)) {
+                return;
+            }
+
+            toast[data.type](titles[data.type], {
+                description: data.message,
+            });
         });
     }, []);
 }

@@ -1,29 +1,50 @@
 const figures = [
-    { label: 'Declared', value: '2.84 ha' },
-    { label: 'Measured', value: '2.79 ha' },
-    { label: 'Difference', value: '0.05 ha' },
-    { label: 'Variance', value: '1.76%' },
+    { label: 'Declared', value: '2.50 ha' },
+    { label: 'Measured', value: '2.46 ha' },
+    { label: 'Difference', value: '0.04 ha' },
+    { label: 'Variance', value: '1.6%' },
 ];
 
 export function VerificationShowcase() {
     return (
-        <section className="border-t bg-muted/40 py-16 sm:py-20">
-            <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
+        <section
+            id="verification"
+            className="scroll-mt-20 border-t py-16 sm:py-20"
+        >
+            <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16">
                 <div>
-                    <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                        From declared area to verified area.
+                    <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
+                        Area verification
+                    </p>
+                    <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                        Declared area stays separate until it is checked.
                     </h2>
                     <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-                        SureFarm keeps a farmer&apos;s declared hectares
-                        separate from the area measured on the map, so a
-                        reviewer can see the difference before verification.
+                        A farmer&apos;s declared hectares and the area measured
+                        from the boundary are stored side by side. A reviewer
+                        sees the difference before the farm is marked verified.
+                        Field teams can capture the boundary, GPS, and photos in
+                        the mobile app.
                     </p>
                 </div>
                 <div className="rounded-3xl border bg-card p-5 shadow-sm sm:p-6">
-                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                        Demonstration example
-                    </p>
-                    <dl className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Demo walkthrough
+                            </p>
+                            <p className="mt-1 font-semibold tracking-tight">
+                                Kalasungay Coffee
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Malaybalay, Bukidnon
+                            </p>
+                        </div>
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary uppercase">
+                            Verified
+                        </span>
+                    </div>
+                    <dl className="mt-5 grid grid-cols-2 gap-3">
                         {figures.map((figure) => (
                             <div
                                 key={figure.label}
@@ -38,17 +59,19 @@ export function VerificationShowcase() {
                             </div>
                         ))}
                     </dl>
-                    <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
-                        <span className="text-xs font-semibold tracking-wide uppercase">
-                            Verified
-                        </span>
-                        <span className="text-sm font-medium">
-                            Example outcome
-                        </span>
+                    <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                            <span>Measured against declared</span>
+                            <span className="tabular-nums">98.4%</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full w-[98.4%] rounded-full bg-primary" />
+                        </div>
                     </div>
                     <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-                        These numbers are a demonstration only. They are not
-                        loaded from SureFarm records.
+                        These numbers come from the SureFarm demo walkthrough.
+                        They are not loaded from your organization&apos;s
+                        records.
                     </p>
                 </div>
             </div>

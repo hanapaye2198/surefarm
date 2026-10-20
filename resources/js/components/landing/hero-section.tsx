@@ -2,20 +2,27 @@ import { Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { login } from '@/routes';
 
+const highlights = [
+    'Farmer records',
+    'Mapped boundaries',
+    'Field verification',
+    'Public traceability',
+];
+
 export function HeroSection() {
     return (
-        <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-24">
+        <section className="mx-auto grid max-w-6xl items-center gap-12 overflow-x-clip px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:py-24">
             <div className="max-w-xl">
                 <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
-                    Agricultural management platform
+                    For cooperatives and field teams
                 </p>
                 <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-                    Smarter Farm Management. Verified from the Ground Up.
+                    The operating record for every farm you manage.
                 </h1>
                 <p className="mt-5 text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
-                    SureFarm brings farmer records, farm mapping, area
-                    verification, and agricultural operations into one connected
-                    platform.
+                    SureFarm keeps farmer profiles, mapped boundaries, field
+                    verification, harvest, inventory, and coffee traceability in
+                    one place.
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                     <Button asChild size="lg" className="w-full sm:w-auto">
@@ -27,116 +34,129 @@ export function HeroSection() {
                         variant="outline"
                         className="w-full sm:w-auto"
                     >
-                        <a href="#platform">Explore Platform</a>
+                        <a href="#how-it-works">See how it works</a>
                     </Button>
                 </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                    Accounts are issued by your organization. Field teams can
+                    also use the SureFarm mobile app.
+                </p>
+                <ul className="mt-8 flex flex-wrap gap-2">
+                    {highlights.map((item) => (
+                        <li
+                            key={item}
+                            className="rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground"
+                        >
+                            {item}
+                        </li>
+                    ))}
+                </ul>
             </div>
 
-            <FarmLandscape />
+            <ProductPreview />
         </section>
     );
 }
 
-function FarmLandscape() {
+function ProductPreview() {
     return (
         <div className="relative">
-            <div className="overflow-hidden rounded-3xl border bg-card shadow-sm">
-                <svg
-                    viewBox="0 0 640 520"
-                    role="img"
-                    aria-label="Illustration of a coffee farm with mapped field boundaries and location markers"
-                    className="h-auto w-full"
-                >
-                    <rect width="640" height="520" className="fill-muted" />
-                    <path
-                        d="M0 250 C80 210 140 280 220 240 C300 200 340 250 420 220 C500 190 560 230 640 200 L640 520 L0 520 Z"
-                        className="fill-primary/15"
-                    />
-                    <path
-                        d="M0 320 C120 280 180 340 280 310 C380 280 430 340 520 300 C580 280 610 300 640 290 L640 520 L0 520 Z"
-                        className="fill-primary/35"
-                    />
-                    <path
-                        d="M0 400 C160 360 240 420 360 390 C470 360 540 410 640 380 L640 520 L0 520 Z"
-                        className="fill-primary/70"
-                    />
-                    <g className="stroke-primary/25" strokeWidth="1">
-                        {Array.from({ length: 12 }, (_, index) => (
-                            <line
-                                key={`v-${index}`}
-                                x1={40 + index * 52}
-                                y1="28"
-                                x2={40 + index * 52}
-                                y2="492"
-                            />
-                        ))}
-                        {Array.from({ length: 8 }, (_, index) => (
-                            <line
-                                key={`h-${index}`}
-                                x1="24"
-                                y1={40 + index * 60}
-                                x2="616"
-                                y2={40 + index * 60}
-                            />
-                        ))}
-                    </g>
-                    <path
-                        d="M150 300 L250 250 L340 290 L310 370 L190 360 Z"
-                        className="fill-secondary-foreground/20 stroke-secondary-foreground"
-                        strokeWidth="3"
-                        strokeLinejoin="round"
-                    />
-                    <path
-                        d="M380 250 L490 220 L540 300 L470 360 L390 330 Z"
-                        className="fill-primary-foreground/10 stroke-primary"
-                        strokeWidth="3"
-                        strokeLinejoin="round"
-                    />
-                    <circle cx="250" cy="250" r="8" className="fill-primary" />
-                    <circle
-                        cx="250"
-                        cy="250"
-                        r="14"
-                        className="fill-none stroke-primary"
-                        strokeWidth="2"
-                    />
-                    <circle
-                        cx="490"
-                        cy="220"
-                        r="8"
-                        className="fill-secondary-foreground"
-                    />
-                    <circle
-                        cx="490"
-                        cy="220"
-                        r="14"
-                        className="fill-none stroke-secondary-foreground"
-                        strokeWidth="2"
-                    />
-                    <g className="fill-primary-foreground/80">
-                        <path d="M120 430 c8-28 18-28 26 0 -8 6-18 6-26 0z" />
-                        <path d="M168 450 c8-28 18-28 26 0 -8 6-18 6-26 0z" />
-                        <path d="M430 430 c8-28 18-28 26 0 -8 6-18 6-26 0z" />
-                        <path d="M478 455 c8-28 18-28 26 0 -8 6-18 6-26 0z" />
-                    </g>
-                </svg>
-            </div>
-            <div className="absolute right-4 bottom-4 left-4 grid grid-cols-2 gap-2 sm:right-auto sm:w-64">
-                <div className="rounded-xl border bg-background/95 p-3 shadow-sm">
-                    <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                        Map
+            <div
+                aria-hidden
+                className="absolute -inset-8 -z-10 rounded-[2.5rem] bg-primary/10 blur-2xl"
+            />
+            <div className="overflow-hidden rounded-3xl border bg-card shadow-lg">
+                <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        Farm record
                     </p>
-                    <p className="mt-1 text-sm font-semibold">Field boundary</p>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-primary uppercase">
+                        Verified
+                    </span>
                 </div>
-                <div className="rounded-xl border bg-background/95 p-3 shadow-sm">
-                    <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                        Check
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">
-                        Ready to verify
-                    </p>
+                <div className="grid sm:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+                    <div className="border-b p-5 sm:border-r sm:border-b-0">
+                        <p className="text-lg font-semibold tracking-tight">
+                            Kalasungay Coffee
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Malaybalay, Bukidnon
+                        </p>
+                        <dl className="mt-5 grid grid-cols-2 gap-3">
+                            <div className="rounded-2xl bg-muted/70 px-3 py-3">
+                                <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                    Declared
+                                </dt>
+                                <dd className="mt-1 text-xl font-semibold tracking-tight tabular-nums">
+                                    2.50 ha
+                                </dd>
+                            </div>
+                            <div className="rounded-2xl bg-muted/70 px-3 py-3">
+                                <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                    Measured
+                                </dt>
+                                <dd className="mt-1 text-xl font-semibold tracking-tight tabular-nums">
+                                    2.46 ha
+                                </dd>
+                            </div>
+                        </dl>
+                        <p className="mt-4 text-sm text-muted-foreground">
+                            Coffee · Harvest on record · 0.04 ha difference
+                        </p>
+                    </div>
+                    <BoundarySketch />
                 </div>
+                <p className="border-t px-5 py-3 text-xs leading-relaxed text-muted-foreground">
+                    Preview of the SureFarm demo walkthrough. These figures are
+                    not a live record from your organization.
+                </p>
             </div>
         </div>
+    );
+}
+
+function BoundarySketch() {
+    return (
+        <svg
+            viewBox="0 0 320 280"
+            role="img"
+            aria-label="Stylized farm boundary for the Kalasungay Coffee preview"
+            className="h-full min-h-48 w-full bg-muted/50"
+        >
+            <g className="stroke-border" strokeWidth="1">
+                {Array.from({ length: 7 }, (_, index) => (
+                    <line
+                        key={`v-${index}`}
+                        x1={index * 54}
+                        y1="0"
+                        x2={index * 54}
+                        y2="280"
+                    />
+                ))}
+                {Array.from({ length: 6 }, (_, index) => (
+                    <line
+                        key={`h-${index}`}
+                        x1="0"
+                        y1={index * 56}
+                        x2="320"
+                        y2={index * 56}
+                    />
+                ))}
+            </g>
+            <path
+                d="M70 190 L130 70 L250 100 L230 210 L120 230 Z"
+                className="fill-primary/25 stroke-primary"
+                strokeWidth="3"
+                strokeLinejoin="round"
+            />
+            <circle cx="130" cy="70" r="6" className="fill-primary" />
+            <circle
+                cx="130"
+                cy="70"
+                r="12"
+                className="fill-none stroke-primary"
+                strokeWidth="2"
+            />
+        </svg>
     );
 }

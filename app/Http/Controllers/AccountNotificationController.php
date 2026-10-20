@@ -48,7 +48,7 @@ class AccountNotificationController extends Controller
     }
 
     /**
-     * @return array{id: string, title: string, message: string, created_at: string|null, read: bool, href: string|null}
+     * @return array{id: string, title: string, message: string, created_at: string|null, read: bool, href: string|null, kind: string, tone: string}
      */
     private function present(User $user, DatabaseNotification $notification): array
     {
@@ -61,6 +61,9 @@ class AccountNotificationController extends Controller
             $href = route('farms.show', ['farm' => $farmId]);
         }
 
+        $kind = is_string($data['kind'] ?? null) ? $data['kind'] : 'update';
+        $status = is_string($data['status'] ?? null) ? $data['status'] : null;
+
         return [
             'id' => $notification->id,
             'title' => is_string($data['title'] ?? null) ? $data['title'] : 'SureFarm update',
@@ -68,6 +71,29 @@ class AccountNotificationController extends Controller
             'created_at' => $notification->created_at?->format('M j, Y g:i A'),
             'read' => $notification->read_at !== null,
             'href' => $href,
+            'kind' => $kind,
+            'tone' => $this->tone($kind, $status),
         ];
+    }
+
+    private function tone(string $kind, ?string $status): string
+    {
+        if ($status === 'failed') {
+            return 'critical';
+        }
+
+        if (in_array($status, ['needs_review', 'pending'], true)) {
+            return 'warning';
+        }
+
+        if (in_array($status, ['verified', 'completed'], true) || $kind === 'harvest') {
+            return 'success';
+        }
+
+        if ($kind === 'announcement') {
+            return 'info';
+        }
+
+        return 'neutral';
     }
 }

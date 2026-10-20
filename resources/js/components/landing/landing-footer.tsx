@@ -1,13 +1,17 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { login } from '@/routes';
 
 const links = [
     { href: '#platform', label: 'Platform' },
-    { href: '#how-it-works', label: 'How It Works' },
+    { href: '#how-it-works', label: 'How it works' },
+    { href: '#verification', label: 'Verification' },
+    { href: '#map', label: 'Map' },
+    { href: '#about', label: 'About' },
 ];
 
 export function LandingFooter() {
+    const { name } = usePage().props;
     const year = new Date().getFullYear();
 
     return (
@@ -18,15 +22,20 @@ export function LandingFooter() {
                         <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                             <AppLogoIcon className="size-5" />
                         </span>
-                        SureFarm
+                        {name}
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        Digital Farm Management & Verification Platform
+                        Farmer records, mapped boundaries, field verification,
+                        and coffee traceability for cooperatives and field
+                        teams.
+                    </p>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        Accounts are issued by your organization.
                     </p>
                 </div>
                 <nav
                     aria-label="Footer"
-                    className="flex flex-col gap-2 text-sm"
+                    className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm"
                 >
                     {links.map((link) => (
                         <a
@@ -47,7 +56,7 @@ export function LandingFooter() {
             </div>
             <div className="border-t">
                 <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground sm:px-6">
-                    © {year} SureFarm. All rights reserved.
+                    © {year} {name}. All rights reserved.
                 </p>
             </div>
         </footer>

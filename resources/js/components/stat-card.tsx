@@ -1,37 +1,50 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
+const toneBar = {
+    neutral: 'bg-foreground/20',
+    positive: 'bg-primary',
+    warning: 'bg-warning',
+    critical: 'bg-destructive',
+} as const;
 
 export function StatCard({
     label,
     value,
     detail,
     icon: Icon,
+    tone = 'neutral',
 }: {
     label: ReactNode;
     value: ReactNode;
     detail?: string;
     icon?: LucideIcon;
+    tone?: keyof typeof toneBar;
 }) {
     return (
-        <Card className="gap-2 py-4 shadow-sm sm:py-5">
-            <CardHeader className="gap-2 px-4 sm:px-5">
+        <Card className="relative gap-0 overflow-hidden rounded-lg py-0 shadow-none">
+            <span
+                className={cn('absolute inset-y-0 left-0 w-0.5', toneBar[tone])}
+            />
+            <CardHeader className="gap-3 px-4 py-4 sm:px-5">
                 <div className="flex items-start justify-between gap-3">
-                    <p className="text-xs leading-snug font-medium text-muted-foreground sm:text-sm">
+                    <p className="text-[11px] leading-snug font-medium tracking-[0.12em] text-muted-foreground uppercase">
                         {label}
                     </p>
                     {Icon && (
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <Icon className="size-4" />
+                        <span className="flex size-8 shrink-0 items-center justify-center border border-border bg-muted/70 text-foreground/80">
+                            <Icon className="size-4" strokeWidth={1.75} />
                         </span>
                     )}
                 </div>
-                <CardTitle className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+                <CardTitle className="text-xl leading-none font-semibold tracking-tight break-words tabular-nums sm:text-2xl">
                     {value}
                 </CardTitle>
             </CardHeader>
             {detail && (
-                <CardContent className="px-4 text-xs text-muted-foreground sm:px-5">
+                <CardContent className="border-t px-4 py-2.5 text-xs text-muted-foreground sm:px-5">
                     {detail}
                 </CardContent>
             )}

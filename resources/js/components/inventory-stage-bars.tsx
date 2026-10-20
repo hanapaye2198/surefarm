@@ -36,9 +36,9 @@ export function InventoryStageBars({ summary }: { summary: InventorySummary }) {
                                 {stage.label}
                             </span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div className="h-1.5 overflow-hidden bg-muted">
                             <div
-                                className="h-full rounded-full bg-primary"
+                                className="h-full bg-primary"
                                 style={{ width: `${share}%` }}
                             />
                         </div>
