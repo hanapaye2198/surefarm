@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { delimiter, join } from 'node:path';
 import inertia from '@inertiajs/vite';
 import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
@@ -5,6 +8,12 @@ import react from '@vitejs/plugin-react';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
+
+// XAMPP's PHP 8.2 is ahead of Laravel Herd on PATH. This app requires PHP >= 8.3.
+const herdPhpDir = join(homedir(), '.config', 'herd', 'bin', 'php84');
+if (process.platform === 'win32' && existsSync(join(herdPhpDir, 'php.exe'))) {
+    process.env.PATH = `${herdPhpDir}${delimiter}${process.env.PATH ?? ''}`;
+}
 
 export default defineConfig({
     plugins: lazyPlugins(() => [
