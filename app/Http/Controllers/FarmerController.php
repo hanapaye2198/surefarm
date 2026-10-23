@@ -15,13 +15,17 @@ use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmInsurance;
+use App\Models\User;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
+use App\Services\RegistryScope;
 use App\Services\TraceabilitySummary;
+use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,10 +36,13 @@ class FarmerController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $viewer = $request->user();
+        $viewer = $viewer instanceof User ? $viewer : null;
 
         $farmers = Farmer::query()
+            ->visibleTo($viewer)
             ->with('cooperative')
-            ->withCount('farms')
+            ->withCount(['farms' => fn ($query) => $query->visibleTo($viewer)])
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
 
@@ -80,13 +87,24 @@ class FarmerController extends Controller
         ]);
     }
 
-    public function store(StoreFarmerRequest $request, RegisterFarmer $register): RedirectResponse
+    public function store(StoreFarmerRequest $request, RegisterFarmer $register, RegistryScope $scope): RedirectResponse
     {
+        $actor = $request->user();
+
+        if (! $actor instanceof User) {
+            abort(403);
+        }
+
+        $scope->ensureProvince($actor, $request->string('province')->trim()->toString());
+
         try {
             $farmer = $register->handle(
                 $request->safe()->except(['photo']),
                 $request->file('photo'),
+                $actor,
             );
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             report($exception);
 
@@ -117,7 +135,8 @@ class FarmerController extends Controller
                 'government_id' => $farmer->government_id ?? '',
                 'has_bank_account' => $account !== null,
                 'bank_name' => $account?->bank_name ?? '',
-                'account_number' => $account?->account_number ?? '',
+                'account_number' => '',
+                'account_number_hint' => $account?->maskedAccountNumber(),
                 'account_name' => $account?->account_name ?? $farmer->fullName(),
                 'bank_account_status' => $account?->status->value ?? BankAccountStatus::Unverified->value,
             ],
@@ -149,11 +168,16 @@ class FarmerController extends Controller
 
     public function show(Farmer $farmer, FarmPortfolio $portfolio, ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability): Response
     {
+        $viewer = request()->user();
+        $viewer = $viewer instanceof User ? $viewer : null;
+        $inspectionOnly = $viewer?->role === UserRole::FieldVerifier
+            || $viewer?->role === UserRole::CooperativeOfficer;
+
         $farmer->load([
             'spouse',
             'cooperative',
             'bankAccount',
-            'farms' => fn ($query) => $query->with([
+            'farms' => fn ($query) => $query->visibleTo($viewer)->with([
                 'boundary',
                 'insurances' => fn ($insurance) => $insurance->latest('id'),
                 'financings' => fn ($financing) => $financing->orderByDesc('date_granted')->orderByDesc('id'),
@@ -171,7 +195,7 @@ class FarmerController extends Controller
                 'middle_name' => $farmer->middle_name,
                 'last_name' => $farmer->last_name,
                 'date_of_birth' => $farmer->date_of_birth?->format('F j, Y'),
-                'government_id' => $farmer->government_id,
+                'government_id' => $inspectionOnly ? null : $farmer->government_id,
                 'address' => $farmer->addressLabel(),
                 'photo_url' => $farmer->photo_path !== null
                     ? route('farmers.photo', $farmer)
@@ -186,7 +210,7 @@ class FarmerController extends Controller
                 'cooperative' => $farmer->cooperative?->name,
                 'member_since' => $farmer->created_at?->format('Y'),
                 'registration_date' => $farmer->created_at?->format('F j, Y'),
-                'bank_account' => $farmer->bankAccount === null ? null : [
+                'bank_account' => $inspectionOnly || $farmer->bankAccount === null ? null : [
                     'bank_name' => $farmer->bankAccount->bank_name,
                     'account_number' => $farmer->bankAccount->maskedAccountNumber(),
                     'account_name' => $farmer->bankAccount->account_name,
@@ -212,19 +236,19 @@ class FarmerController extends Controller
                 'activity_count' => $this->activityCount($farmer),
                 'recent_activities' => $this->recentActivities($farmer),
                 'production_summary' => $ledger->farmerSummary($farmer),
-                'inventory_summary' => $stock->balances(farmerId: $farmer->id),
-                'traceability_summary' => $traceability->metrics(farmerId: $farmer->id),
-                'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index): array {
+                'inventory_summary' => $stock->balances(farmerId: $farmer->id, viewer: $viewer),
+                'traceability_summary' => $traceability->metrics(farmerId: $farmer->id, viewer: $viewer),
+                'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index) use ($inspectionOnly): array {
                     return [
                         'id' => $farm->id,
                         'number_label' => 'Farm '.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
                         'farm_id' => $farm->farm_id,
                         'farm_name' => $farm->displayName(),
-                        'insurances' => $farm->insurances
+                        'insurances' => $inspectionOnly ? [] : $farm->insurances
                             ->map(fn (FarmInsurance $insurance): array => $insurance->present())
                             ->values()
                             ->all(),
-                        'financings' => $farm->financings
+                        'financings' => $inspectionOnly ? [] : $farm->financings
                             ->map(fn (FarmFinancing $financing): array => $financing->present())
                             ->values()
                             ->all(),
@@ -245,7 +269,10 @@ class FarmerController extends Controller
 
     private function activityCount(Farmer $farmer): int
     {
+        $viewer = request()->user();
+
         return FarmActivity::query()
+            ->visibleTo($viewer instanceof User ? $viewer : null)
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->count();
     }
@@ -257,7 +284,10 @@ class FarmerController extends Controller
      */
     private function recentActivities(Farmer $farmer): array
     {
+        $viewer = request()->user();
+
         return FarmActivity::query()
+            ->visibleTo($viewer instanceof User ? $viewer : null)
             ->with(['farm', 'activityType'])
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->orderByDesc('activity_date')

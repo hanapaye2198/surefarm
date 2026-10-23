@@ -37,6 +37,7 @@ class FarmHarvestController extends Controller
         $to = $this->dateFilter($request->string('to')->trim()->toString());
 
         $harvests = FarmHarvest::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farm.farmer', 'production'])
             ->when($farmId !== null, fn ($query) => $query->where('farm_id', $farmId))
             ->when($farmerId !== null, function ($query) use ($farmerId): void {
@@ -60,7 +61,7 @@ class FarmHarvestController extends Controller
 
         return Inertia::render('harvest/index', [
             'harvests' => $harvests,
-            'summary' => $this->ledger->harvestIndexSummary(),
+            'summary' => $this->ledger->harvestIndexSummary($this->registryViewer()),
             'filters' => [
                 'search' => $search,
                 'farm' => $farmId === null ? '' : (string) $farmId,
@@ -143,7 +144,8 @@ class FarmHarvestController extends Controller
 
     public function update(UpdateFarmHarvestRequest $request, FarmHarvest $harvest, UpdateFarmHarvest $update): RedirectResponse
     {
-        $update->handle($harvest, $request->validated());
+        $actor = $request->user();
+        $update->handle($harvest, $request->validated(), $actor instanceof User ? $actor : null);
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -210,6 +212,7 @@ class FarmHarvestController extends Controller
     private function farmOptions(): array
     {
         return Farm::query()
+            ->visibleTo($this->registryViewer())
             ->with('farmer:id,first_name,middle_name,last_name')
             ->orderBy('farm_name')
             ->orderBy('id')
@@ -232,6 +235,7 @@ class FarmHarvestController extends Controller
     private function farmerOptions(): array
     {
         return Farmer::query()
+            ->visibleTo($this->registryViewer())
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'middle_name', 'last_name'])

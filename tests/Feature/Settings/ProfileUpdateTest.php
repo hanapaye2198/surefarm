@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\UserRole;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -50,8 +51,11 @@ test('email verification status is unchanged when the email address is unchanged
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
 
-test('user can delete their account', function () {
-    $user = User::factory()->create();
+test('user can delete their account when another administrator remains', function () {
+    User::factory()->create();
+    $user = User::factory()->create([
+        'role' => UserRole::Operations,
+    ]);
 
     $response = $this
         ->actingAs($user)

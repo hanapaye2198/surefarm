@@ -5,7 +5,9 @@ namespace App\Actions;
 use App\BankAccountStatus;
 use App\Contracts\FarmerIdGenerator;
 use App\FarmerStatus;
+use App\Models\Cooperative;
 use App\Models\Farmer;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -14,17 +16,20 @@ use Throwable;
 
 class RegisterFarmer
 {
-    public function __construct(private FarmerIdGenerator $farmerIds) {}
+    public function __construct(
+        private FarmerIdGenerator $farmerIds,
+        private EnrollCooperativeMember $enroll,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?UploadedFile $photo): Farmer
+    public function handle(array $data, ?UploadedFile $photo, ?User $actor = null): Farmer
     {
         $storedPath = null;
 
         try {
-            return DB::transaction(function () use ($data, $photo, &$storedPath): Farmer {
+            return DB::transaction(function () use ($data, $photo, $actor, &$storedPath): Farmer {
                 if ($photo !== null) {
                     $storedPath = $photo->store('farmers/photos');
 
@@ -47,13 +52,23 @@ class RegisterFarmer
                     'province' => $data['province'],
                     'mobile_number' => $data['mobile_number'],
                     'email' => $data['email'] ?? null,
-                    'cooperative_id' => $data['cooperative_id'] ?? null,
+                    'cooperative_id' => null,
                     'status' => FarmerStatus::Active,
                 ]);
 
                 $farmer->update([
                     'farmer_id' => $this->farmerIds->fromSequence($farmer->id),
                 ]);
+
+                $cooperativeId = $data['cooperative_id'] ?? null;
+
+                if ($cooperativeId !== null && $actor instanceof User) {
+                    $cooperative = Cooperative::query()->find($cooperativeId);
+
+                    if ($cooperative instanceof Cooperative) {
+                        $this->enroll->handle($actor, $farmer, $cooperative);
+                    }
+                }
 
                 $hasSpouse = filter_var($data['has_spouse'] ?? false, FILTER_VALIDATE_BOOLEAN);
 

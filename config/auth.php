@@ -114,4 +114,21 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Account Provisioning
+    |--------------------------------------------------------------------------
+    |
+    | Public registration is disabled. Administrators invite accounts, and
+    | each invitation expires after this many hours. Administrator and
+    | operations accounts must confirm two-factor authentication unless
+    | this requirement is explicitly turned off. Deployed environments
+    | should leave it enabled.
+    |
+    */
+
+    'invitation_ttl_hours' => 72,
+
+    'require_two_factor' => filter_var(env('AUTH_REQUIRE_TWO_FACTOR', true), FILTER_VALIDATE_BOOL),
+
 ];

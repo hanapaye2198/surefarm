@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,13 +8,15 @@ export function StatCard({
     value,
     detail,
     icon: Icon,
+    href,
 }: {
     label: ReactNode;
     value: ReactNode;
     detail?: string;
     icon?: LucideIcon;
+    href?: string;
 }) {
-    return (
+    const card = (
         <Card className="gap-2 py-4 shadow-sm sm:py-5">
             <CardHeader className="gap-2 px-4 sm:px-5">
                 <div className="flex items-start justify-between gap-3">
@@ -36,5 +39,18 @@ export function StatCard({
                 </CardContent>
             )}
         </Card>
+    );
+
+    if (href === undefined) {
+        return card;
+    }
+
+    return (
+        <Link
+            href={href}
+            className="block rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+            {card}
+        </Link>
     );
 }

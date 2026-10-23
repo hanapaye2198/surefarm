@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'operations' | 'field_verifier' | 'farmer';
+export type UserRole = 'admin' | 'operations' | 'field_verifier' | 'cooperative_officer' | 'farmer';
 
 export type User = {
     id: number;

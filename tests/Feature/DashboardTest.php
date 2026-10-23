@@ -7,6 +7,7 @@ use App\Models\Farm;
 use App\Models\FarmBoundary;
 use App\Models\Farmer;
 use App\Models\User;
+use App\UserRole;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected to the login page', function () {
@@ -15,7 +16,7 @@ test('guests are redirected to the login page', function () {
 });
 
 test('authenticated users can visit the dashboard', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => UserRole::Operations]);
     $this->actingAs($user);
 
     $response = $this->get(route('dashboard'));
@@ -36,6 +37,46 @@ test('authenticated users can visit the dashboard', function () {
             ->where('area_summary.other_crop_hectares', 0)
             ->where('locations', [])
             ->where('verified_lands', []));
+});
+
+test('the verification queue counts active farms and opens the matching list', function () {
+    $farmer = Farmer::factory()->create();
+    Farm::factory()->create([
+        'farmer_id' => $farmer->id,
+        'verification_status' => FarmVerificationStatus::Pending,
+        'status' => FarmStatus::Active,
+    ]);
+    Farm::factory()->create([
+        'farmer_id' => $farmer->id,
+        'verification_status' => FarmVerificationStatus::Pending,
+        'status' => FarmStatus::Inactive,
+    ]);
+
+    $verifier = User::factory()->create(['role' => UserRole::FieldVerifier]);
+    $assigned = Farm::factory()->create([
+        'verification_status' => FarmVerificationStatus::NeedsReview,
+        'status' => FarmStatus::Active,
+    ]);
+    assignFarmVerifier($verifier, $assigned);
+
+    $this->actingAs(User::factory()->create(['role' => UserRole::Operations]))
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.title', 'Operations')
+            ->where('workspace.queues.0.count', 1)
+            ->where('workspace.queues.0.href', route('farms.index', ['verification_status' => 'pending']))
+            ->where('workspace.queues.2.count', 1));
+
+    $this->actingAs($verifier)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.title', 'Assigned fieldwork')
+            ->where('summary.pending_verification', 0)
+            ->where('summary.needs_review', 1)
+            ->where('workspace.queues.2.count', 1)
+            ->where('workspace.queues.2.href', route('farm-verification.index', ['verification_status' => 'needs_review'])));
 });
 
 test('dashboard statistics use declared area and active farm status', function () {
@@ -77,7 +118,7 @@ test('dashboard statistics use declared area and active farm status', function (
         'longitude' => 125.2,
     ]);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->create(['role' => UserRole::Operations]))
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -153,7 +194,7 @@ test('dashboard verified farm land includes only active verified boundaries', fu
         'status' => FarmStatus::Active,
     ]);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->create(['role' => UserRole::Operations]))
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

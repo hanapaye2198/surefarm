@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\CropType;
+use App\Models\Concerns\VisibleToRegistry;
 use App\TraceabilityLotStatus;
 use Database\Factories\TraceabilityLotFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,10 +11,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /**
  * @property CropType|null $crop_type
  * @property TraceabilityLotStatus $status
+ * @property string|null $public_token
  */
 #[Fillable([
     'lot_code',
@@ -31,7 +34,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TraceabilityLot extends Model
 {
     /** @use HasFactory<TraceabilityLotFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
+
+    protected static function booted(): void
+    {
+        static::creating(function (TraceabilityLot $lot): void {
+            if (! is_string($lot->public_token) || strlen($lot->public_token) !== 40) {
+                $lot->public_token = Str::random(40);
+            }
+        });
+    }
 
     /**
      * @return array<string, string>

@@ -7,6 +7,7 @@ use App\Models\Farm;
 use App\Models\FarmBoundary;
 use App\Models\Farmer;
 use App\Models\FarmVerification;
+use App\Models\FarmVerifierAssignment;
 use App\Models\User;
 use App\UserRole;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -248,6 +249,7 @@ test('operations staff cannot approve a verification', function () {
 test('a farmer cannot verify their own farm', function () {
     $farm = farmReadyToVerify();
     $farmer = User::factory()->create(['role' => UserRole::Farmer]);
+    $farm->farmer->forceFill(['user_id' => $farmer->id])->save();
 
     $this->actingAs($farmer)
         ->post(route('farm-verification.store', $farm))
@@ -326,8 +328,18 @@ function farmReadyToVerify(): Farm
 
 function fieldVerifier(): User
 {
-    return User::factory()->create([
+    $user = User::factory()->create([
         'role' => UserRole::FieldVerifier,
         'name' => 'John Doe',
     ]);
+
+    foreach (Farm::query()->pluck('id') as $farmId) {
+        FarmVerifierAssignment::query()->create([
+            'user_id' => $user->id,
+            'farm_id' => $farmId,
+            'assigned_at' => now(),
+        ]);
+    }
+
+    return $user;
 }

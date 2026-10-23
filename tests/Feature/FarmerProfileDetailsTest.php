@@ -1,10 +1,12 @@
 <?php
 
 use App\BankAccountStatus;
+use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmerBankAccount;
 use App\Models\User;
 use App\UserRole;
+use Illuminate\Support\Facades\DB;
 
 function profileStaff(): User
 {
@@ -56,7 +58,9 @@ test('registration stores a date of birth, government id, and linked bank accoun
         ->and($account->bank_name)->toBe('LANDBANK')
         ->and($account->account_number)->toBe('998877665544')
         ->and($account->account_name)->toBe('Maria Cruz Santos')
-        ->and($account->status)->toBe(BankAccountStatus::Verified);
+        ->and($account->status)->toBe(BankAccountStatus::Verified)
+        ->and(DB::table('farmers')->where('id', $farmer->id)->value('government_id'))->not->toBe('PH-ID-000124')
+        ->and(DB::table('farmer_bank_accounts')->where('farmer_id', $farmer->id)->value('account_number'))->not->toBe('998877665544');
 
     $this->actingAs(profileStaff())
         ->get(route('farmers.show', $farmer))
@@ -156,9 +160,25 @@ test('operations staff can add and remove a bank account on an existing farmer',
     $this->actingAs($staff)
         ->get(route('farmers.edit', $farmer))
         ->assertOk()
+        ->assertDontSee('998877665544')
         ->assertInertia(fn ($page) => $page
             ->component('farmers/edit')
-            ->where('farmer.account_number', '998877665544'));
+            ->where('farmer.account_number', '')
+            ->where('farmer.account_number_hint', '•••• 5544'));
+
+    $this->actingAs($staff)
+        ->put(route('farmers.update', $farmer), [
+            'date_of_birth' => '1981-05-12',
+            'government_id' => 'PH-ID-000124',
+            'has_bank_account' => true,
+            'bank_name' => 'LANDBANK',
+            'account_name' => 'Maria Cruz Santos',
+            'bank_account_status' => 'verified',
+        ])
+        ->assertRedirect(route('farmers.show', $farmer));
+
+    expect($farmer->refresh()->date_of_birth?->toDateString())->toBe('1981-05-12')
+        ->and($farmer->bankAccount?->account_number)->toBe('998877665544');
 
     $this->actingAs($staff)
         ->put(route('farmers.update', $farmer), [
@@ -175,9 +195,11 @@ test('operations staff can add and remove a bank account on an existing farmer',
 
 test('field verifiers can view a farmer profile but cannot change bank details', function () {
     $farmer = Farmer::factory()->create();
+    $farm = Farm::factory()->for($farmer)->create();
     $verifier = User::factory()->create([
         'role' => UserRole::FieldVerifier,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->get(route('farmers.show', $farmer))

@@ -382,7 +382,7 @@ test('farm and farmer profiles and the dashboard use stored production totals', 
         ]);
     }
 
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => UserRole::Operations]);
 
     $this->actingAs($user)
         ->get(route('farms.show', $farm))
@@ -492,6 +492,8 @@ test('field verifiers can view production and harvest records but cannot change 
     $production = FarmProduction::factory()->create();
     $harvest = FarmHarvest::factory()->create();
     $verifier = User::factory()->create(['role' => UserRole::FieldVerifier]);
+    assignFarmVerifier($verifier, $production->farm);
+    assignFarmVerifier($verifier, $harvest->farm);
 
     $this->actingAs($verifier)
         ->get(route('production.index'))
@@ -523,9 +525,11 @@ test('farmer accounts cannot open production or harvest management', function ()
 
     $this->actingAs($farmer)
         ->get(route('production.index'))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('productions.data', 0));
 
     $this->actingAs($farmer)
         ->get(route('harvest.index'))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('harvests.data', 0));
 });

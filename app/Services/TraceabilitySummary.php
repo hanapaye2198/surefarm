@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\TraceabilityLot;
+use App\Models\User;
 use App\TraceabilityLotStatus;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -13,9 +14,9 @@ class TraceabilitySummary
     /**
      * @return array{active_lots: int, green_bean_lots: int, completed_lots: int, traced_label: string, has_records: bool}
      */
-    public function metrics(?int $farmId = null, ?int $farmerId = null): array
+    public function metrics(?int $farmId = null, ?int $farmerId = null, ?User $viewer = null): array
     {
-        $query = $this->scoped($farmId, $farmerId);
+        $query = $this->scoped($farmId, $farmerId, $viewer);
 
         return [
             'active_lots' => (clone $query)->where('status', TraceabilityLotStatus::Active)->count(),
@@ -31,9 +32,9 @@ class TraceabilitySummary
     /**
      * @return list<array<string, mixed>>
      */
-    public function recent(?int $limit = 5): array
+    public function recent(?int $limit = 5, ?User $viewer = null): array
     {
-        return TraceabilityLot::query()
+        return $this->scoped(null, null, $viewer)
             ->with(['farmer', 'farm', 'harvest', 'inventory.stage'])
             ->latest('id')
             ->limit($limit)
@@ -106,10 +107,16 @@ class TraceabilitySummary
         return $this->ledger->quantityLabel($preferred->total, $preferred->unit);
     }
 
-    private function scoped(?int $farmId, ?int $farmerId): Builder
+    private function scoped(?int $farmId, ?int $farmerId, ?User $viewer = null): Builder
     {
-        return TraceabilityLot::query()
+        $query = TraceabilityLot::query()
             ->when($farmId !== null, fn (Builder $query): Builder => $query->where('farm_id', $farmId))
             ->when($farmerId !== null, fn (Builder $query): Builder => $query->where('farmer_id', $farmerId));
+
+        if ($viewer instanceof User) {
+            $query->visibleTo($viewer);
+        }
+
+        return $query;
     }
 }

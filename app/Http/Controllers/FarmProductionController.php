@@ -35,6 +35,7 @@ class FarmProductionController extends Controller
         $status = ProductionStatus::tryFrom($request->string('status')->trim()->toString());
 
         $productions = FarmProduction::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farm.farmer'])
             ->withSum(['harvests as harvested_quantity' => function ($query): void {
                 $query->where('status', HarvestStatus::Completed)
@@ -57,7 +58,7 @@ class FarmProductionController extends Controller
 
         return Inertia::render('production/index', [
             'productions' => $productions,
-            'summary' => $this->ledger->productionIndexSummary(),
+            'summary' => $this->ledger->productionIndexSummary($this->registryViewer()),
             'filters' => [
                 'search' => $search,
                 'farm' => $farmId === null ? '' : (string) $farmId,
@@ -189,6 +190,7 @@ class FarmProductionController extends Controller
     private function farmOptions(): array
     {
         return Farm::query()
+            ->visibleTo($this->registryViewer())
             ->with('farmer:id,first_name,middle_name,last_name')
             ->orderBy('farm_name')
             ->orderBy('id')
@@ -211,6 +213,7 @@ class FarmProductionController extends Controller
     private function farmerOptions(): array
     {
         return Farmer::query()
+            ->visibleTo($this->registryViewer())
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'middle_name', 'last_name'])

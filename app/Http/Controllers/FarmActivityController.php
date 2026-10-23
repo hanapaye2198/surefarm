@@ -34,6 +34,7 @@ class FarmActivityController extends Controller
         $to = $this->dateFilter($request->string('to')->trim()->toString());
 
         $activities = FarmActivity::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farm.farmer', 'activityType', 'creator'])
             ->when($farmId !== null, fn ($query) => $query->where('farm_id', $farmId))
             ->when($farmerId !== null, function ($query) use ($farmerId): void {
@@ -190,6 +191,7 @@ class FarmActivityController extends Controller
     private function farmOptions(): array
     {
         return Farm::query()
+            ->visibleTo($this->registryViewer())
             ->with('farmer:id,first_name,middle_name,last_name')
             ->orderBy('farm_name')
             ->orderBy('id')
@@ -212,6 +214,7 @@ class FarmActivityController extends Controller
     private function farmerOptions(): array
     {
         return Farmer::query()
+            ->visibleTo($this->registryViewer())
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'middle_name', 'last_name'])

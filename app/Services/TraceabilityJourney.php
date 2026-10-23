@@ -152,7 +152,7 @@ class TraceabilityJourney
 
     public function publicUrl(TraceabilityLot $lot): string
     {
-        return route('trace.public', ['lot_code' => $lot->lot_code]);
+        return route('trace.public', ['token' => $lot->public_token]);
     }
 
     /**

@@ -345,7 +345,8 @@ test('activity management follows existing roles', function () {
 
     $this->actingAs(User::factory()->create(['role' => UserRole::Farmer]))
         ->get(route('farm-activities.index'))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('activities.data', 0));
 
     $this->actingAs(User::factory()->create(['role' => UserRole::Farmer]))
         ->post(route('farm-activities.store'), $payload)

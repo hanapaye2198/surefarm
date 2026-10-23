@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property CooperativeStatus $status
+ * @property int $active_members_count
+ * @property int $suspended_members_count
  */
 #[Fillable(['name', 'code', 'status'])]
 class Cooperative extends Model
@@ -34,5 +36,21 @@ class Cooperative extends Model
     public function farmers(): HasMany
     {
         return $this->hasMany(Farmer::class);
+    }
+
+    /**
+     * @return HasMany<CooperativeMembership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(CooperativeMembership::class);
+    }
+
+    /**
+     * @return HasMany<CooperativeOfficer, $this>
+     */
+    public function officers(): HasMany
+    {
+        return $this->hasMany(CooperativeOfficer::class);
     }
 }

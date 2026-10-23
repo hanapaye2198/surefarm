@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Farm;
+use App\Models\FarmVerifierAssignment;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +47,16 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function assignFarmVerifier(User $verifier, Farm $farm): void
 {
-    // ..
+    FarmVerifierAssignment::query()->updateOrCreate(
+        [
+            'user_id' => $verifier->id,
+            'farm_id' => $farm->id,
+        ],
+        [
+            'assigned_at' => now(),
+            'revoked_at' => null,
+        ],
+    );
 }

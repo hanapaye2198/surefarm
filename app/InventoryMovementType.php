@@ -9,6 +9,7 @@ enum InventoryMovementType: string
     case Adjustment = 'adjustment';
     case Release = 'release';
     case Damage = 'damage';
+    case Reversal = 'reversal';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum InventoryMovementType: string
             self::Adjustment => 'Adjustment',
             self::Release => 'Release',
             self::Damage => 'Damage',
+            self::Reversal => 'Reversal',
         };
     }
 }

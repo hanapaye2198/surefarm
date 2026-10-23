@@ -6,6 +6,7 @@ use App\CropType;
 use App\FarmDevelopmentStage;
 use App\FarmStatus;
 use App\FarmVerificationStatus;
+use App\Models\Concerns\VisibleToRegistry;
 use App\PropertyOwnership;
 use Database\Factories\FarmFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -52,7 +53,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Farm extends Model
 {
     /** @use HasFactory<FarmFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * Declared area is the farmer's declared area. Later GPS and

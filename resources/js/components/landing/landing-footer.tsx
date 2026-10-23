@@ -14,12 +14,7 @@ export function LandingFooter() {
         <footer className="border-t">
             <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row md:items-start md:justify-between">
                 <div className="max-w-sm">
-                    <div className="flex items-center gap-2.5 font-semibold">
-                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                            <AppLogoIcon className="size-5" />
-                        </span>
-                        SureFarm
-                    </div>
+                    <AppLogoIcon className="h-10" />
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                         Digital Farm Management & Verification Platform
                     </p>

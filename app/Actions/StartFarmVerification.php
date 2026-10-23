@@ -6,7 +6,10 @@ use App\Contracts\VerificationReferenceGenerator;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmVerification;
+use App\Models\User;
 use App\Services\FarmAreaComparison;
+use App\Services\RegistryScope;
+use App\UserRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,8 +25,16 @@ class StartFarmVerification
      * Open one verification attempt and mark the farm in progress.
      * Declared area on the farm is not changed.
      */
-    public function handle(Farm $farm): FarmVerification
+    public function handle(Farm $farm, User $actor): FarmVerification
     {
+        if ($actor->isSuspended() || ! $actor->hasRole(UserRole::FieldVerifier, UserRole::Admin)) {
+            abort(403);
+        }
+
+        if (! app(RegistryScope::class)->canViewFarm($actor, $farm)) {
+            abort(404);
+        }
+
         return DB::transaction(function () use ($farm): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');

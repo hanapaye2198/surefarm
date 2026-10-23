@@ -1,6 +1,6 @@
 export type GoogleMapType = 'roadmap' | 'hybrid';
 
-type GoogleLatLng = {
+export type GoogleLatLng = {
     lat: number;
     lng: number;
 };
@@ -9,22 +9,80 @@ export type GoogleMapInstance = {
     setCenter: (center: GoogleLatLng) => void;
     setZoom: (zoom: number) => void;
     setMapTypeId: (mapType: GoogleMapType) => void;
+    fitBounds: (bounds: GoogleLatLngBounds, padding?: number) => void;
+};
+
+export type GoogleLatLngBounds = {
+    extend: (point: GoogleLatLng) => void;
+    isEmpty: () => boolean;
+};
+
+export type GoogleOverlay = {
+    setMap: (map: GoogleMapInstance | null) => void;
+    addListener: (eventName: string, handler: () => void) => void;
+};
+
+type GoogleMapOptions = {
+    center: GoogleLatLng;
+    zoom: number;
+    mapTypeId: GoogleMapType;
+    disableDefaultUI?: boolean;
+    gestureHandling?: 'none' | 'greedy' | 'cooperative' | 'auto';
+    keyboardShortcuts?: boolean;
+    clickableIcons?: boolean;
+    backgroundColor?: string;
+    zoomControl?: boolean;
+    mapTypeControl?: boolean;
+    streetViewControl?: boolean;
+    fullscreenControl?: boolean;
+};
+
+type GoogleShapeOptions = {
+    map: GoogleMapInstance;
+    path?: GoogleLatLng[];
+    paths?: GoogleLatLng[];
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    clickable?: boolean;
+    icons?: Array<{
+        icon: {
+            path: string;
+            strokeOpacity: number;
+            strokeColor: string;
+            scale: number;
+        };
+        offset: string;
+        repeat: string;
+    }>;
+};
+
+type GoogleMarkerOptions = {
+    map: GoogleMapInstance;
+    position: GoogleLatLng;
+    clickable?: boolean;
+    icon?: {
+        path: number;
+        scale: number;
+        fillColor: string;
+        fillOpacity: number;
+        strokeColor: string;
+        strokeWeight: number;
+    };
 };
 
 type GoogleMapsNamespace = {
     Map: new (
         element: HTMLElement,
-        options: {
-            center: GoogleLatLng;
-            zoom: number;
-            mapTypeId: GoogleMapType;
-            disableDefaultUI: boolean;
-            gestureHandling: 'none';
-            keyboardShortcuts: boolean;
-            clickableIcons: boolean;
-            backgroundColor: string;
-        },
+        options: GoogleMapOptions,
     ) => GoogleMapInstance;
+    Polygon: new (options: GoogleShapeOptions) => GoogleOverlay;
+    Polyline: new (options: GoogleShapeOptions) => GoogleOverlay;
+    Marker: new (options: GoogleMarkerOptions) => GoogleOverlay;
+    LatLngBounds: new () => GoogleLatLngBounds;
+    SymbolPath: { CIRCLE: number };
     event: {
         trigger: (instance: GoogleMapInstance, eventName: string) => void;
     };
@@ -42,27 +100,29 @@ declare global {
 let loading: Promise<void> | null = null;
 
 export function loadGoogleMaps(apiKey: string): Promise<void> {
-    if (window.google?.maps) {
+    if (window.google?.maps?.Map) {
         return Promise.resolve();
+    }
+
+    if (window.google?.maps?.importLibrary) {
+        return window.google.maps.importLibrary('maps').then(() => undefined);
     }
 
     if (loading === null) {
         loading = new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&loading=async`;
-            script.async = true;
-            script.onload = () => {
-                const maps = window.google?.maps;
+            const callbackName = '__surefarmGoogleMapsReady';
+            const windowWithCallback = window as unknown as Record<string, () => void>;
 
-                if (!maps?.importLibrary) {
-                    resolve();
-
-                    return;
-                }
-
-                maps.importLibrary('maps').then(() => resolve()).catch(reject);
+            windowWithCallback[callbackName] = () => {
+                delete windowWithCallback[callbackName];
+                resolve();
             };
+
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&callback=${callbackName}`;
+            script.async = true;
             script.onerror = () => {
+                delete windowWithCallback[callbackName];
                 loading = null;
                 reject(new Error('Google Maps could not be loaded.'));
             };

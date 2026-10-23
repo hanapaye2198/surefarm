@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\ActivityStatus;
 use App\CropType;
+use App\Models\Concerns\VisibleToRegistry;
 use Database\Factories\FarmActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FarmActivity extends Model
 {
     /** @use HasFactory<FarmActivityFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * @return array<string, string>

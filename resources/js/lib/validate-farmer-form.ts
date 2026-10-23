@@ -95,6 +95,7 @@ export type FarmerDetailValues = {
 
 export function validateFarmerDetails(
     values: FarmerDetailValues,
+    options?: { accountNumberMayBeOmitted?: boolean },
 ): Record<string, string> {
     const errors: Record<string, string> = {};
 
@@ -123,7 +124,9 @@ export function validateFarmerDetails(
     }
 
     if (values.account_number.trim() === '') {
-        errors.account_number = 'Account number is required.';
+        if (options?.accountNumberMayBeOmitted !== true) {
+            errors.account_number = 'Account number is required.';
+        }
     } else if (!/^[0-9\-\s]+$/.test(values.account_number.trim())) {
         errors.account_number =
             'Account number can only contain digits, spaces, and dashes.';

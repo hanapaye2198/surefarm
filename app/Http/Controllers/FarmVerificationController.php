@@ -33,6 +33,7 @@ class FarmVerificationController extends Controller
         $municipality = $request->string('municipality')->trim()->toString();
 
         $farms = Farm::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farmer', 'boundary'])
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
@@ -156,7 +157,13 @@ class FarmVerificationController extends Controller
     public function store(StartFarmVerificationRequest $request, Farm $farm, StartFarmVerification $start): RedirectResponse
     {
         try {
-            $start->handle($farm);
+            $actor = $request->user();
+
+            if (! $actor instanceof User) {
+                abort(403);
+            }
+
+            $start->handle($farm, $actor);
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
@@ -255,6 +262,7 @@ class FarmVerificationController extends Controller
     private function statusCount(FarmVerificationStatus $status): int
     {
         return Farm::query()
+            ->visibleTo($this->registryViewer())
             ->where('verification_status', $status)
             ->count();
     }
@@ -313,6 +321,7 @@ class FarmVerificationController extends Controller
     private function locationOptions(string $column): array
     {
         $options = Farm::query()
+            ->visibleTo($this->registryViewer())
             ->whereNotNull($column)
             ->where($column, '!=', '')
             ->distinct()

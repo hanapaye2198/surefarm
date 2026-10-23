@@ -30,6 +30,7 @@ class StoreHarvestInventoryRequest extends FormRequest
             'location' => ['nullable', 'string', 'max:255'],
             'received_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'receipt_token' => ['nullable', 'uuid'],
         ];
     }
 
@@ -57,6 +58,7 @@ class StoreHarvestInventoryRequest extends FormRequest
             'location' => $this->blankToNull('location'),
             'received_date' => $this->blankToNull('received_date'),
             'notes' => $this->blankToNull('notes'),
+            'receipt_token' => $this->blankToNull('receipt_token'),
         ]);
     }
 

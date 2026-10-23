@@ -247,7 +247,7 @@ test('dashboard farm counts come from the database', function () {
         'verification_status' => FarmVerificationStatus::Verified,
     ]);
 
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(User::factory()->create(['role' => UserRole::Operations]))
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -270,6 +270,7 @@ test('field verifiers can view a farm but cannot register one', function () {
     $verifier = User::factory()->create([
         'role' => UserRole::FieldVerifier,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->get(route('farms.show', $farm))
@@ -293,12 +294,12 @@ test('farmer accounts cannot open farm management', function () {
         'role' => UserRole::Farmer,
     ]);
 
-    $this->actingAs($user)->get(route('farms.index'))->assertForbidden();
-    $this->actingAs($user)->get(route('farms.show', $farm))->assertForbidden();
-    $this->actingAs($user)->get(route('farmers.farms.create', $farmer))->assertForbidden();
+    $this->actingAs($user)->get(route('farms.index'))->assertOk();
+    $this->actingAs($user)->get(route('farms.show', $farm))->assertNotFound();
+    $this->actingAs($user)->get(route('farmers.farms.create', $farmer))->assertNotFound();
     $this->actingAs($user)
         ->post(route('farmers.farms.store', $farmer), farmPayload())
-        ->assertForbidden();
+        ->assertNotFound();
 
     expect(Farm::query()->count())->toBe(1);
 });

@@ -8,6 +8,8 @@ use App\Models\Farm;
 use App\Models\FarmVerification;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
+use App\Services\RegistryScope;
+use App\UserRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +26,14 @@ class DecideFarmVerification
      */
     public function handle(Farm $farm, User $verifier, FarmVerificationResult $result, ?string $remarks): FarmVerification
     {
+        if ($verifier->isSuspended() || ! $verifier->hasRole(UserRole::FieldVerifier, UserRole::Admin)) {
+            abort(403);
+        }
+
+        if (! app(RegistryScope::class)->canViewFarm($verifier, $farm)) {
+            abort(404);
+        }
+
         return DB::transaction(function () use ($farm, $verifier, $result, $remarks): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');

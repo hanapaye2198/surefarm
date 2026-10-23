@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\InventoryMovementType;
+use App\Models\Concerns\VisibleToRegistry;
 use App\Services\ProductionLedger;
 use Database\Factories\InventoryMovementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -26,13 +27,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'movement_date',
     'reference_type',
     'reference_id',
+    'reverses_movement_id',
+    'client_token',
     'notes',
     'created_by',
 ])]
 class InventoryMovement extends Model
 {
     /** @use HasFactory<InventoryMovementFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * @return array<string, string>
@@ -128,6 +131,7 @@ class InventoryMovement extends Model
             InventoryMovementType::Release => $this->reference_type === 'traceability_lot'
                 ? 'Allocated '.$input.' to a traceability lot.'
                 : 'Released '.$input.'.',
+            InventoryMovementType::Reversal => 'Reversed receipt of '.$input.'.',
         };
     }
 }

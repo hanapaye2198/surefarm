@@ -27,13 +27,10 @@ export function LandingNavbar() {
             <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
                 <a
                     href="#top"
-                    className="flex min-w-0 items-center gap-2.5 rounded-lg font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="flex min-w-0 items-center rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     onClick={closeMenu}
                 >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                        <AppLogoIcon className="size-5" />
-                    </span>
-                    <span className="truncate">{name}</span>
+                    <AppLogoIcon className="h-10" alt={name} />
                 </a>
 
                 <nav

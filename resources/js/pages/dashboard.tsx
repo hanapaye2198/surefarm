@@ -17,8 +17,10 @@ import { StatCard } from '@/components/stat-card';
 import { InventoryStageBars } from '@/components/inventory-stage-bars';
 import type { InventorySummary } from '@/components/inventory-stage-bars';
 import { ProductionBalance } from '@/components/production-balance';
-import { ActivityStatusBadge, HarvestStatusBadge, StatusBadge } from '@/components/status-badge';
-import type { ActivityRecordStatus, FarmStatus, HarvestRecordStatus } from '@/components/status-badge';
+import { WorkQueue } from '@/components/work-queue';
+import type { WorkQueueItem } from '@/components/work-queue';
+import { ActivityStatusBadge, HarvestStatusBadge } from '@/components/status-badge';
+import type { ActivityRecordStatus, HarvestRecordStatus } from '@/components/status-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';
 import { index as activitiesIndex, show as showActivity } from '@/routes/farm-activities';
@@ -49,17 +51,6 @@ const areaFormatter = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
 });
-
-const verificationRows: {
-    status: FarmStatus;
-    count: keyof DashboardSummary;
-}[] = [
-    { status: 'pending', count: 'pending_verification' },
-    { status: 'in_progress', count: 'in_progress' },
-    { status: 'verified', count: 'verified_farms' },
-    { status: 'failed', count: 'failed' },
-    { status: 'needs_review', count: 'needs_review' },
-];
 
 function hectares(value: number): string {
     return `${areaFormatter.format(value)} ha`;
@@ -96,6 +87,7 @@ type RecentHarvest = {
 
 export default function Dashboard({
     summary,
+    workspace,
     area_summary,
     locations,
     verified_lands,
@@ -107,6 +99,11 @@ export default function Dashboard({
     recent_lots,
 }: {
     summary: DashboardSummary;
+    workspace: {
+        title: string;
+        description: string;
+        queues: WorkQueueItem[];
+    };
     area_summary: AreaSummary;
     locations: FarmLocation[];
     verified_lands: VerifiedFarmLand[];
@@ -133,6 +130,7 @@ export default function Dashboard({
         label: string;
         value: string;
         icon: LucideIcon;
+        href?: string;
     }[] = [
         {
             label: 'Registered Farmers',
@@ -158,6 +156,8 @@ export default function Dashboard({
             label: 'Pending Verification',
             value: countFormatter.format(summary.pending_verification),
             icon: Clock,
+            href: workspace.queues.find((queue) => queue.status === 'pending')
+                ?.href,
         },
     ];
 
@@ -166,8 +166,8 @@ export default function Dashboard({
             <Head title="Dashboard" />
             <div className="flex flex-col gap-5 sm:gap-6">
                 <PageHeader
-                    title="Dashboard"
-                    description="Operational overview of registered farmers, farms, and declared area."
+                    title={workspace.title}
+                    description={workspace.description}
                 />
 
                 <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-5 max-lg:[&>*:last-child:nth-child(odd)]:col-span-2">
@@ -177,53 +177,22 @@ export default function Dashboard({
                             label={kpi.label}
                             value={kpi.value}
                             icon={kpi.icon}
+                            href={kpi.href}
                         />
                     ))}
                 </section>
 
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Verified Farm Land</CardTitle>
-                        <CardDescription>
-                            Saved boundaries of active farms that have been
-                            verified.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <VerifiedFarmLandMap lands={verified_lands} />
-                    </CardContent>
-                </Card>
-
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Farm Locations</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <FarmLocationMap locations={locations} />
-                    </CardContent>
-                </Card>
-
                 <section className="grid gap-4 lg:grid-cols-2">
                     <Card className="shadow-sm">
                         <CardHeader>
-                            <CardTitle>Farm Verification</CardTitle>
+                            <CardTitle>Verification queue</CardTitle>
+                            <CardDescription>
+                                Current active farms. Declared area is unchanged
+                                by these counts.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <ul className="flex flex-col">
-                                {verificationRows.map((row) => (
-                                    <li
-                                        key={row.status}
-                                        className="flex items-center justify-between gap-3 border-b py-3 last:border-b-0"
-                                    >
-                                        <StatusBadge status={row.status} />
-                                        <span className="text-lg font-semibold tabular-nums">
-                                            {countFormatter.format(
-                                                summary[row.count],
-                                            )}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
+                            <WorkQueue items={workspace.queues} />
                         </CardContent>
                     </Card>
 
@@ -280,6 +249,28 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </section>
+
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Verified Farm Land</CardTitle>
+                        <CardDescription>
+                            Saved boundaries of active farms that have been
+                            verified.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <VerifiedFarmLandMap lands={verified_lands} />
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Farm Locations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <FarmLocationMap locations={locations} />
+                    </CardContent>
+                </Card>
 
                 <Card className="shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between gap-3">

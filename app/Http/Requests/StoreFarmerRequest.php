@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\BankAccountStatus;
+use App\CooperativeStatus;
 use App\Models\User;
 use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -38,7 +39,7 @@ class StoreFarmerRequest extends FormRequest
             'province' => ['required', 'string', 'max:255'],
             'mobile_number' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'email' => ['nullable', 'email', 'max:255'],
-            'cooperative_id' => ['nullable', 'integer', Rule::exists('cooperatives', 'id')],
+            'cooperative_id' => ['nullable', 'integer', Rule::exists('cooperatives', 'id')->where('status', CooperativeStatus::Active->value)],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             'has_spouse' => ['boolean'],
             'spouse_first_name' => [

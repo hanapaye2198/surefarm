@@ -78,26 +78,40 @@ test('field verifiers can view the farm list', function () {
         ->assertOk();
 });
 
-test('farmers can open the dashboard', function () {
+test('farmers see an account page without registry data', function () {
     $user = User::factory()->create([
         'role' => UserRole::Farmer,
     ]);
 
     $this->actingAs($user)
         ->get(route('dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('account/restricted')
+            ->missing('summary')
+            ->missing('locations')
+            ->missing('verified_lands'));
 });
 
-test('farmers cannot open farm management pages', function (string $routeName) {
+test('farmers can open their own registry lists', function (string $routeName) {
     $user = User::factory()->create([
         'role' => UserRole::Farmer,
     ]);
 
     $this->actingAs($user)
         ->get(route($routeName))
-        ->assertForbidden();
+        ->assertOk();
 })->with([
     'farmers' => 'farmers.index',
     'farms' => 'farms.index',
-    'farm verification' => 'farm-verification.index',
 ]);
+
+test('farmers cannot open farm verification', function () {
+    $user = User::factory()->create([
+        'role' => UserRole::Farmer,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('farm-verification.index'))
+        ->assertForbidden();
+});

@@ -8,31 +8,49 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\Farmer;
+use App\Models\User;
+use App\Services\AdminLandAnalytics;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
 use App\Services\TraceabilitySummary;
+use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability): Response
+    public function index(ProductionLedger $ledger, InventoryStock $stock, TraceabilitySummary $traceability, AdminLandAnalytics $analytics): Response
     {
+        $user = request()->user();
+
+        if ($user instanceof User && $user->role === UserRole::Farmer && ! $user->farmerProfile()->exists()) {
+            return Inertia::render('account/restricted');
+        }
+
+        if ($user instanceof User && $user->role === UserRole::Admin) {
+            return $analytics->render($user, request());
+        }
+
+        $viewer = $user instanceof User ? $user : null;
+
         $coffeeArea = $this->declaredHectares(CropType::Coffee);
         $totalDeclared = $this->declaredHectares();
 
+        $summary = [
+            'registered_farmers' => Farmer::query()->visibleTo($viewer)->count(),
+            'registered_farms' => Farm::query()->visibleTo($viewer)->count(),
+            'total_coffee_farm_area_hectares' => $coffeeArea,
+            'verified_farms' => $this->activeVerificationCount(FarmVerificationStatus::Verified),
+            'pending_verification' => $this->activeVerificationCount(FarmVerificationStatus::Pending),
+            'in_progress' => $this->activeVerificationCount(FarmVerificationStatus::InProgress),
+            'needs_review' => $this->activeVerificationCount(FarmVerificationStatus::NeedsReview),
+            'failed' => $this->activeVerificationCount(FarmVerificationStatus::Failed),
+        ];
+
         return Inertia::render('dashboard', [
-            'summary' => [
-                'registered_farmers' => Farmer::query()->count(),
-                'registered_farms' => Farm::query()->count(),
-                'total_coffee_farm_area_hectares' => $coffeeArea,
-                'verified_farms' => $this->activeVerificationCount(FarmVerificationStatus::Verified),
-                'pending_verification' => $this->activeVerificationCount(FarmVerificationStatus::Pending),
-                'in_progress' => $this->activeVerificationCount(FarmVerificationStatus::InProgress),
-                'needs_review' => $this->activeVerificationCount(FarmVerificationStatus::NeedsReview),
-                'failed' => $this->activeVerificationCount(FarmVerificationStatus::Failed),
-            ],
+            'summary' => $summary,
+            'workspace' => $this->workspace($viewer, $summary),
             'area_summary' => [
                 'total_declared_hectares' => $totalDeclared,
                 'total_verified_hectares' => $this->verifiedHectares(),
@@ -42,12 +60,85 @@ class DashboardController extends Controller
             'locations' => $this->locations(),
             'verified_lands' => $this->verifiedLands(),
             'recent_activities' => $this->recentActivities(),
-            'harvest_summary' => $ledger->dashboardSummary(),
-            'recent_harvests' => $ledger->recentHarvests(),
-            'inventory_summary' => $stock->balances(),
-            'traceability_summary' => $traceability->metrics(),
-            'recent_lots' => $traceability->recent(),
+            'harvest_summary' => $ledger->dashboardSummary($viewer),
+            'recent_harvests' => $ledger->recentHarvests(viewer: $viewer),
+            'inventory_summary' => $stock->balances(viewer: $viewer),
+            'traceability_summary' => $traceability->metrics(viewer: $viewer),
+            'recent_lots' => $traceability->recent(viewer: $viewer),
         ]);
+    }
+
+    /**
+     * @param  array{
+     *     pending_verification: int,
+     *     in_progress: int,
+     *     needs_review: int,
+     *     failed: int
+     * }  $summary
+     * @return array{
+     *     title: string,
+     *     description: string,
+     *     queues: list<array{status: string, label: string, count: int, href: string}>
+     * }
+     */
+    private function workspace(?User $viewer, array $summary): array
+    {
+        $role = $viewer?->role;
+        $copy = match ($role) {
+            UserRole::Farmer => [
+                'Your farms',
+                'Verification status for the farms linked to your account. Counts are current totals.',
+            ],
+            UserRole::FieldVerifier => [
+                'Assigned fieldwork',
+                'Farms assigned to you. Open a status to continue that verification list.',
+            ],
+            UserRole::CooperativeOfficer => [
+                'Cooperative overview',
+                'Farmers and farms in the cooperatives assigned to you. Counts are current totals.',
+            ],
+            default => [
+                'Operations',
+                'Farmers, farms, and declared area inside your registry scope. Counts are current totals, not a date range.',
+            ],
+        };
+
+        $queues = [
+            $this->queue($viewer, FarmVerificationStatus::Pending, 'Awaiting verification', $summary['pending_verification']),
+            $this->queue($viewer, FarmVerificationStatus::InProgress, 'Verification in progress', $summary['in_progress']),
+            $this->queue($viewer, FarmVerificationStatus::NeedsReview, 'Needs review', $summary['needs_review']),
+            $this->queue($viewer, FarmVerificationStatus::Failed, 'Verification failed', $summary['failed']),
+        ];
+
+        return [
+            'title' => $copy[0],
+            'description' => $copy[1],
+            'queues' => $queues,
+        ];
+    }
+
+    /**
+     * @return array{status: string, label: string, count: int, href: string}
+     */
+    private function queue(?User $viewer, FarmVerificationStatus $status, string $label, int $count): array
+    {
+        return [
+            'status' => $status->value,
+            'label' => $label,
+            'count' => $count,
+            'href' => $this->verificationHref($viewer, $status),
+        ];
+    }
+
+    private function verificationHref(?User $viewer, FarmVerificationStatus $status): string
+    {
+        $parameters = ['verification_status' => $status->value];
+
+        if ($viewer instanceof User && $viewer->role === UserRole::FieldVerifier) {
+            return route('farm-verification.index', $parameters);
+        }
+
+        return route('farms.index', $parameters);
     }
 
     /**
@@ -88,7 +179,7 @@ class DashboardController extends Controller
      */
     private function activeFarms(): Builder
     {
-        return Farm::query()->where('status', FarmStatus::Active);
+        return Farm::query()->visibleTo($this->registryViewer())->where('status', FarmStatus::Active);
     }
 
     /**
@@ -111,6 +202,7 @@ class DashboardController extends Controller
     private function locations(): array
     {
         $locations = Farm::query()
+            ->visibleTo($this->registryViewer())
             ->select([
                 'id',
                 'farmer_id',
@@ -202,6 +294,7 @@ class DashboardController extends Controller
     private function recentActivities(): array
     {
         return FarmActivity::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farm', 'activityType'])
             ->orderByDesc('activity_date')
             ->orderByDesc('id')

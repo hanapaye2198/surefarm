@@ -1,8 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { InventoryStatusBadge } from '@/components/status-badge';
 import type { InventoryRecordStatus } from '@/components/status-badge';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { show as showFarm } from '@/routes/farms';
 import { show as showFarmer } from '@/routes/farmers';
@@ -11,6 +20,7 @@ import { create as adjustInventory } from '@/routes/inventory/adjust';
 import { create as damageInventory } from '@/routes/inventory/damage';
 import { index as inventoryIndex, show } from '@/routes/inventory';
 import { create as processInventory } from '@/routes/inventory/process';
+import { reverse as reverseReceipt } from '@/routes/inventory/receipts';
 import { create as createLot } from '@/routes/traceability';
 
 type InventoryDetail = {
@@ -37,6 +47,7 @@ type Movement = {
     summary: string;
     notes: string | null;
     created_by: string | null;
+    reversible: boolean;
 };
 
 function display(value: string | null | undefined): string {
@@ -146,6 +157,36 @@ export default function InventoryShow({
                                     <p className="text-sm font-medium">{movement.movement_date_long}</p>
                                     <p className="text-sm">{movement.summary}</p>
                                     {movement.notes && <p className="text-sm text-muted-foreground">{movement.notes}</p>}
+                                    {movement.reversible && (
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button type="button" size="sm" variant="outline" className="mt-2">
+                                                    Reverse receipt
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogTitle>Reverse this receipt?</DialogTitle>
+                                                <DialogDescription>
+                                                    The original receipt stays in the ledger. A reversal movement returns the quantity to the harvest and reduces this stock balance.
+                                                </DialogDescription>
+                                                <DialogFooter>
+                                                    <DialogClose asChild>
+                                                        <Button type="button" variant="outline">Cancel</Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="button"
+                                                        variant="destructive"
+                                                        onClick={() => router.post(reverseReceipt.url({
+                                                            inventory: inventory.id,
+                                                            movement: movement.id,
+                                                        }))}
+                                                    >
+                                                        Reverse receipt
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    )}
                                     <p className="text-xs text-muted-foreground">
                                         {movement.movement_type_label}
                                         {movement.created_by ? ` · ${movement.created_by}` : ''}

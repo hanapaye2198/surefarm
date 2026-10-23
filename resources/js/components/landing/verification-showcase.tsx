@@ -38,7 +38,7 @@ export function VerificationShowcase() {
                             </div>
                         ))}
                     </dl>
-                    <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
+                    <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-primary/10 px-4 py-3 text-primary">
                         <span className="text-xs font-semibold tracking-wide uppercase">
                             Verified
                         </span>

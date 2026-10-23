@@ -28,13 +28,13 @@ export default function ReceiveHarvest({
     harvest,
     remaining,
     stages,
-    units,
+    receipt_token,
     today,
 }: {
     harvest: HarvestRecord;
     remaining: number;
     stages: Stage[];
-    units: string[];
+    receipt_token: string;
     today: string;
 }) {
     const cherry = stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
@@ -45,6 +45,7 @@ export default function ReceiveHarvest({
         location: 'Farm Storage',
         received_date: today,
         notes: '',
+        receipt_token,
     });
 
     function submit(event: FormEvent) {
@@ -72,21 +73,20 @@ export default function ReceiveHarvest({
                         </CardHeader>
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <p className="text-sm text-muted-foreground sm:col-span-2">
-                                {harvest.farmer?.name ?? 'Farmer'} · {remaining} {harvest.unit} not yet received. The harvest quantity stays {harvest.quantity_label}.
+                                {harvest.farmer?.name ?? 'Farmer'} · {remaining} {harvest.unit} not yet received. The harvest quantity stays {harvest.quantity_label}. Receipts stay in {harvest.unit}; kg, tons, and bags are not converted.
                             </p>
+                            <input type="hidden" name="unit" value={harvest.unit} />
+                            <input type="hidden" name="receipt_token" value={form.data.receipt_token} />
                             <div className="grid gap-2">
-                                <Label htmlFor="quantity">Quantity</Label>
+                                <Label htmlFor="quantity">Quantity ({harvest.unit})</Label>
                                 <Input id="quantity" inputMode="decimal" value={form.data.quantity} onChange={(event) => form.setData('quantity', event.target.value)} />
                                 <InputError message={form.errors.quantity} />
+                                <InputError message={form.errors.unit} />
+                                <InputError message={form.errors.receipt_token} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="unit">Unit</Label>
-                                <select id="unit" className={selectClassName} value={form.data.unit} onChange={(event) => form.setData('unit', event.target.value)}>
-                                    {units.map((unit) => (
-                                        <option key={unit} value={unit}>{unit}</option>
-                                    ))}
-                                </select>
-                                <InputError message={form.errors.unit} />
+                                <Input id="unit" value={harvest.unit} readOnly />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="processing_stage_id">Processing stage</Label>

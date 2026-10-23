@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\BankAccountStatus;
+use App\Models\Farmer;
 use App\Models\User;
 use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -24,6 +25,7 @@ class UpdateFarmerDetailsRequest extends FormRequest
     public function rules(): array
     {
         $recordingBankAccount = $this->boolean('has_bank_account');
+        $keepsStoredNumber = $this->keepsStoredAccountNumber();
 
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
@@ -37,7 +39,8 @@ class UpdateFarmerDetailsRequest extends FormRequest
             ],
             'account_number' => [
                 Rule::excludeUnless($recordingBankAccount),
-                'required',
+                Rule::requiredIf($recordingBankAccount && ! $keepsStoredNumber),
+                'nullable',
                 'string',
                 'max:32',
                 'regex:/^[0-9\-\s]+$/',
@@ -92,5 +95,16 @@ class UpdateFarmerDetailsRequest extends FormRequest
                 ? $this->string('bank_account_status')->trim()->toString()
                 : BankAccountStatus::Unverified->value,
         ]);
+    }
+
+    private function keepsStoredAccountNumber(): bool
+    {
+        $farmer = $this->route('farmer');
+        $accountNumber = $this->input('account_number');
+
+        return $this->boolean('has_bank_account')
+            && (! is_string($accountNumber) || trim($accountNumber) === '')
+            && $farmer instanceof Farmer
+            && $farmer->bankAccount !== null;
     }
 }

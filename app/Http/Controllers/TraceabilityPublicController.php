@@ -10,9 +10,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TraceabilityPublicController extends Controller
 {
-    public function show(Request $request, string $lot_code, TraceabilityJourney $journey): Response
+    public function show(Request $request, string $token, TraceabilityJourney $journey): Response
     {
-        $lot = TraceabilityLot::query()->where('lot_code', $lot_code)->first();
+        $lot = TraceabilityLot::query()->where('public_token', $token)->first();
 
         if ($lot === null) {
             return Inertia::render('traceability/public', [

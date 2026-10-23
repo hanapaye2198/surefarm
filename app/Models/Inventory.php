@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\CropType;
 use App\InventoryStatus;
+use App\Models\Concerns\VisibleToRegistry;
 use App\Services\ProductionLedger;
 use Database\Factories\InventoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Inventory extends Model
 {
     /** @use HasFactory<InventoryFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * @return array<string, string>

@@ -33,11 +33,6 @@ class ModulePlaceholderController extends Controller
             'description' => 'Logistics and export tools will be available in a future SureFarm release.',
             'icon' => 'truck',
         ],
-        'cooperatives' => [
-            'title' => 'Cooperatives',
-            'description' => 'Cooperative management will be available in a future SureFarm release.',
-            'icon' => 'handshake',
-        ],
         'reports' => [
             'title' => 'Reports',
             'description' => 'Reports will be available in a future SureFarm release.',

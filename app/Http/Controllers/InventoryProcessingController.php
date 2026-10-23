@@ -19,6 +19,7 @@ class InventoryProcessingController extends Controller
     public function index(InventoryStock $stock): Response
     {
         $movements = InventoryMovement::query()
+            ->visibleTo($this->registryViewer())
             ->with(['sourceStage', 'destinationStage', 'creator', 'inventory.farm', 'inventory.farmer'])
             ->where('movement_type', InventoryMovementType::Processing)
             ->orderByDesc('movement_date')
@@ -33,7 +34,7 @@ class InventoryProcessingController extends Controller
             ->all();
 
         return Inertia::render('inventory/processing', [
-            'summary' => $stock->balances(),
+            'summary' => $stock->balances(viewer: $this->registryViewer()),
             'movements' => $movements,
         ]);
     }
@@ -42,6 +43,7 @@ class InventoryProcessingController extends Controller
     {
         $selectedId = $request->integer('inventory') ?: null;
         $lots = Inventory::query()
+            ->visibleTo($this->registryViewer())
             ->with(['stage', 'farm', 'farmer'])
             ->where('status', InventoryStatus::Available)
             ->where('quantity', '>', 0)

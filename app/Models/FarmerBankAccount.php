@@ -5,6 +5,7 @@ namespace App\Models;
 use App\BankAccountStatus;
 use Database\Factories\FarmerBankAccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * stays on the server. The profile shows only the last four digits.
  *
  * @property BankAccountStatus $status
+ * @property string $account_number
  */
 #[Fillable([
     'farmer_id',
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'account_name',
     'status',
 ])]
+#[Hidden(['account_number'])]
 class FarmerBankAccount extends Model
 {
     /** @use HasFactory<FarmerBankAccountFactory> */
@@ -34,6 +37,7 @@ class FarmerBankAccount extends Model
     {
         return [
             'status' => BankAccountStatus::class,
+            'account_number' => 'encrypted',
         ];
     }
 

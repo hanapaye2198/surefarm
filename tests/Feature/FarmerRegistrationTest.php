@@ -2,6 +2,7 @@
 
 use App\Contracts\FarmerIdGenerator;
 use App\Models\Cooperative;
+use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmerSpouse;
 use App\Models\User;
@@ -214,9 +215,11 @@ test('a cooperative can be attached when one exists', function () {
 
 test('field verifiers can view a farmer but cannot register one', function () {
     $farmer = Farmer::factory()->create();
+    $farm = Farm::factory()->for($farmer)->create();
     $verifier = User::factory()->create([
         'role' => UserRole::FieldVerifier,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->get(route('farmers.show', $farmer))

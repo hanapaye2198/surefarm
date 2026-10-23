@@ -9,8 +9,8 @@ use App\Models\FarmHarvest;
 use App\Models\InventoryProcessingStage;
 use App\ProcessingStageStatus;
 use App\Services\InventoryStock;
-use App\Services\ProductionLedger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +24,7 @@ class HarvestInventoryController extends Controller
             'harvest' => $harvest->present(),
             'remaining' => $stock->remainingReceivable($harvest),
             'stages' => $this->stages(),
-            'units' => ProductionLedger::UNITS,
+            'receipt_token' => (string) Str::uuid(),
             'can_receive' => $harvest->status === HarvestStatus::Completed,
             'today' => now()->toDateString(),
         ]);

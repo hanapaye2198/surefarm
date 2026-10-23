@@ -374,6 +374,7 @@ test('field verifiers can view inventory and cannot change it', function () {
     ]);
 
     $inventory = Inventory::query()->firstOrFail();
+    assignFarmVerifier($verifier, $harvest->farm);
 
     $this->actingAs($verifier)
         ->get(route('inventory.index'))
@@ -393,13 +394,13 @@ test('field verifiers can view inventory and cannot change it', function () {
         ])
         ->assertForbidden();
 
-    $this->actingAs($farmer)->get(route('inventory.show', $inventory))->assertForbidden();
+    $this->actingAs($farmer)->get(route('inventory.show', $inventory))->assertNotFound();
     $this->actingAs($farmer)->post(route('harvest.receive.store', $harvest), [
         'quantity' => 10,
         'unit' => 'kg',
         'processing_stage_id' => inventoryStage('COFFEE_CHERRY')->id,
         'received_date' => '2026-10-07',
-    ])->assertForbidden();
+    ])->assertNotFound();
 
     expect((float) $inventory->refresh()->quantity)->toBe(100.0);
 });

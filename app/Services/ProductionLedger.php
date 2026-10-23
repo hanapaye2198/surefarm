@@ -7,6 +7,7 @@ use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
+use App\Models\User;
 use App\ProductionStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -137,14 +138,14 @@ class ProductionLedger
     /**
      * @return array<string, mixed>
      */
-    public function dashboardSummary(): array
+    public function dashboardSummary(?User $viewer = null): array
     {
         $summary = $this->summarize(
-            FarmProduction::query(),
-            FarmHarvest::query(),
+            $this->visible(FarmProduction::query(), $viewer),
+            $this->visible(FarmHarvest::query(), $viewer),
         );
 
-        $summary['harvesting_farms'] = $this->harvestingFarms(FarmHarvest::query());
+        $summary['harvesting_farms'] = $this->harvestingFarms($this->visible(FarmHarvest::query(), $viewer));
 
         return $summary;
     }
@@ -152,9 +153,9 @@ class ProductionLedger
     /**
      * @return array{total_expected: string, farms_in_production: int, active_crops: int, current_period: string}
      */
-    public function productionIndexSummary(): array
+    public function productionIndexSummary(?User $viewer = null): array
     {
-        $expected = FarmProduction::query()
+        $expected = $this->visible(FarmProduction::query(), $viewer)
             ->whereNotNull('expected_quantity')
             ->selectRaw('unit, SUM(expected_quantity) as total')
             ->groupBy('unit')
@@ -163,10 +164,14 @@ class ProductionLedger
         $cropCount = DB::table('farm_productions')
             ->join('farms', 'farms.id', '=', 'farm_productions.farm_id')
             ->where('farm_productions.status', ProductionStatus::Active->value)
+            ->when(
+                $viewer instanceof User && ! app(RegistryScope::class)->seesEntireRegistry($viewer),
+                fn ($query) => $query->whereIn('farm_productions.farm_id', Farm::query()->visibleTo($viewer)->select('farms.id')),
+            )
             ->selectRaw('count(distinct coalesce(farm_productions.crop_type, farms.crop_type)) as aggregate')
             ->value('aggregate');
 
-        $period = FarmProduction::query()
+        $period = $this->visible(FarmProduction::query(), $viewer)
             ->whereNotNull('production_period')
             ->where('production_period', '!=', '')
             ->orderByDesc('id')
@@ -174,7 +179,7 @@ class ProductionLedger
 
         return [
             'total_expected' => $this->unitTotalsLabel($expected),
-            'farms_in_production' => (int) FarmProduction::query()
+            'farms_in_production' => (int) $this->visible(FarmProduction::query(), $viewer)
                 ->where('status', ProductionStatus::Active)
                 ->distinct()
                 ->count('farm_id'),
@@ -186,23 +191,23 @@ class ProductionLedger
     /**
      * @return array{total_harvest: string, harvesting_farms: int, completed_harvests: int, current_period: string}
      */
-    public function harvestIndexSummary(): array
+    public function harvestIndexSummary(?User $viewer = null): array
     {
-        $harvested = FarmHarvest::query()
+        $harvested = $this->visible(FarmHarvest::query(), $viewer)
             ->where('status', HarvestStatus::Completed)
             ->selectRaw('unit, SUM(quantity) as total')
             ->groupBy('unit')
             ->pluck('total', 'unit');
 
-        $latest = FarmHarvest::query()
+        $latest = $this->visible(FarmHarvest::query(), $viewer)
             ->orderByDesc('harvest_date')
             ->orderByDesc('id')
             ->first();
 
         return [
             'total_harvest' => $this->unitTotalsLabel($harvested),
-            'harvesting_farms' => $this->harvestingFarms(FarmHarvest::query()),
-            'completed_harvests' => FarmHarvest::query()->where('status', HarvestStatus::Completed)->count(),
+            'harvesting_farms' => $this->harvestingFarms($this->visible(FarmHarvest::query(), $viewer)),
+            'completed_harvests' => $this->visible(FarmHarvest::query(), $viewer)->where('status', HarvestStatus::Completed)->count(),
             'current_period' => $latest?->harvest_date?->format('Y') ?? '—',
         ];
     }
@@ -210,9 +215,9 @@ class ProductionLedger
     /**
      * @return list<array<string, mixed>>
      */
-    public function recentHarvests(int $limit = 5): array
+    public function recentHarvests(int $limit = 5, ?User $viewer = null): array
     {
-        return FarmHarvest::query()
+        return $this->visible(FarmHarvest::query(), $viewer)
             ->with(['farm.farmer'])
             ->orderByDesc('harvest_date')
             ->orderByDesc('id')
@@ -221,6 +226,21 @@ class ProductionLedger
             ->map(fn (FarmHarvest $harvest): array => $harvest->summaryRow())
             ->values()
             ->all();
+    }
+
+    /**
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
+     */
+    private function visible(Builder $query, ?User $viewer): Builder
+    {
+        if (! $viewer instanceof User) {
+            return $query;
+        }
+
+        return app(RegistryScope::class)->constrain($query, $viewer);
     }
 
     /**

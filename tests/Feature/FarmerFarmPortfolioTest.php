@@ -208,6 +208,7 @@ test('field verifiers can view a farm portfolio but cannot edit farm reference d
     $verifier = User::factory()->create([
         'role' => UserRole::FieldVerifier,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->get(route('farmers.show', $farmer))

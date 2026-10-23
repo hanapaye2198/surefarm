@@ -22,11 +22,16 @@ class UpdateFarmerDetails
             $hasBankAccount = filter_var($data['has_bank_account'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
             if ($hasBankAccount) {
+                $submittedNumber = $data['account_number'] ?? null;
+                $accountNumber = is_string($submittedNumber) && $submittedNumber !== ''
+                    ? $submittedNumber
+                    : $farmer->bankAccount?->account_number;
+
                 $farmer->bankAccount()->updateOrCreate(
                     ['farmer_id' => $farmer->id],
                     [
                         'bank_name' => $data['bank_name'],
-                        'account_number' => $data['account_number'],
+                        'account_number' => $accountNumber,
                         'account_name' => $data['account_name'],
                         'status' => $data['bank_account_status'] ?? BankAccountStatus::Unverified,
                     ],

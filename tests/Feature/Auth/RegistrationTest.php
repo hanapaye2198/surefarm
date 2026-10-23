@@ -2,28 +2,21 @@
 
 use App\Models\User;
 use App\UserRole;
-use Laravel\Fortify\Features;
+use Illuminate\Support\Facades\Route;
 
-beforeEach(function () {
-    $this->skipUnlessFortifyHas(Features::registration());
-});
+test('public registration is not available', function () {
+    expect(Route::has('register'))->toBeFalse()
+        ->and(Route::has('register.store'))->toBeFalse();
 
-test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
+    $this->get('/register')->assertNotFound();
 
-    $response->assertOk();
-});
-
-test('new users can register', function () {
-    $response = $this->post(route('register.store'), [
+    $this->post('/register', [
         'name' => 'Test User',
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-    ]);
+    ])->assertNotFound();
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
-
-    expect(User::query()->where('email', 'test@example.com')->first()?->role)->toBe(UserRole::Admin);
+    expect(User::query()->where('email', 'test@example.com')->exists())->toBeFalse()
+        ->and(User::query()->where('role', UserRole::Admin)->exists())->toBeFalse();
 });

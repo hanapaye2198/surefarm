@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\ReverseHarvestReceipt;
 use App\InventoryStatus;
 use App\Models\Farm;
 use App\Models\Farmer;
@@ -31,6 +32,7 @@ class InventoryController extends Controller
         $to = $this->dateFilter($request->string('to')->trim()->toString());
 
         $inventories = Inventory::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farmer', 'farm', 'harvest', 'stage'])
             ->where('quantity', '>', 0)
             ->when($farmId !== null, fn (Builder $query) => $query->where('farm_id', $farmId))
@@ -51,7 +53,7 @@ class InventoryController extends Controller
 
         return Inertia::render('inventory/index', [
             'inventories' => $inventories,
-            'summary' => $stock->balances(),
+            'summary' => $stock->balances(viewer: $this->registryViewer()),
             'filters' => [
                 'search' => $search,
                 'farm' => $farmId === null ? '' : (string) $farmId,
@@ -70,7 +72,7 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function show(Request $request, Inventory $inventory, InventoryStock $stock): Response
+    public function show(Request $request, Inventory $inventory, InventoryStock $stock, ReverseHarvestReceipt $reversals): Response
     {
         $inventory->load(['farmer', 'farm', 'harvest', 'stage']);
         $user = $request->user();
@@ -86,7 +88,10 @@ class InventoryController extends Controller
             ->orderByDesc('movement_date')
             ->orderByDesc('id')
             ->get()
-            ->map(fn (InventoryMovement $movement): array => $movement->present())
+            ->map(fn (InventoryMovement $movement): array => [
+                ...$movement->present(),
+                'reversible' => $canManage && $reversals->reversible($inventory, $movement),
+            ])
             ->values()
             ->all();
 
@@ -151,6 +156,7 @@ class InventoryController extends Controller
     private function farmOptions(): array
     {
         return Farm::query()
+            ->visibleTo($this->registryViewer())
             ->orderBy('farm_name')
             ->orderBy('id')
             ->get()
@@ -167,6 +173,7 @@ class InventoryController extends Controller
     private function farmerOptions(): array
     {
         return Farmer::query()
+            ->visibleTo($this->registryViewer())
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get()

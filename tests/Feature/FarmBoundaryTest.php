@@ -178,6 +178,7 @@ test('field verifiers can view a boundary but cannot change it', function () {
     $verifier = User::factory()->create([
         'role' => UserRole::FieldVerifier,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->get(route('farms.show', $farm))
@@ -203,11 +204,11 @@ test('farmers cannot manage farm boundaries', function () {
 
     $this->actingAs($farmer)
         ->get(route('farms.show', $farm))
-        ->assertForbidden();
+        ->assertNotFound();
 
     $this->actingAs($farmer)
         ->post(route('farms.boundary.store', $farm), [
             'boundary_geojson' => boundaryPolygon(),
         ])
-        ->assertForbidden();
+        ->assertNotFound();
 });

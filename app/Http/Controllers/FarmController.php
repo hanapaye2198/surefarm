@@ -25,6 +25,7 @@ use App\Services\FarmAreaComparison;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
+use App\Services\RegistryScope;
 use App\Services\TraceabilitySummary;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
@@ -48,8 +49,11 @@ class FarmController extends Controller
         $search = $request->string('search')->trim()->toString();
         $verificationStatus = $request->string('verification_status')->trim()->toString();
         $status = $request->string('status')->trim()->toString();
+        $viewer = $request->user();
+        $viewer = $viewer instanceof User ? $viewer : null;
 
         $farms = Farm::query()
+            ->visibleTo($viewer)
             ->with('farmer')
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
@@ -134,8 +138,16 @@ class FarmController extends Controller
         ]);
     }
 
-    public function store(StoreFarmRequest $request, Farmer $farmer, RegisterFarm $register): RedirectResponse
+    public function store(StoreFarmRequest $request, Farmer $farmer, RegisterFarm $register, RegistryScope $scope): RedirectResponse
     {
+        $actor = $request->user();
+
+        if (! $actor instanceof User) {
+            abort(403);
+        }
+
+        $scope->ensureProvince($actor, $request->string('province')->trim()->toString());
+
         try {
             $farm = $register->handle(
                 $farmer,
@@ -240,6 +252,8 @@ class FarmController extends Controller
 
         $user = $request->user();
         $comparison = $this->areaComparison($farm);
+        $hidesPrivateCoverage = $user instanceof User
+            && $user->hasRole(UserRole::FieldVerifier, UserRole::CooperativeOfficer);
 
         return Inertia::render('farms/show', [
             'farm' => [
@@ -296,14 +310,18 @@ class FarmController extends Controller
                 'productions' => $this->farmProductions($farm),
                 'harvests' => $this->farmHarvests($farm),
                 'can_manage_coverage' => $user instanceof User && $user->canAccess(UserRole::Operations),
-                'insurances' => $farm->insurances
-                    ->map(fn (FarmInsurance $insurance): array => $insurance->present())
-                    ->values()
-                    ->all(),
-                'financings' => $farm->financings
-                    ->map(fn (FarmFinancing $financing): array => $financing->present())
-                    ->values()
-                    ->all(),
+                'insurances' => $hidesPrivateCoverage
+                    ? []
+                    : $farm->insurances
+                        ->map(fn (FarmInsurance $insurance): array => $insurance->present())
+                        ->values()
+                        ->all(),
+                'financings' => $hidesPrivateCoverage
+                    ? []
+                    : $farm->financings
+                        ->map(fn (FarmFinancing $financing): array => $financing->present())
+                        ->values()
+                        ->all(),
                 'inventory_summary' => $stock->balances($farm->id),
                 'traceability_lots' => $traceability->forFarm($farm->id),
             ],

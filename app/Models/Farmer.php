@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\FarmerStatus;
+use App\Models\Concerns\VisibleToRegistry;
 use Database\Factories\FarmerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property FarmerStatus $status
+ * @property string|null $government_id
  * @property int $farms_count
  */
 #[Fillable([
@@ -32,10 +35,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'cooperative_id',
     'status',
 ])]
+#[Hidden(['government_id'])]
 class Farmer extends Model
 {
     /** @use HasFactory<FarmerFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * @return array<string, string>
@@ -45,6 +49,7 @@ class Farmer extends Model
         return [
             'status' => FarmerStatus::class,
             'date_of_birth' => 'date',
+            'government_id' => 'encrypted',
         ];
     }
 
@@ -73,11 +78,27 @@ class Farmer extends Model
     }
 
     /**
+     * @return HasMany<CooperativeMembership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(CooperativeMembership::class);
+    }
+
+    /**
      * @return HasMany<Farm, $this>
      */
     public function farms(): HasMany
     {
         return $this->hasMany(Farm::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function fullName(): string

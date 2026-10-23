@@ -1,0 +1,64 @@
+# User acceptance tests
+
+Technical Pest tests and business acceptance are separate. A passing automated test does not mean a field verifier or cooperative officer can complete the job. No participant has signed these scenarios. Tester, review date, and actual result stay blank until a named person runs the step.
+
+Use synthetic records only. Do not enter a real government id or bank account.
+
+Status values: Pass, Fail, Blocked, Not implemented, Not tested.
+
+## Farmer registration
+
+| ID | Role | Preconditions | Steps | Expected result | Actual result | Status | Evidence | Tester |
+|---|---|---|---|---|---|---|---|---|
+| UAT-FR-01 | Operations | Active operations account with a platform or matching province grant. Confirmed two-factor authentication when required. | Open Farmers, create a farmer with the required name and address fields, save. | The farmer has a unique farmer id, the detail page shows the saved name and place, and an access event exists for the registration. | | Not tested | Automated coverage: `FarmerRegistrationTest`. | |
+| UAT-FR-02 | Operations | Same as UAT-FR-01. | Submit the form with the required name fields empty. | The form stays, the values that were valid remain, and the farmer is not created. | | Not tested | `FarmerRegistrationTest`. | |
+| UAT-FR-03 | Operations | An active cooperative exists. The farmer's province is inside the user's grant. | Register the farmer with that cooperative. | One open membership exists, `farmers.cooperative_id` points at it, and search on the farmer list finds the farmer. | | Not tested | `FarmerRegistrationTest`, `CooperativeManagementTest`. | |
+| UAT-FR-04 | Operations | A farmer with a government id and bank account already saved. | Open the farmer as operations. Open the same farmer as a field verifier and as a cooperative officer. | Operations sees the government id and a masked account number. The other two roles see neither, including on the farm page. | | Not tested | `FarmerProfileDetailsTest`, `FarmCoverageTest`. Storage is ciphertext (`2026_10_23_131108`). | |
+| UAT-FR-05 | Field verifier | No assignment. | Open the farmer URL from UAT-FR-01. | 404. | | Not tested | `RecordAccessTest`. | |
+
+## Farm registration and verification
+
+| ID | Role | Preconditions | Steps | Expected result | Actual result | Status | Evidence | Tester |
+|---|---|---|---|---|---|---|---|---|
+| UAT-FM-01 | Operations | Farmer from UAT-FR-01. | Register two farms with declared hectares. | Both farms appear on that farmer. Declared area is stored. Verification stays pending. | | Not tested | `FarmRegistrationTest`, `FarmerFarmPortfolioTest`. | |
+| UAT-FM-02 | Operations | One of those farms. | Save a closed boundary. Save a self-crossing ring. | The valid ring stores a measured area and does not change declared hectares. The invalid ring is rejected. | | Not tested | `FarmBoundaryTest`. | |
+| UAT-FM-03 | Administrator | Farm from UAT-FM-02. Active field verifier. | Assign the verifier. Revoke the assignment. | The verifier can open the farm only while the assignment is open. | | Not tested | `RecordAccessTest`. | |
+| UAT-FM-04 | Field verifier | Open assignment and a saved boundary. | Start verification, then record verified with a measured area. Record a later failed decision. | History keeps both decisions. Declared area does not change. Verified area follows the domain rule already in `FarmVerificationTest`. | | Not tested | `FarmVerificationTest`. | |
+| UAT-FM-05 | Operations | Same farm. | Submit the verifier approval URL. | 403. The status does not change. | | Not tested | `FarmVerificationTest`. | |
+| UAT-FM-06 | Farmer | Account linked to the farmer. | Open another farmer's farm URL. | 404. | | Not tested | `RecordAccessTest`, `FarmCoverageTest`. | |
+
+## Harvest and inventory
+
+| ID | Role | Preconditions | Steps | Expected result | Actual result | Status | Evidence | Tester |
+|---|---|---|---|---|---|---|---|---|
+| UAT-HV-01 | Operations | Farm in scope. | Record a completed harvest in kilograms. | The harvest shows on that farm. | | Not tested | `ProductionHarvestTest`. | |
+| UAT-HV-02 | Operations | UAT-HV-01. | Receive part of the quantity, then the rest. Repeat the same receipt token. | On-hand matches the receipts. The repeated token does not create a second movement. Remaining receivable reaches zero. | | Not tested | `InventoryIntegrityTest`. | |
+| UAT-HV-03 | Operations | Same harvest. | Receive more than the remaining quantity. Receive in tons. | Both are rejected. Stock is unchanged. | | Not tested | `InventoryIntegrityTest`. | |
+| UAT-HV-04 | Operations | A receipt with no later movement. | Reverse it once, then reverse it again. | The first reversal restores quantity. The second is rejected. | | Not tested | `InventoryIntegrityTest`. | |
+| UAT-HV-05 | Operations | Stored quantity edited out of band in a non-production copy. | Open reconciliation and align with a reason. | The stored quantity becomes the movement total. No new movement is inserted. | | Not tested | `InventoryIntegrityTest`. Do not do this on the only copy of pilot data. | |
+
+Concurrent receipt behavior is covered by the harvest row lock in `ReceiveHarvestIntoInventory`. No two-browser session has been run.
+
+## Traceability
+
+| ID | Role | Preconditions | Steps | Expected result | Actual result | Status | Evidence | Tester |
+|---|---|---|---|---|---|---|---|---|
+| UAT-TR-01 | Operations | Eligible inventory from a received harvest. | Create a lot. | The lot has a human code and a 40-character `public_token`. Stock is reduced by the lot quantity. | | Not tested | `TraceabilityTest`. | |
+| UAT-TR-02 | Guest | The token from UAT-TR-01. | Open `/trace/{token}`. Open `/trace/{lot_code}`. | The token page shows farm name, place, harvest date, quantity, stage, and verification status. It does not show phone, email, government id, bank data, or financing. The sequential code does not resolve. | | Not tested | `TraceabilityTest`. | |
+| UAT-TR-03 | Operations | The lot from UAT-TR-01. | Change the farm name. Reload the public page. | The public page shows the new name. This is the current behavior, not a frozen snapshot. Do not mark this pass if the business requirement is an unchanged historical certificate. | | Not tested | Decision required. See `docs/PILOT_PLAN.md`. | |
+
+## Finance, insurance, documents, reports
+
+| ID | Role | Expected result | Status |
+|---|---|---|---|
+| UAT-FN-01 | Operations | A repayment or reversal that preserves the original disbursement. | Not implemented. The financing form overwrites `loan_balance`. Excluded from the pilot. |
+| UAT-IN-01 | Operations | A claim with a recorded decision. | Not implemented. One insurance row can be edited. Excluded from the pilot. |
+| UAT-DC-01 | Any | Upload a document and have another farmer denied. | Not implemented. Farmer photos and drone images are the only files, and they use authorized routes. |
+| UAT-RP-01 | Operations | An export that respects registry scope and omits government ids. | Not implemented. The Reports navigation item is a future-release page. |
+
+## Farmer self-service
+
+| ID | Role | Preconditions | Steps | Expected result | Actual result | Status | Evidence | Tester |
+|---|---|---|---|---|---|---|---|---|
+| UAT-ME-01 | Farmer | Invitation accepted and the account linked to one farmer. | Sign in. Open the dashboard, the farmer profile, and each linked farm. | Only that farmer's records appear. Financing on the farmer's own farm is visible. Another farmer's URL returns 404. | | Not tested | `RecordAccessTest`, `DashboardTest`, `FarmCoverageTest`. | |
+| UAT-ME-02 | Farmer | Same account. | Post a farmer update, a verification decision, or a harvest receipt. | 403 or 404. No row changes. | | Not tested | `ProductionHarvestTest`, `FarmVerificationTest`. | |

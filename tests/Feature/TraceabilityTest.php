@@ -205,8 +205,8 @@ test('processing history is read from inventory movements', function () {
             ->where('journey.2.to_stage', 'Green Beans')
             ->where('lot.farm.verification_status', 'verified')
             ->where('lot.farm.verified_area', '2.79 ha')
-            ->where('public_url', route('trace.public', ['lot_code' => $lot->lot_code]))
-            ->where('qr_svg', app(QrCode::class)->svg(route('trace.public', ['lot_code' => $lot->lot_code])))
+            ->where('public_url', route('trace.public', ['token' => $lot->public_token]))
+            ->where('qr_svg', app(QrCode::class)->svg(route('trace.public', ['token' => $lot->public_token])))
         );
 });
 
@@ -255,7 +255,7 @@ test('the public page hides private farmer information and rejects unknown codes
     ]);
     $lot = TraceabilityLot::query()->firstOrFail();
 
-    $this->get(route('trace.public', ['lot_code' => $lot->lot_code]))
+    $this->get(route('trace.public', ['token' => $lot->public_token]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('traceability/public')
@@ -263,6 +263,7 @@ test('the public page hides private farmer information and rejects unknown codes
             ->where('record.municipality', 'Kadingilan')
             ->where('record.verification_status', 'verified')
             ->missing('record.notes')
+            ->missing('record.public_token')
         )
         ->assertDontSee('09170001111')
         ->assertDontSee('private-trace@example.test')
@@ -273,7 +274,11 @@ test('the public page hides private farmer information and rejects unknown codes
         ->assertDontSee('65001')
         ->assertDontSee('11111');
 
-    $this->get('/trace/SF-2026-999999')
+    $this->get('/trace/'.$lot->lot_code)
+        ->assertNotFound()
+        ->assertDontSee('Kadingilan');
+
+    $this->get('/trace/'.str_repeat('a', 40))
         ->assertNotFound()
         ->assertInertia(fn (Assert $page) => $page
             ->component('traceability/public')
@@ -315,7 +320,7 @@ test('farm farmer and dashboard summaries count the lot', function () {
             ->where('farmer.traceability_summary.traced_label', '10 kg')
         );
 
-    $this->actingAs(traceabilityUser(UserRole::Admin))
+    $this->actingAs(traceabilityUser())
         ->get(route('dashboard'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -334,11 +339,14 @@ test('field verifiers can view lots and cannot create them', function () {
         'crop_type' => CropType::Coffee,
     ]);
 
-    $this->actingAs(traceabilityUser(UserRole::FieldVerifier))
+    $verifier = traceabilityUser(UserRole::FieldVerifier);
+    assignFarmVerifier($verifier, $inventory->farm);
+
+    $this->actingAs($verifier)
         ->get(route('traceability.show', $lot))
         ->assertOk();
 
-    $this->actingAs(traceabilityUser(UserRole::FieldVerifier))
+    $this->actingAs($verifier)
         ->post(route('traceability.store'), [
             'inventory_id' => $inventory->id,
             'quantity' => 5,
@@ -348,7 +356,8 @@ test('field verifiers can view lots and cannot create them', function () {
 
     $this->actingAs(traceabilityUser(UserRole::Farmer))
         ->get(route('traceability.index'))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('lots.data', 0));
 });
 
 test('cherry inventory cannot start a traceability lot', function () {

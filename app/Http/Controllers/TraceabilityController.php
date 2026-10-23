@@ -33,6 +33,7 @@ class TraceabilityController extends Controller
         $to = $this->dateFilter($request->string('to')->trim()->toString());
 
         $lots = TraceabilityLot::query()
+            ->visibleTo($this->registryViewer())
             ->with(['farmer', 'farm', 'harvest', 'inventory.stage'])
             ->when($search !== '', fn (Builder $query): Builder => $this->applySearch($query, $search))
             ->when($stageId !== null, fn (Builder $query): Builder => $query->whereHas(
@@ -58,7 +59,7 @@ class TraceabilityController extends Controller
 
         return Inertia::render('traceability/index', [
             'lots' => $lots,
-            'summary' => $summary->metrics(),
+            'summary' => $summary->metrics(viewer: $this->registryViewer()),
             'filters' => [
                 'search' => $search,
                 'stage' => $stageId === null ? '' : (string) $stageId,

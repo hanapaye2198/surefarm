@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +22,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'canDeleteAccount' => $user instanceof User && ! $user->isLastActiveAdministrator(),
         ]);
     }
 
@@ -50,9 +56,23 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        Auth::logout();
+        if (! $user instanceof User) {
+            abort(403);
+        }
 
-        $user->delete();
+        DB::transaction(function () use ($user): void {
+            $locked = User::query()->lockForUpdate()->findOrFail($user->id);
+
+            if ($locked->isLastActiveAdministrator(lock: true)) {
+                throw ValidationException::withMessages([
+                    'password' => 'The last active administrator cannot be deleted.',
+                ]);
+            }
+
+            $locked->delete();
+        });
+
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

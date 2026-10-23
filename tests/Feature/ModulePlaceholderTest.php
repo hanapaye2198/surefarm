@@ -23,7 +23,6 @@ test('unfinished modules show an empty future release page', function (string $m
     'finance' => ['finance', 'Finance', 'Finance tools will be available in a future SureFarm release.'],
     'insurance' => ['insurance', 'Insurance', 'Insurance tools will be available in a future SureFarm release.'],
     'logistics' => ['logistics-export', 'Logistics & Export', 'Logistics and export tools will be available in a future SureFarm release.'],
-    'cooperatives' => ['cooperatives', 'Cooperatives', 'Cooperative management will be available in a future SureFarm release.'],
     'reports' => ['reports', 'Reports', 'Reports will be available in a future SureFarm release.'],
 ]);
 

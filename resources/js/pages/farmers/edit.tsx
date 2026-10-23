@@ -19,6 +19,7 @@ type FarmerDetails = {
     has_bank_account: boolean;
     bank_name: string;
     account_number: string;
+    account_number_hint: string | null;
     account_name: string;
     bank_account_status: string;
 };
@@ -90,7 +91,9 @@ export default function EditFarmerDetails({
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        const clientErrors = validateFarmerDetails(form.data);
+        const clientErrors = validateFarmerDetails(form.data, {
+            accountNumberMayBeOmitted: farmer.account_number_hint !== null,
+        });
 
         if (Object.keys(clientErrors).length > 0) {
             form.setError(clientErrors);
@@ -207,7 +210,7 @@ export default function EditFarmerDetails({
                                 <Field
                                     label="Account Number"
                                     htmlFor="account_number"
-                                    required
+                                    required={farmer.account_number_hint === null}
                                     error={form.errors.account_number}
                                 >
                                     <Input
@@ -221,7 +224,25 @@ export default function EditFarmerDetails({
                                         }
                                         inputMode="numeric"
                                         autoComplete="off"
+                                        placeholder={
+                                            farmer.account_number_hint ??
+                                            undefined
+                                        }
+                                        aria-describedby={
+                                            farmer.account_number_hint !== null
+                                                ? 'account-number-hint'
+                                                : undefined
+                                        }
                                     />
+                                    {farmer.account_number_hint !== null && (
+                                        <p
+                                            id="account-number-hint"
+                                            className="text-sm text-muted-foreground"
+                                        >
+                                            Leave blank to keep{' '}
+                                            {farmer.account_number_hint}.
+                                        </p>
+                                    )}
                                 </Field>
                                 <Field
                                     label="Account Name"

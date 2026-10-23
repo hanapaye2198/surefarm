@@ -13,6 +13,7 @@ import {
     Shield,
     Sprout,
     Truck,
+    UserCog,
     Users,
     Warehouse,
     Wheat,
@@ -37,14 +38,19 @@ import { dashboard } from '@/routes';
 import { index as farmersIndex } from '@/routes/farmers';
 import { index as activitiesIndex } from '@/routes/farm-activities';
 import { index as harvestIndex } from '@/routes/harvest';
-import { index as inventoryIndex, processing as processingIndex } from '@/routes/inventory';
+import {
+    index as inventoryIndex,
+    processing as processingIndex,
+} from '@/routes/inventory';
 import { index as traceabilityIndex } from '@/routes/traceability';
 import { index as productionIndex } from '@/routes/production';
 import { index as farmVerificationIndex } from '@/routes/farm-verification';
 import { index as farmsIndex } from '@/routes/farms';
+import { index as cooperativesIndex } from '@/routes/cooperatives';
 import { show as showModule } from '@/routes/modules';
 import { index as activityTypesIndex } from '@/routes/activity-types';
 import { edit as editProfile } from '@/routes/profile';
+import { index as usersIndex } from '@/routes/users';
 import type { NavItem, UserRole } from '@/types';
 
 type SidebarLink = NavItem & {
@@ -74,14 +80,14 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Farmers',
                 href: farmersIndex(),
                 icon: Users,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
                 match: 'parent',
             },
             {
                 title: 'Farms & Map',
                 href: farmsIndex(),
                 icon: MapPinned,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
                 match: 'parent',
             },
             {
@@ -93,8 +99,10 @@ const groups: { label: string; items: SidebarLink[] }[] = [
             },
             {
                 title: 'Cooperatives',
-                href: showModule('cooperatives'),
+                href: cooperativesIndex(),
                 icon: Handshake,
+                roles: ['operations', 'cooperative_officer'],
+                match: 'parent',
             },
         ],
     },
@@ -110,21 +118,21 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Farm Activities',
                 href: activitiesIndex(),
                 icon: ListChecks,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
                 match: 'parent',
             },
             {
                 title: 'Production',
                 href: productionIndex(),
                 icon: Wheat,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
                 match: 'parent',
             },
             {
                 title: 'Harvest',
                 href: harvestIndex(),
                 icon: Wheat,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
                 match: 'parent',
             },
         ],
@@ -136,20 +144,20 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Inventory',
                 href: inventoryIndex(),
                 icon: Warehouse,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
                 match: 'parent',
             },
             {
                 title: 'Coffee Processing',
                 href: processingIndex(),
                 icon: Factory,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
             },
             {
                 title: 'Traceability',
                 href: traceabilityIndex(),
                 icon: QrCode,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations', 'field_verifier', 'farmer'],
                 match: 'parent',
             },
             {
@@ -181,6 +189,13 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Activity Types',
                 href: activityTypesIndex(),
                 icon: ListChecks,
+                roles: ['admin'],
+                match: 'parent',
+            },
+            {
+                title: 'Users',
+                href: usersIndex(),
+                icon: UserCog,
                 roles: ['admin'],
                 match: 'parent',
             },
@@ -221,7 +236,7 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             size="lg"
-                            className="h-auto rounded-xl py-1.5 hover:bg-white/10"
+                            className="h-auto rounded-xl py-1.5 hover:bg-sidebar-accent"
                             asChild
                         >
                             <Link href={dashboard()} prefetch>

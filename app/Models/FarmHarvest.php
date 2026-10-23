@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\CropType;
 use App\HarvestStatus;
+use App\Models\Concerns\VisibleToRegistry;
 use App\Services\ProductionLedger;
 use Database\Factories\FarmHarvestFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FarmHarvest extends Model
 {
     /** @use HasFactory<FarmHarvestFactory> */
-    use HasFactory;
+    use HasFactory, VisibleToRegistry;
 
     /**
      * @return array<string, string>

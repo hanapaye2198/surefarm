@@ -2,6 +2,8 @@
 
 use App\FarmVerificationStatus;
 use App\FinancingType;
+use App\Models\Cooperative;
+use App\Models\CooperativeOfficer;
 use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
@@ -235,18 +237,41 @@ test('editing coverage stays on the same farm', function () {
     expect($insurance->refresh()->covered)->toBeFalse();
 });
 
-test('field verifiers can view coverage and cannot change it', function () {
-    $farm = Farm::factory()->create();
+test('field verifiers and cooperative officers do not receive coverage records', function () {
+    $cooperative = Cooperative::factory()->create();
+    $record = Farmer::factory()->create(['cooperative_id' => $cooperative->id]);
+    $farm = Farm::factory()->for($record)->create();
     FarmInsurance::factory()->for($farm)->create();
+    FarmFinancing::factory()->for($farm)->create();
     $verifier = User::factory()->create(['role' => UserRole::FieldVerifier]);
-    $farmer = User::factory()->create(['role' => UserRole::Farmer]);
+    assignFarmVerifier($verifier, $farm);
+    $officer = User::factory()->create(['role' => UserRole::CooperativeOfficer]);
+    CooperativeOfficer::factory()->create([
+        'user_id' => $officer->id,
+        'cooperative_id' => $cooperative->id,
+    ]);
+    $unrelatedFarmer = User::factory()->create(['role' => UserRole::Farmer]);
+    $owner = User::factory()->create(['role' => UserRole::Farmer]);
+    $record->forceFill(['user_id' => $owner->id])->save();
 
-    $this->actingAs($verifier)
-        ->get(route('farms.show', $farm))
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('farm.can_manage_coverage', false)
-            ->where('farm.insurances.0.covered_label', 'Yes'));
+    foreach ([$verifier, $officer] as $viewer) {
+        $this->actingAs($viewer)
+            ->get(route('farms.show', $farm))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('farm.can_manage_coverage', false)
+                ->where('farm.insurances', [])
+                ->where('farm.financings', []));
+
+        $this->actingAs($viewer)
+            ->get(route('farmers.show', $record))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('farmer.government_id', null)
+                ->where('farmer.bank_account', null)
+                ->where('farmer.farm_coverage.0.insurances', [])
+                ->where('farmer.farm_coverage.0.financings', []));
+    }
 
     $this->actingAs($verifier)
         ->post(route('farms.insurance.store', $farm), [
@@ -256,16 +281,23 @@ test('field verifiers can view coverage and cannot change it', function () {
         ])
         ->assertForbidden();
 
-    $this->actingAs($farmer)
+    $this->actingAs($owner)
         ->get(route('farms.show', $farm))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('farm.insurances.0.amount_label', '₱50,000.00')
+            ->where('farm.financings.0.loan_balance_label', '₱65,000.00'));
 
-    $this->actingAs($farmer)
+    $this->actingAs($unrelatedFarmer)
+        ->get(route('farms.show', $farm))
+        ->assertNotFound();
+
+    $this->actingAs($unrelatedFarmer)
         ->post(route('farms.financing.store', $farm), [
             'amount' => '1000',
             'date_granted' => '2026-06-15',
             'loan_balance' => '1000',
             'financing_type' => 'mm',
         ])
-        ->assertForbidden();
+        ->assertNotFound();
 });
