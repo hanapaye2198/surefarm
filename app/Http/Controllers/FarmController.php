@@ -95,6 +95,7 @@ class FarmController extends Controller
             ->through(fn (Farm $farm): array => [
                 'id' => $farm->id,
                 'farm_id' => $farm->farm_id,
+                'assigned_verifier_id' => $farm->assigned_verifier_id === null ? '' : (string) $farm->assigned_verifier_id,
                 'farm_name' => $farm->displayName(),
                 'farmer_name' => $farm->farmer->fullName(),
                 'crop_label' => $farm->crop_type->label(),
@@ -113,6 +114,42 @@ class FarmController extends Controller
             ],
             'verificationStatuses' => $this->verificationOptions(),
             'statuses' => $this->statusOptions(),
+        ]);
+    }
+
+    public function chooseFarmer(Request $request): Response
+    {
+        $search = $request->string('search')->trim()->toString();
+
+        $farmers = Farmer::query()
+            ->withCount('farms')
+            ->when($search !== '', function ($query) use ($search): void {
+                $like = '%'.addcslashes($search, '%_\\').'%';
+
+                $query->where(function ($query) use ($like): void {
+                    $query->where('farmer_id', 'like', $like)
+                        ->orWhere('first_name', 'like', $like)
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('mobile_number', 'like', $like);
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('id')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (Farmer $farmer): array => [
+                'id' => $farmer->id,
+                'farmer_id' => $farmer->farmer_id,
+                'name' => $farmer->fullName(),
+                'location' => $farmer->locationLabel(),
+                'farms_count' => $farmer->farms_count,
+            ]);
+
+        return Inertia::render('farms/register', [
+            'farmers' => $farmers,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
@@ -188,6 +225,9 @@ class FarmController extends Controller
                 'latitude' => $farm->latitude ?? '',
                 'longitude' => $farm->longitude ?? '',
                 'status' => $farm->status->value,
+                'assigned_verifier_id' => $farm->assigned_verifier_id === null
+                    ? ''
+                    : (string) $farm->assigned_verifier_id,
                 'current_stage' => $farm->current_stage?->value ?? '',
                 'number_of_hills' => $farm->number_of_hills === null ? '' : (string) $farm->number_of_hills,
                 'data_validated' => match ($farm->data_validated) {
@@ -209,6 +249,18 @@ class FarmController extends Controller
                 ],
             ],
             ...$this->portfolio->filterOptions(),
+            'verifiers' => array_merge(
+                [['value' => '', 'label' => 'Unassigned']],
+                User::query()
+                    ->where('role', UserRole::FieldVerifier)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'email'])
+                    ->map(fn (User $verifier): array => [
+                        'value' => (string) $verifier->id,
+                        'label' => $verifier->name.' · '.$verifier->email,
+                    ])
+                    ->all(),
+            ),
         ]);
     }
 
@@ -246,11 +298,20 @@ class FarmController extends Controller
             'boundary.creator:id,name',
             'boundary.editor:id,name',
             'verifications.verifier:id,name',
+            'verifications.photos.uploader:id,name',
             'insurances' => fn ($query) => $query->latest('id'),
             'financings' => fn ($query) => $query->orderByDesc('date_granted')->orderByDesc('id'),
         ]);
 
         $user = $request->user();
+        $canManageCoverage = $user instanceof User && $user->canAccess(UserRole::Operations);
+        $canViewCoverage = $user instanceof User && $user->canAccess(UserRole::Operations, UserRole::FieldVerifier);
+        $reference = $this->portfolio->card($farm, 1, $farm->farmer->fullName());
+
+        if (! $canManageCoverage) {
+            unset($reference['contracted_value'], $reference['input_support'], $reference['financing_support']);
+        }
+
         $comparison = $this->areaComparison($farm);
         $hidesPrivateCoverage = $user instanceof User
             && $user->hasRole(UserRole::FieldVerifier, UserRole::CooperativeOfficer);
@@ -271,10 +332,12 @@ class FarmController extends Controller
                     ->map(fn (FarmVerification $verification): array => $verification->present())
                     ->values()
                     ->all(),
+                'documents' => $this->documents($farm),
                 'difference' => $comparison['difference'],
                 'variance' => $comparison['variance'],
                 'boundary' => $farm->boundary === null ? null : [
                     'geojson' => $farm->boundary->boundary_geojson,
+                    'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
                     'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
                     'captured_by' => $farm->boundary->creator?->name,
                     'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),
@@ -299,7 +362,7 @@ class FarmController extends Controller
                     'farmer_id' => $farm->farmer->farmer_id,
                     'full_name' => $farm->farmer->fullName(),
                 ],
-                'reference' => $this->portfolio->card($farm, 1, $farm->farmer->fullName()),
+                'reference' => $reference,
                 'can_edit' => $user instanceof User && $user->canAccess(UserRole::Operations),
                 'can_record_activity' => $user instanceof User && $user->canAccess(UserRole::Operations),
                 'can_record_production' => $user instanceof User && $user->canAccess(UserRole::Operations),
@@ -309,14 +372,14 @@ class FarmController extends Controller
                 'production_summary' => $this->ledger->farmSummary($farm),
                 'productions' => $this->farmProductions($farm),
                 'harvests' => $this->farmHarvests($farm),
-                'can_manage_coverage' => $user instanceof User && $user->canAccess(UserRole::Operations),
-                'insurances' => $hidesPrivateCoverage
+                'can_manage_coverage' => $canManageCoverage,
+                'insurances' => $hidesPrivateCoverage || ! $canViewCoverage
                     ? []
                     : $farm->insurances
                         ->map(fn (FarmInsurance $insurance): array => $insurance->present())
                         ->values()
                         ->all(),
-                'financings' => $hidesPrivateCoverage
+                'financings' => $hidesPrivateCoverage || ! $canViewCoverage
                     ? []
                     : $farm->financings
                         ->map(fn (FarmFinancing $financing): array => $financing->present())
@@ -325,16 +388,26 @@ class FarmController extends Controller
                 'inventory_summary' => $stock->balances($farm->id),
                 'traceability_lots' => $traceability->forFarm($farm->id),
             ],
+            'google_maps_api_key' => config('services.google_maps.browser_api_key'),
         ]);
     }
 
     public function droneImage(Farm $farm): StreamedResponse
     {
-        if ($farm->drone_image_path === null || ! Storage::exists($farm->drone_image_path)) {
+        if ($farm->drone_image_path === null || ! Storage::disk('local')->exists($farm->drone_image_path)) {
             abort(404);
         }
 
-        return Storage::response($farm->drone_image_path);
+        return Storage::disk('local')->response($farm->drone_image_path);
+    }
+
+    public function signedDroneImage(Farm $farm): StreamedResponse
+    {
+        if ($farm->drone_image_path === null || ! Storage::disk('local')->exists($farm->drone_image_path)) {
+            abort(404);
+        }
+
+        return Storage::disk('local')->response($farm->drone_image_path);
     }
 
     /**
@@ -446,6 +519,43 @@ class FarmController extends Controller
             ->first();
 
         return $latest?->activityType?->name ?? 'No farm activities recorded yet.';
+    }
+
+    /**
+     * Files already stored for this farm. There is no separate documents table.
+     *
+     * @return list<array{id: string, label: string, name: string, href: string, recorded_at: string|null}>
+     */
+    private function documents(Farm $farm): array
+    {
+        $documents = [];
+
+        if ($farm->drone_image_path !== null) {
+            $documents[] = [
+                'id' => 'drone-'.$farm->id,
+                'label' => 'Drone image',
+                'name' => $farm->displayName(),
+                'href' => route('farms.drone-image', $farm),
+                'recorded_at' => $farm->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        foreach ($farm->verifications as $verification) {
+            foreach ($verification->photos as $photo) {
+                $presented = $photo->present();
+                $name = $presented['name'] ?? null;
+
+                $documents[] = [
+                    'id' => 'photo-'.$photo->id,
+                    'label' => 'Verification photo',
+                    'name' => is_string($name) && $name !== '' ? $name : 'Photo',
+                    'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farms.show', $farm),
+                    'recorded_at' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y'),
+                ];
+            }
+        }
+
+        return $documents;
     }
 
     private function decimalInput(mixed $amount): string

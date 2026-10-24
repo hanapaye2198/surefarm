@@ -7,6 +7,7 @@ use App\FarmStatus;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\Farmer;
+use App\Notifications\FarmRegistrationReceivedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,9 +26,9 @@ class RegisterFarm
         $storedPath = null;
 
         try {
-            return DB::transaction(function () use ($farmer, $data, $droneImage, &$storedPath): Farm {
+            $farm = DB::transaction(function () use ($farmer, $data, $droneImage, &$storedPath): Farm {
                 if ($droneImage !== null) {
-                    $storedPath = $droneImage->store('farms/drone-images');
+                    $storedPath = $droneImage->store('farms/drone-images', 'local');
 
                     if ($storedPath === false) {
                         throw new \RuntimeException('Farm drone image could not be stored.');
@@ -64,12 +65,23 @@ class RegisterFarm
 
                 return $farm->load('farmer');
             });
+
         } catch (Throwable $exception) {
             if (is_string($storedPath)) {
-                Storage::delete($storedPath);
+                Storage::disk('local')->delete($storedPath);
             }
 
             throw $exception;
         }
+
+        $farm->loadMissing('farmer.user');
+
+        try {
+            $farm->farmer?->user?->notify(new FarmRegistrationReceivedNotification($farm));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return $farm;
     }
 }

@@ -1,3 +1,4 @@
+import { formString } from '@/lib/form-data';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -9,7 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { userCanAccess } from '@/lib/access';
 import { index as farmersIndex } from '@/routes/farmers';
-import { index as farmsIndex, show } from '@/routes/farms';
+import {
+    index as farmsIndex,
+    register as chooseFarmer,
+    show,
+} from '@/routes/farms';
 
 type FarmRow = {
     id: number;
@@ -75,11 +80,12 @@ export default function FarmsIndex({
         router.get(
             farmsIndex.url({
                 query: {
-                    search: String(formData.get('search') ?? '').trim(),
-                    verification_status: String(
-                        formData.get('verification_status') ?? '',
+                    search: formString(formData, 'search').trim(),
+                    verification_status: formString(
+                        formData,
+                        'verification_status',
                     ),
-                    status: String(formData.get('status') ?? ''),
+                    status: formString(formData, 'status'),
                 },
             }),
             {},
@@ -100,7 +106,7 @@ export default function FarmsIndex({
                     actions={
                         canRegister ? (
                             <Button asChild>
-                                <Link href={farmersIndex()}>
+                                <Link href={chooseFarmer()}>
                                     <Plus />
                                     Register Farm
                                 </Link>
@@ -128,7 +134,7 @@ export default function FarmsIndex({
                         name="verification_status"
                         aria-label="Verification status"
                         defaultValue={filters.verification_status}
-                        className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                         <option value="">All verification</option>
                         {verificationStatuses.map((option) => (
@@ -141,7 +147,7 @@ export default function FarmsIndex({
                         name="status"
                         aria-label="Farm status"
                         defaultValue={filters.status}
-                        className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                         <option value="">All statuses</option>
                         {statuses.map((option) => (
@@ -169,6 +175,7 @@ export default function FarmsIndex({
                     ]}
                     rows={farms.data.map((farm) => ({
                         id: farm.id,
+                        href: show(farm.id),
                         cells: [
                             <span key="id" className="font-medium">
                                 {farm.farm_id}
@@ -186,7 +193,12 @@ export default function FarmsIndex({
                                 key="status"
                                 status={farm.status}
                             />,
-                            <Button key="view" variant="outline" size="sm" asChild>
+                            <Button
+                                key="view"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
                                 <Link href={show(farm.id)}>View</Link>
                             </Button>,
                         ],

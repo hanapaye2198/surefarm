@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { ConfirmAction } from '@/components/confirm-action';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -34,7 +36,9 @@ export default function ProcessCoffee({
     selectedInventoryId: number | null;
     today: string;
 }) {
-    const initial = lots.find((lot) => lot.id === selectedInventoryId) ?? lots[0];
+    const initial =
+        lots.find((lot) => lot.id === selectedInventoryId) ?? lots[0];
+    const [confirming, setConfirming] = useState(false);
     const form = useForm({
         inventory_id: initial ? String(initial.id) : '',
         input_quantity: '',
@@ -45,7 +49,8 @@ export default function ProcessCoffee({
         notes: '',
     });
 
-    const selected = lots.find((lot) => String(lot.id) === form.data.inventory_id) ?? null;
+    const selected =
+        lots.find((lot) => String(lot.id) === form.data.inventory_id) ?? null;
 
     function chooseLot(inventoryId: string) {
         const lot = lots.find((item) => String(item.id) === inventoryId);
@@ -60,7 +65,25 @@ export default function ProcessCoffee({
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url());
+
+        if (
+            selected === null ||
+            form.data.input_quantity.trim() === '' ||
+            form.data.output_quantity.trim() === '' ||
+            form.data.processing_date.trim() === ''
+        ) {
+            form.post(store.url());
+
+            return;
+        }
+
+        setConfirming(true);
+    }
+
+    function saveProcessing() {
+        form.post(store.url(), {
+            onError: () => setConfirming(false),
+        });
     }
 
     return (
@@ -90,57 +113,161 @@ export default function ProcessCoffee({
                             </CardHeader>
                             <CardContent className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-2 sm:col-span-2">
-                                    <Label htmlFor="inventory_id">Source inventory</Label>
-                                    <select id="inventory_id" className={selectClassName} value={form.data.inventory_id} onChange={(event) => chooseLot(event.target.value)}>
+                                    <Label htmlFor="inventory_id">
+                                        Source inventory
+                                    </Label>
+                                    <select
+                                        id="inventory_id"
+                                        className={selectClassName}
+                                        value={form.data.inventory_id}
+                                        onChange={(event) =>
+                                            chooseLot(event.target.value)
+                                        }
+                                    >
                                         {lots.map((lot) => (
                                             <option key={lot.id} value={lot.id}>
-                                                {lot.farmer_name} · {lot.farm_name} · {lot.label}
+                                                {lot.farmer_name} ·{' '}
+                                                {lot.farm_name} · {lot.label}
                                             </option>
                                         ))}
                                     </select>
-                                    <InputError message={form.errors.inventory_id} />
+                                    <InputError
+                                        message={form.errors.inventory_id}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Source stage</Label>
-                                    <p className="text-sm">{selected?.stage_name ?? '—'}</p>
+                                    <p className="text-sm">
+                                        {selected?.stage_name ?? '—'}
+                                    </p>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Destination stage</Label>
-                                    <p className="text-sm">{selected?.next_stage_name ?? '—'}</p>
-                                    <InputError message={form.errors.destination_stage_id} />
+                                    <p className="text-sm">
+                                        {selected?.next_stage_name ?? '—'}
+                                    </p>
+                                    <InputError
+                                        message={
+                                            form.errors.destination_stage_id
+                                        }
+                                    />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="input_quantity">Input quantity ({selected?.unit ?? 'kg'})</Label>
-                                    <Input id="input_quantity" inputMode="decimal" value={form.data.input_quantity} onChange={(event) => form.setData('input_quantity', event.target.value)} />
-                                    <InputError message={form.errors.input_quantity} />
+                                    <Label htmlFor="input_quantity">
+                                        Input quantity ({selected?.unit ?? 'kg'}
+                                        )
+                                    </Label>
+                                    <Input
+                                        id="input_quantity"
+                                        inputMode="decimal"
+                                        value={form.data.input_quantity}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'input_quantity',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={form.errors.input_quantity}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="output_quantity">Output quantity ({selected?.unit ?? 'kg'})</Label>
-                                    <Input id="output_quantity" inputMode="decimal" value={form.data.output_quantity} onChange={(event) => form.setData('output_quantity', event.target.value)} />
-                                    <InputError message={form.errors.output_quantity} />
+                                    <Label htmlFor="output_quantity">
+                                        Output quantity (
+                                        {selected?.unit ?? 'kg'})
+                                    </Label>
+                                    <Input
+                                        id="output_quantity"
+                                        inputMode="decimal"
+                                        value={form.data.output_quantity}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'output_quantity',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={form.errors.output_quantity}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="processing_date">Processing date</Label>
-                                    <Input id="processing_date" type="date" value={form.data.processing_date} onChange={(event) => form.setData('processing_date', event.target.value)} />
-                                    <InputError message={form.errors.processing_date} />
+                                    <Label htmlFor="processing_date">
+                                        Processing date
+                                    </Label>
+                                    <Input
+                                        id="processing_date"
+                                        type="date"
+                                        value={form.data.processing_date}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'processing_date',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={form.errors.processing_date}
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="location">Location</Label>
-                                    <Input id="location" value={form.data.location} onChange={(event) => form.setData('location', event.target.value)} />
-                                    <InputError message={form.errors.location} />
+                                    <Input
+                                        id="location"
+                                        value={form.data.location}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'location',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={form.errors.location}
+                                    />
                                 </div>
                                 <div className="grid gap-2 sm:col-span-2">
                                     <Label htmlFor="notes">Notes</Label>
-                                    <Input id="notes" value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                                    <Input
+                                        id="notes"
+                                        value={form.data.notes}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'notes',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
                                     <InputError message={form.errors.notes} />
                                 </div>
                             </CardContent>
                         </Card>
                         <div>
-                            <Button type="submit" disabled={form.processing || selected === null}>Save processing</Button>
+                            <Button
+                                type="submit"
+                                disabled={form.processing || selected === null}
+                            >
+                                {form.processing
+                                    ? 'Saving...'
+                                    : 'Save processing'}
+                            </Button>
                         </div>
                     </form>
                 )}
+                <ConfirmAction
+                    open={confirming}
+                    title="Process this coffee?"
+                    description={
+                        selected
+                            ? `${form.data.input_quantity} ${selected.unit} leaves ${selected.stage_name}. ${form.data.output_quantity} ${selected.unit} is recorded as ${selected.next_stage_name}.`
+                            : 'Choose an inventory lot before processing.'
+                    }
+                    confirmLabel="Save processing"
+                    pending={form.processing}
+                    onOpenChange={setConfirming}
+                    onConfirm={saveProcessing}
+                />
                 <Button variant="outline" asChild className="w-fit">
                     <Link href={inventoryIndex()}>Back to inventory</Link>
                 </Button>

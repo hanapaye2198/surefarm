@@ -5,6 +5,8 @@ namespace App\Actions;
 use App\HarvestStatus;
 use App\Models\FarmHarvest;
 use App\Models\User;
+use App\Notifications\FarmHarvestRecordedNotification;
+use Throwable;
 
 class RecordFarmHarvest
 {
@@ -16,7 +18,7 @@ class RecordFarmHarvest
      */
     public function handle(array $data, User $user): FarmHarvest
     {
-        return FarmHarvest::query()->create([
+        $harvest = FarmHarvest::query()->create([
             'farm_id' => $data['farm_id'],
             'crop_type' => $data['crop_type'] ?? null,
             'production_id' => $data['production_id'] ?? null,
@@ -28,5 +30,15 @@ class RecordFarmHarvest
             'notes' => $data['notes'] ?? null,
             'created_by' => $user->id,
         ])->load(['farm.farmer', 'production', 'creator']);
+
+        $harvest->loadMissing('farm.farmer.user');
+
+        try {
+            $harvest->farm?->farmer?->user?->notify(new FarmHarvestRecordedNotification($harvest));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        return $harvest;
     }
 }

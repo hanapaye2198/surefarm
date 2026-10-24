@@ -1,38 +1,278 @@
-name: tests
+name: CI and Hostinger deploy
 
 on:
   push:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  ci:
+  laravel-ci:
+    name: Laravel checks and web build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
+      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Setup PHP
+      - name: Set up PHP 8.3
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
-          php-version: '8.4'
+          php-version: '8.3'
           tools: composer:v2
+          extensions: curl, dom, fileinfo, mbstring, pdo_sqlite, sqlite3, xml, zip
           coverage: none
 
-      - name: Setup Node
+      - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Run CI Checks
-        run: composer ci:check
+      - name: Prepare Laravel test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install root web dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install mobile dependencies for frontend checks
+        run: npm ci --prefix mobile --no-audit --no-fund
+
+      - name: Build Laravel web assets
+        run: npm run build
+
+      - name: Check frontend code
+        run: npm run check
+
+      - name: Run initial PHPStan analysis
+        run: composer run-script types:check
+
+      - name: Clear Laravel config before tests
+        run: php artisan config:clear --ansi
+
+      - name: Check PHP formatting
+        run: composer run-script lint:check
+
+      - name: Run PHPStan analysis
+        run: composer run-script types:check
+
+      - name: Run Laravel tests
+        run: php artisan test
+
+  mobile-ci:
+    name: Mobile typecheck and web export
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+
+      - name: Check mobile TypeScript
+        working-directory: mobile
+        run: npm run typecheck
+
+      - name: Export mobile web app
+        working-directory: mobile
+        run: npx expo export --platform web
+
+  deploy-hostinger:
+    name: Deploy Laravel to Hostinger
+    needs:
+      - laravel-ci
+      - mobile-ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.HOSTINGER_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: surefarm-hostinger-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://surefarm.io
+
+    env:
+      HOSTINGER_SSH_HOST: ${{ vars.HOSTINGER_SSH_HOST }}
+      HOSTINGER_SSH_PORT: ${{ vars.HOSTINGER_SSH_PORT }}
+      HOSTINGER_SSH_USER: ${{ vars.HOSTINGER_SSH_USER }}
+      HOSTINGER_DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          extensions: curl, dom, fileinfo, mbstring, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install PHP dependencies for asset generation
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel build environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Build production web assets
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Set up Node.js for Expo web export
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Export Expo app for the /mobile path
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_SUREFARM_URL: https://surefarm.io
+        run: |
+          npm ci --no-audit --no-fund
+          npx expo export --platform web
+          mkdir -p ../public/mobile
+          cp -a dist/. ../public/mobile/
+
+      - name: Configure SSH
+        env:
+          HOSTINGER_SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$HOSTINGER_SSH_PRIVATE_KEY" || { echo "Missing production secret HOSTINGER_SSH_PRIVATE_KEY"; exit 1; }
+          test -n "$HOSTINGER_SSH_HOST" || { echo "Set repository variable HOSTINGER_SSH_HOST"; exit 1; }
+          test -n "$HOSTINGER_SSH_PORT" || { echo "Set repository variable HOSTINGER_SSH_PORT"; exit 1; }
+          test -n "$HOSTINGER_SSH_USER" || { echo "Set repository variable HOSTINGER_SSH_USER"; exit 1; }
+          test -n "$HOSTINGER_DEPLOY_PATH" || { echo "Set repository variable HOSTINGER_DEPLOY_PATH"; exit 1; }
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$HOSTINGER_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          install -m 600 .github/hostinger_known_hosts "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Verify Hostinger SSH connection
+        run: |
+          set -euo pipefail
+          printf 'GitHub deploy key fingerprint: '
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" | ssh-keygen -lf -
+          known_host="[$HOSTINGER_SSH_HOST]:$HOSTINGER_SSH_PORT"
+          use_host_key_alias=false
+          if ! ssh-keygen -F "$known_host" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+            if ssh-keygen -F "$HOSTINGER_SSH_HOST" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+              use_host_key_alias=true
+            else
+              known_hosts_entries="$(awk 'NF >= 2 { print $1 }' "$HOME/.ssh/known_hosts" | paste -sd ', ' -)"
+              echo "::error::.github/hostinger_known_hosts has no entry for $known_host or $HOSTINGER_SSH_HOST (entries present: ${known_hosts_entries:-none})"
+              exit 1
+            fi
+          fi
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -p "$HOSTINGER_SSH_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+            -o ConnectTimeout=10
+          )
+          if [[ "$use_host_key_alias" == true ]]; then
+            ssh_options+=(-o "HostKeyAlias=$HOSTINGER_SSH_HOST")
+          fi
+          ssh -v "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" 'echo "Hostinger SSH authentication succeeded"'
+
+      - name: Upload Laravel source and built assets
+        run: |
+          set -euo pipefail
+          HOSTINGER_DEPLOY_PATH="$(printf '%s' "$HOSTINGER_DEPLOY_PATH" | tr -d '\r' | sed 's/[[:space:]]*$//')"
+          while [[ "$HOSTINGER_DEPLOY_PATH" == */ ]]; do HOSTINGER_DEPLOY_PATH="${HOSTINGER_DEPLOY_PATH%/}"; done
+          [[ "$HOSTINGER_SSH_PORT" =~ ^[0-9]+$ ]] || { echo "::error::HOSTINGER_SSH_PORT must contain only digits"; exit 1; }
+          [[ "$HOSTINGER_SSH_USER" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "::error::HOSTINGER_SSH_USER contains unsupported characters"; exit 1; }
+          [[ "$HOSTINGER_DEPLOY_PATH" =~ ^/home/[A-Za-z0-9._-]+/domains/surefarm\.io/public_html$ ]] || { echo "::error::HOSTINGER_DEPLOY_PATH does not match the SureFarm public_html path format"; exit 1; }
+          printf 'HOSTINGER_DEPLOY_PATH=%s\n' "$HOSTINGER_DEPLOY_PATH" >> "$GITHUB_ENV"
+
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -p "$HOSTINGER_SSH_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='vendor' \
+            --exclude='node_modules' \
+            --exclude='mobile' \
+            --exclude='tests' \
+            --exclude='.tmp-build' \
+            --exclude='storage' \
+            --exclude='bootstrap/cache' \
+            --exclude='public/storage' \
+            --exclude='public/hot' \
+            -czf - . \
+            | ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
+                "mkdir -p '$HOSTINGER_DEPLOY_PATH' && tar -xzf - -C '$HOSTINGER_DEPLOY_PATH'"
+
+          mobile_entry="$(grep -oE '_expo/static/js/web/AppEntry-[A-Za-z0-9_-]+\.js' public/mobile/index.html | head -n 1)"
+          test -n "$mobile_entry" || { echo "::error::Could not find the exported mobile app bundle in public/mobile/index.html"; exit 1; }
+
+          tar -C public -czf - mobile \
+            | ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
+                "mkdir -p '$HOSTINGER_DEPLOY_PATH/public' && tar -xzf - -C '$HOSTINGER_DEPLOY_PATH/public'"
+
+          ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" \
+            "test -f '$HOSTINGER_DEPLOY_PATH/public/mobile/index.html' && grep -Fq '$mobile_entry' '$HOSTINGER_DEPLOY_PATH/public/mobile/index.html'"
+
+      - name: Install production dependencies and migrate
+        run: |
+          set -euo pipefail
+          ssh_options=(
+            -i "$HOME/.ssh/id_ed25519"
+            -p "$HOSTINGER_SSH_PORT"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+          remote_command="cd '$HOSTINGER_DEPLOY_PATH' && /opt/alt/php83/usr/bin/php /usr/local/bin/composer2 install --no-dev --prefer-dist --no-interaction --optimize-autoloader && /opt/alt/php83/usr/bin/php artisan migrate --force && /opt/alt/php83/usr/bin/php artisan optimize:clear"
+          ssh "${ssh_options[@]}" "$HOSTINGER_SSH_USER@$HOSTINGER_SSH_HOST" "$remote_command"

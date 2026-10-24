@@ -42,7 +42,12 @@ type Decision = 'verified' | 'failed' | 'needs_review';
 
 const decisionCopy: Record<
     Decision,
-    { title: string; description: string; confirm: string; variant: 'default' | 'destructive' | 'secondary' }
+    {
+        title: string;
+        description: string;
+        confirm: string;
+        variant: 'default' | 'destructive' | 'secondary';
+    }
 > = {
     verified: {
         title: 'Approve verification?',
@@ -184,8 +189,14 @@ export default function FarmVerificationShow({
                         label="Measured Area"
                         value={comparison.measured_area}
                     />
-                    <StatCard label="Verified Area" value={farm.verified_area} />
-                    <StatCard label="Difference" value={comparison.difference} />
+                    <StatCard
+                        label="Verified Area"
+                        value={farm.verified_area}
+                    />
+                    <StatCard
+                        label="Difference"
+                        value={comparison.difference}
+                    />
                     <StatCard label="Variance" value={comparison.variance} />
                 </section>
 
@@ -264,7 +275,9 @@ export default function FarmVerificationShow({
                                 disabled={startForm.processing}
                                 onClick={startVerification}
                             >
-                                Start Verification
+                                {startForm.processing
+                                    ? 'Starting...'
+                                    : 'Start Verification'}
                             </Button>
                         </CardContent>
                     </Card>
@@ -276,11 +289,15 @@ export default function FarmVerificationShow({
                             <CardTitle>Verification review</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
-                            <label className="grid gap-2 text-sm">
+                            <label
+                                className="grid gap-2 text-sm"
+                                htmlFor="verification-remarks"
+                            >
                                 <span className="font-medium">
                                     Verification Remarks
                                 </span>
                                 <textarea
+                                    id="verification-remarks"
                                     value={reviewForm.data.remarks}
                                     onChange={(event) =>
                                         reviewForm.setData(
@@ -289,12 +306,24 @@ export default function FarmVerificationShow({
                                         )
                                     }
                                     rows={4}
-                                    className="border-input w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    aria-invalid={Boolean(
+                                        reviewForm.errors.remarks,
+                                    )}
+                                    aria-describedby={
+                                        reviewForm.errors.remarks
+                                            ? 'verification-remarks-error'
+                                            : undefined
+                                    }
+                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     placeholder="Notes for this review"
                                 />
                             </label>
                             {reviewForm.errors.remarks && (
-                                <p className="text-sm text-destructive">
+                                <p
+                                    id="verification-remarks-error"
+                                    className="text-sm text-destructive"
+                                    role="alert"
+                                >
                                     {reviewForm.errors.remarks}
                                 </p>
                             )}
@@ -304,17 +333,22 @@ export default function FarmVerificationShow({
                                 </p>
                             )}
                             <div className="flex flex-col gap-2 sm:flex-row">
-                                <Button onClick={() => setDecision('verified')}>
+                                <Button
+                                    disabled={reviewForm.processing}
+                                    onClick={() => setDecision('verified')}
+                                >
                                     Approve Verification
                                 </Button>
                                 <Button
                                     variant="destructive"
+                                    disabled={reviewForm.processing}
                                     onClick={() => setDecision('failed')}
                                 >
                                     Mark as Failed
                                 </Button>
                                 <Button
                                     variant="secondary"
+                                    disabled={reviewForm.processing}
                                     onClick={() => setDecision('needs_review')}
                                 >
                                     Needs Review
@@ -370,7 +404,9 @@ export default function FarmVerificationShow({
                             disabled={reviewForm.processing}
                             onClick={saveDecision}
                         >
-                            {pendingDecision?.confirm}
+                            {reviewForm.processing
+                                ? 'Saving...'
+                                : pendingDecision?.confirm}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

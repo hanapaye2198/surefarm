@@ -7,9 +7,10 @@ import { cn } from '@/lib/utils';
 import { dashboard, login } from '@/routes';
 
 const links = [
-    { href: '#top', label: 'Home' },
     { href: '#platform', label: 'Platform' },
-    { href: '#how-it-works', label: 'How It Works' },
+    { href: '#how-it-works', label: 'How it works' },
+    { href: '#verification', label: 'Verification' },
+    { href: '#map', label: 'Map' },
     { href: '#about', label: 'About' },
 ];
 
@@ -35,13 +36,13 @@ export function LandingNavbar() {
 
                 <nav
                     aria-label="Primary"
-                    className="ml-6 hidden items-center gap-1 lg:flex"
+                    className="ml-4 hidden items-center gap-0.5 lg:flex"
                 >
                     {links.map((link) => (
                         <a
                             key={link.href}
                             href={link.href}
-                            className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            className="rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         >
                             {link.label}
                         </a>
@@ -80,7 +81,10 @@ export function LandingNavbar() {
                 id="landing-menu"
                 className={cn('border-t lg:hidden', open ? 'block' : 'hidden')}
             >
-                <nav aria-label="Mobile" className="flex flex-col gap-1 px-4 py-3">
+                <nav
+                    aria-label="Mobile"
+                    className="flex flex-col gap-1 px-4 py-3"
+                >
                     {links.map((link) => (
                         <a
                             key={link.href}

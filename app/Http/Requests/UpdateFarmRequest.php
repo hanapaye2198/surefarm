@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\FarmStatus;
+use App\UserRole;
 use Illuminate\Validation\Rule;
 
 class UpdateFarmRequest extends StoreFarmRequest
@@ -15,6 +16,11 @@ class UpdateFarmRequest extends StoreFarmRequest
         return [
             ...parent::rules(),
             'status' => ['required', Rule::enum(FarmStatus::class)],
+            'assigned_verifier_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('role', UserRole::FieldVerifier->value),
+            ],
         ];
     }
 

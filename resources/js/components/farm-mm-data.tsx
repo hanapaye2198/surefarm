@@ -2,7 +2,13 @@ import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { create as addFinancing } from '@/routes/farms/financing';
 import { create as addInsurance } from '@/routes/farms/insurance';
 import { show as showFarm } from '@/routes/farms';
@@ -60,7 +66,10 @@ export function FinancingDetails({ record }: { record: FinancingRecord }) {
             <Detail label="Amount" value={record.amount_label} />
             <Detail label="Date Granted" value={record.date_granted} />
             <Detail label="Loan Balance" value={record.loan_balance_label} />
-            <Detail label="Financing Type" value={record.financing_type_label} />
+            <Detail
+                label="Financing Type"
+                value={record.financing_type_label}
+            />
         </dl>
     );
 }
@@ -95,7 +104,8 @@ export function FarmCoverageList({
     return (
         <div className="grid gap-4">
             {farms.map((farm) => {
-                const records = kind === 'insurance' ? farm.insurances : farm.financings;
+                const records =
+                    kind === 'insurance' ? farm.insurances : farm.financings;
 
                 return (
                     <Card key={farm.id} className="shadow-none">
@@ -109,7 +119,12 @@ export function FarmCoverageList({
                             <Button variant="outline" size="sm" asChild>
                                 <Link
                                     href={showFarm.url(farm.id, {
-                                        query: { tab: kind === 'insurance' ? 'insurance' : 'financing' },
+                                        query: {
+                                            tab:
+                                                kind === 'insurance'
+                                                    ? 'insurance'
+                                                    : 'financing',
+                                        },
                                     })}
                                 >
                                     Open farm
@@ -118,7 +133,9 @@ export function FarmCoverageList({
                         </CardHeader>
                         <CardContent className="grid gap-4">
                             <p className="text-sm font-medium">
-                                {kind === 'insurance' ? 'Crop Insurance' : 'Financing'}
+                                {kind === 'insurance'
+                                    ? 'Crop Insurance'
+                                    : 'Financing'}
                             </p>
                             {records.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
@@ -128,19 +145,33 @@ export function FarmCoverageList({
                                 </p>
                             ) : kind === 'insurance' ? (
                                 farm.insurances.map((record) => (
-                                    <CropInsuranceDetails key={record.id} record={record} />
+                                    <CropInsuranceDetails
+                                        key={record.id}
+                                        record={record}
+                                    />
                                 ))
                             ) : (
                                 farm.financings.map((record) => (
-                                    <FinancingDetails key={record.id} record={record} />
+                                    <FinancingDetails
+                                        key={record.id}
+                                        record={record}
+                                    />
                                 ))
                             )}
                             {canManage && (
                                 <div>
                                     <Button variant="outline" size="sm" asChild>
-                                        <Link href={kind === 'insurance' ? addInsurance(farm.id) : addFinancing(farm.id)}>
+                                        <Link
+                                            href={
+                                                kind === 'insurance'
+                                                    ? addInsurance(farm.id)
+                                                    : addFinancing(farm.id)
+                                            }
+                                        >
                                             <Plus />
-                                            {kind === 'insurance' ? 'Add crop insurance' : 'Add financing'}
+                                            {kind === 'insurance'
+                                                ? 'Add crop insurance'
+                                                : 'Add financing'}
                                         </Link>
                                     </Button>
                                 </div>

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A historical verification attempt. Declared area on this record is a
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property FarmVerificationStatus|null $previous_status
  * @property FarmVerificationResult|null $result
+ * @property array<string, mixed>|null $inspection_checklist
+ * @property bool $mobile_workflow
  */
 #[Fillable([
     'farm_id',
@@ -27,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'variance_percentage',
     'result',
     'remarks',
+    'inspection_checklist',
+    'mobile_workflow',
     'verified_by',
     'verified_at',
 ])]
@@ -46,6 +51,8 @@ class FarmVerification extends Model
             'measured_area_hectares' => 'decimal:2',
             'difference_hectares' => 'decimal:2',
             'variance_percentage' => 'decimal:2',
+            'inspection_checklist' => 'array',
+            'mobile_workflow' => 'boolean',
             'result' => FarmVerificationResult::class,
             'verified_at' => 'datetime',
         ];
@@ -68,6 +75,14 @@ class FarmVerification extends Model
     }
 
     /**
+     * @return HasMany<FarmVerificationPhoto, $this>
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(FarmVerificationPhoto::class);
+    }
+
+    /**
      * @return array{
      *     id: int,
      *     date: string,
@@ -75,9 +90,9 @@ class FarmVerification extends Model
      *     previous_status: string|null,
      *     result: string|null,
      *     declared_area: string,
-     *     measured_area: string,
-     *     difference: string,
-     *     variance: string,
+     *     measured_area: string|null,
+     *     difference: string|null,
+     *     variance: string|null,
      *     verified_by: string|null,
      *     remarks: string|null
      * }
@@ -91,11 +106,25 @@ class FarmVerification extends Model
             'previous_status' => $this->previous_status?->value,
             'result' => $this->result?->value,
             'declared_area' => number_format((float) $this->declared_area_hectares, 2, '.', '').' ha',
-            'measured_area' => number_format((float) $this->measured_area_hectares, 2, '.', '').' ha',
-            'difference' => number_format((float) $this->difference_hectares, 2, '.', '').' ha',
-            'variance' => number_format((float) $this->variance_percentage, 2, '.', '').'%',
+            'measured_area' => $this->measured_area_hectares === null
+                ? null
+                : number_format((float) $this->measured_area_hectares, 2, '.', '').' ha',
+            'verified_area' => $this->result === FarmVerificationResult::Verified
+                && $this->measured_area_hectares !== null
+                    ? number_format((float) $this->measured_area_hectares, 2, '.', '').' ha'
+                    : null,
+            'difference' => $this->difference_hectares === null
+                ? null
+                : number_format((float) $this->difference_hectares, 2, '.', '').' ha',
+            'variance' => $this->variance_percentage === null
+                ? null
+                : number_format((float) $this->variance_percentage, 2, '.', '').'%',
             'verified_by' => $this->verifier?->name,
             'remarks' => $this->remarks,
+            'inspection_checklist' => $this->inspection_checklist ?? [],
+            'photos' => $this->relationLoaded('photos')
+                ? $this->photos->map(fn (FarmVerificationPhoto $photo): array => $photo->present())->values()->all()
+                : [],
         ];
     }
 }

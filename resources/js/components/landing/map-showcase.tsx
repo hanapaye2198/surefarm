@@ -1,24 +1,60 @@
 const plots = [
-    { name: 'North plot', points: '70,150 180,90 250,160 160,230' },
-    { name: 'Ridge plot', points: '280,120 420,80 470,180 330,210' },
-    { name: 'Valley plot', points: '120,280 250,250 300,340 150,370' },
-    { name: 'East plot', points: '360,260 520,220 560,330 390,360' },
+    {
+        name: 'North plot',
+        detail: 'Boundary recorded',
+        points: '70,150 180,90 250,160 160,230',
+    },
+    {
+        name: 'Ridge plot',
+        detail: 'Ready to verify',
+        points: '280,120 420,80 470,180 330,210',
+    },
+    {
+        name: 'Valley plot',
+        detail: 'Location pinned',
+        points: '120,280 250,250 300,340 150,370',
+    },
+    {
+        name: 'East plot',
+        detail: 'Boundary recorded',
+        points: '360,260 520,220 560,330 390,360',
+    },
 ];
 
 export function MapShowcase() {
     return (
-        <section className="py-16 sm:py-20">
-            <div className="mx-auto max-w-6xl px-4 sm:px-6">
-                <div className="max-w-2xl">
-                    <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                        See your farms on the map.
+        <section
+            id="map"
+            className="scroll-mt-20 border-t bg-muted/40 py-16 sm:py-20"
+        >
+            <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-14">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
+                        Farm mapping
+                    </p>
+                    <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                        See every farm on the map.
                     </h2>
                     <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                        Registered farms can be viewed with their locations and
-                        boundaries. The drawing below is only a visual example.
+                        Registered farms keep a location and a boundary. The
+                        measured area from that boundary is what verification
+                        compares with the declaration.
                     </p>
+                    <ul className="mt-6 space-y-3">
+                        {plots.map((plot) => (
+                            <li
+                                key={plot.name}
+                                className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3 text-sm"
+                            >
+                                <span className="font-medium">{plot.name}</span>
+                                <span className="text-muted-foreground">
+                                    {plot.detail}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
-                <figure className="mt-10 overflow-hidden rounded-3xl border bg-card shadow-sm">
+                <figure className="overflow-hidden rounded-3xl border bg-card shadow-sm">
                     <svg
                         viewBox="0 0 720 420"
                         role="img"
@@ -55,7 +91,7 @@ export function MapShowcase() {
                                 strokeLinejoin="round"
                             />
                         ))}
-                        <g className="fill-secondary-foreground">
+                        <g className="fill-primary">
                             <circle cx="180" cy="90" r="6" />
                             <circle cx="420" cy="80" r="6" />
                             <circle cx="250" cy="250" r="6" />

@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/empty-state';
 import { GoogleBasemap } from '@/components/google-basemap';
 import { Button } from '@/components/ui/button';
 import { userCanAccess } from '@/lib/access';
-import type { GoogleMapType } from '@/lib/google-maps';
+import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 
@@ -76,7 +76,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
     const googleHost = useRef<HTMLDivElement>(null);
-    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+    const googleApiKey = useGoogleMapsApiKey();
     const markGoogleReady = useCallback(() => setGoogleReady(true), []);
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
     const selected = lands.find((land) => land.id === selectedId) ?? null;
@@ -133,6 +133,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                         center={[8.05, 125.1]}
                         zoom={11}
                         className="relative z-[1] h-full w-full"
+                        style={{ background: 'transparent' }}
                         scrollWheelZoom
                     >
                         {googleApiKey !== '' && !googleFailed && (
@@ -195,7 +196,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                         </Button>
                     )}
                 </div>
-                <ul className="app-scroll flex max-h-80 flex-col gap-2 overflow-y-auto sm:max-h-[24rem]">
+                <ul className="flex max-h-80 app-scroll flex-col gap-2 overflow-y-auto sm:max-h-[24rem]">
                     {lands.map((land) => {
                         const active = selected?.id === land.id;
 
@@ -214,8 +215,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                                     </span>
                                     <span className="mt-1 block text-xs text-muted-foreground">
                                         {land.crop_label}
-                                        {land.verified_area_hectares !==
-                                            null &&
+                                        {land.verified_area_hectares !== null &&
                                             ` · ${areaFormatter.format(land.verified_area_hectares)} ha verified`}
                                     </span>
                                 </button>

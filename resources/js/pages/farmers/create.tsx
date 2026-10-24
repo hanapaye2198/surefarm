@@ -55,7 +55,9 @@ export default function CreateFarmer({
     farmerId: string;
     cooperatives: CooperativeOption[];
 }) {
-    const pageErrors = usePage().props.errors as Record<string, string> | undefined;
+    const pageErrors = usePage().props.errors as
+        | Record<string, string>
+        | undefined;
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const form = useForm({
         first_name: '',
@@ -185,7 +187,9 @@ export default function CreateFarmer({
                                 type="file"
                                 accept="image/jpeg,image/png,.jpg,.jpeg,.png"
                                 onChange={(event) => {
-                                    choosePhoto(event.target.files?.[0] ?? null);
+                                    choosePhoto(
+                                        event.target.files?.[0] ?? null,
+                                    );
                                 }}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -236,7 +240,10 @@ export default function CreateFarmer({
                                 id="first_name"
                                 value={form.data.first_name}
                                 onChange={(event) =>
-                                    form.setData('first_name', event.target.value)
+                                    form.setData(
+                                        'first_name',
+                                        event.target.value,
+                                    )
                                 }
                                 autoComplete="given-name"
                             />
@@ -267,7 +274,10 @@ export default function CreateFarmer({
                                 id="last_name"
                                 value={form.data.last_name}
                                 onChange={(event) =>
-                                    form.setData('last_name', event.target.value)
+                                    form.setData(
+                                        'last_name',
+                                        event.target.value,
+                                    )
                                 }
                                 autoComplete="family-name"
                             />
@@ -442,7 +452,7 @@ export default function CreateFarmer({
                                         event.target.value,
                                     )
                                 }
-                                className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             >
                                 <option value="">No cooperative</option>
                                 {cooperatives.map((cooperative) => (
@@ -546,7 +556,7 @@ export default function CreateFarmer({
                                                 event.target.value,
                                             )
                                         }
-                                        className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                     >
                                         <option value="unverified">
                                             Unverified

@@ -51,7 +51,9 @@ export default function EditFarmActivity({
                     description="Update the work record. The farm stays the one it was recorded on."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={show(activity.id)}>Back to activity</Link>
+                            <Link href={show(activity.id)}>
+                                Back to activity
+                            </Link>
                         </Button>
                     }
                 />

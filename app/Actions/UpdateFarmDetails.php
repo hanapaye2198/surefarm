@@ -26,14 +26,14 @@ class UpdateFarmDetails
                 $previousImage = $farm->drone_image_path;
 
                 if ($droneImage !== null) {
-                    $storedPath = $droneImage->store('farms/drone-images');
+                    $storedPath = $droneImage->store('farms/drone-images', 'local');
 
                     if ($storedPath === false) {
                         throw new \RuntimeException('Farm drone image could not be stored.');
                     }
                 }
 
-                $farm->update([
+                $attributes = [
                     'farm_name' => $data['farm_name'] ?? null,
                     'crop_type' => $data['crop_type'],
                     'declared_area_hectares' => $data['declared_area_hectares'],
@@ -53,17 +53,29 @@ class UpdateFarmDetails
                     'financing_support_amount' => $data['financing_support_amount'] ?? null,
                     'drone_image_path' => $storedPath ?? $previousImage,
                     'notes' => $data['notes'] ?? null,
-                ]);
+                ];
+
+                if (array_key_exists('assigned_verifier_id', $data)) {
+                    $attributes['assigned_verifier_id'] = $data['assigned_verifier_id'];
+
+                    if ((string) $farm->assigned_verifier_id !== (string) $data['assigned_verifier_id']) {
+                        $attributes['assigned_at'] = $data['assigned_verifier_id'] === null
+                            ? null
+                            : now();
+                    }
+                }
+
+                $farm->update($attributes);
 
                 if (is_string($storedPath) && is_string($previousImage)) {
-                    Storage::delete($previousImage);
+                    Storage::disk('local')->delete($previousImage);
                 }
 
                 return $farm->refresh();
             });
         } catch (Throwable $exception) {
             if (is_string($storedPath)) {
-                Storage::delete($storedPath);
+                Storage::disk('local')->delete($storedPath);
             }
 
             throw $exception;

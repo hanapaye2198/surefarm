@@ -105,6 +105,14 @@ class RegistryScope
 
     public function canViewFarm(User $user, Farm $farm): bool
     {
+        if ($user->isSuspended()) {
+            return false;
+        }
+
+        if ($user->role === UserRole::FieldVerifier && $farm->assigned_verifier_id === $user->id) {
+            return true;
+        }
+
         return Farm::query()->whereKey($farm->id)->visibleTo($user)->exists();
     }
 

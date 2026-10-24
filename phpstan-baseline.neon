@@ -1,0 +1,709 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Property App\\Models\\Inventory\:\:\$quantity \(float\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/AdjustInventory.php
+
+		-
+			message: '#^Property App\\Models\\Inventory\:\:\$quantity \(float\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Actions/CreateTraceabilityLot.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>crop_type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Actions/CreateTraceabilityLot.php
+
+		-
+			message: '#^Property App\\Models\\Inventory\:\:\$quantity \(float\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 2
+			path: app/Actions/MarkInventoryDamaged.php
+
+		-
+			message: '#^Property App\\Models\\Inventory\:\:\$quantity \(float\) does not accept string\.$#'
+			identifier: assign.propertyType
+			count: 2
+			path: app/Actions/ProcessCoffeeInventory.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Laravel\\Sanctum\\PersonalAccessToken\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/MobileAuthController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\DashboardController\:\:recentActivities\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, activity_date\: string\|null, farm_id\: int, farm_name\: string, activity\: string\|null, status\: string, status_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmActivityController\:\:activityTypeOptions\(\) should return list\<array\{id\: int, name\: string, category\: string\|null\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string, category\: string\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmActivityController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmActivityController\:\:farmOptions\(\) should return list\<array\{id\: int, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: string, crop_label\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: ''banana''\|''cacao''\|''coconut''\|''coffee''\|''corn''\|''other'', crop_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmActivityController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmActivityController\:\:farmerOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmActivityController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/FarmActivityController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Farm\:\:\$number_of_hills\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmController\:\:farmActivities\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmController\:\:farmHarvests\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmController\:\:farmProductions\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/FarmController.php
+
+		-
+			message: '#^Parameter \#1 \$data of method App\\Actions\\RecordFarmFinancing\:\:handle\(\) expects array\{farm_id\: int, amount\: numeric\-string, date_granted\: string, loan_balance\: numeric\-string, financing_type\: string\}, non\-empty\-array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/FarmFinancingController.php
+
+		-
+			message: '#^Parameter \#2 \$data of method App\\Actions\\UpdateFarmFinancing\:\:handle\(\) expects array\{amount\: numeric\-string, date_granted\: string, loan_balance\: numeric\-string, financing_type\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/FarmFinancingController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmHarvestController\:\:farmOptions\(\) should return list\<array\{id\: int, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: string, crop_label\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: ''banana''\|''cacao''\|''coconut''\|''coffee''\|''corn''\|''other'', crop_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmHarvestController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmHarvestController\:\:farmerOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmHarvestController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmHarvestController\:\:productionOptions\(\) should return list\<array\{id\: int, farm_id\: int, label\: string, crop_type\: string\|null, unit\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, farm_id\: int\<0, max\>, label\: string, crop_type\: ''banana''\|''cacao''\|''coconut''\|''coffee''\|''corn''\|''other''\|null, unit\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmHarvestController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/FarmHarvestController.php
+
+		-
+			message: '#^Parameter \#1 \$data of method App\\Actions\\RecordFarmInsurance\:\:handle\(\) expects array\{farm_id\: int, covered\: bool, amount\?\: numeric\-string\|null, term_months\?\: int\|null\}, non\-empty\-array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/FarmInsuranceController.php
+
+		-
+			message: '#^Parameter \#2 \$data of method App\\Actions\\UpdateFarmInsurance\:\:handle\(\) expects array\{covered\: bool, amount\?\: numeric\-string\|null, term_months\?\: int\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/FarmInsuranceController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmProductionController\:\:farmOptions\(\) should return list\<array\{id\: int, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: string, crop_label\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, farm_id\: string, farm_name\: string, farmer_name\: string, crop_type\: ''banana''\|''cacao''\|''coconut''\|''coffee''\|''corn''\|''other'', crop_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmProductionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmProductionController\:\:farmerOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmProductionController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmProductionController\:\:periodOptions\(\) should return list\<string\> but returns array\<mixed\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmProductionController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/FarmProductionController.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Http/Controllers/FarmerController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\FarmerController\:\:recentActivities\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, activity_date\: string\|null, farm_id\: int, farm_name\: string, activity\: string\|null, status\: string, status_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/FarmerController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>account_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/FarmerController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>account_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/FarmerController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>bank_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/FarmerController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\HarvestInventoryController\:\:stages\(\) should return list\<array\{id\: int, name\: string, code\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string, code\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/HarvestInventoryController.php
+
+		-
+			message: '#^Parameter \#2 \$data of method App\\Actions\\ReceiveHarvestIntoInventory\:\:handle\(\) expects array\{quantity\: float\|int\|numeric\-string, unit\: string, processing_stage_id\: int, location\?\: string\|null, received_date\: string, notes\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/HarvestInventoryController.php
+
+		-
+			message: '#^Parameter \#2 \$data of method App\\Actions\\AdjustInventory\:\:handle\(\) expects array\{quantity\: float\|int\|numeric\-string, direction\: string, reason\: string, movement_date\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/InventoryAdjustmentController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\InventoryController\:\:applySearch\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Http/Controllers/InventoryController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\InventoryController\:\:farmOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/InventoryController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\InventoryController\:\:farmerOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/InventoryController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\InventoryController\:\:stageOptions\(\) should return list\<array\{id\: int, name\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/InventoryController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/InventoryController.php
+
+		-
+			message: '#^Parameter \#2 \$data of method App\\Actions\\MarkInventoryDamaged\:\:handle\(\) expects array\{quantity\: float\|int\|numeric\-string, reason\: string, movement_date\: string\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/InventoryDamageController.php
+
+		-
+			message: '#^Parameter \#1 \$data of method App\\Actions\\ProcessCoffeeInventory\:\:handle\(\) expects array\{inventory_id\: int, input_quantity\: float\|int\|numeric\-string, output_quantity\: float\|int\|numeric\-string, destination_stage_id\: int, processing_date\: string, location\?\: string\|null, notes\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/InventoryProcessingController.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\TraceabilityController\:\:applySearch\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\TraceabilityController\:\:applySearch\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Inventory\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:through\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\<string, mixed\>, Closure\(App\\Models\\TraceabilityLot\)\: array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Parameter \#1 \$data of method App\\Actions\\CreateTraceabilityLot\:\:handle\(\) expects array\{inventory_id\: int, quantity\: float\|int\|numeric\-string, unit\: string, notes\?\: string\|null\}, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Inventory\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>value" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Controllers/TraceabilityController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Support\\MessageBag\:\:messages\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Middleware/NormalizeMobileApiResponse.php
+
+		-
+			message: '#^Method App\\Models\\Farm\:\:dataValidated\(\) return type with generic class Illuminate\\Database\\Eloquent\\Casts\\Attribute does not specify its types\: TGet, TSet$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Farm.php
+
+		-
+			message: '#^Method App\\Models\\Farm\:\:numberOfHills\(\) return type with generic class Illuminate\\Database\\Eloquent\\Casts\\Attribute does not specify its types\: TGet, TSet$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Farm.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: app/Models/FarmActivity.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: app/Models/FarmActivity.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmFinancing\:\:peso\(\) expects string\|null, float given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/FarmFinancing.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmFinancing\:\:plainAmount\(\) expects string, float given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/FarmFinancing.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: app/Models/FarmHarvest.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: app/Models/FarmHarvest.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmInsurance\:\:peso\(\) expects string\|null, float\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/FarmInsurance.php
+
+		-
+			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmInsurance\:\:plainAmount\(\) expects string, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Models/FarmInsurance.php
+
+		-
+			message: '#^Cannot call method format\(\) on Carbon\\CarbonImmutable\|string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Models/FarmVerification.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 4
+			path: app/Models/Inventory.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Models/InventoryMovement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Models/InventoryMovement.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Farm\:\:\$number_of_hills\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/FarmPortfolio.php
+
+		-
+			message: '#^Method App\\Services\\InventoryStock\:\:balances\(\) should return array\{stages\: list\<array\{id\: int, name\: string, code\: string, sequence\: int, quantity\: float, unit\: string, label\: string\}\>, total_label\: string, has_records\: bool, chart\: list\<array\{name\: string, quantity\: float, unit\: string, share\: int\}\>\} but returns array\{stages\: array\<int, array\{id\: int\<0, max\>, name\: string, code\: string, sequence\: int\<0, max\>, quantity\: float, unit\: string, label\: string\}\>, total_label\: string, has_records\: bool, chart\: array\<int, array\{name\: string, quantity\: float, unit\: string, share\: int\}\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/InventoryStock.php
+
+		-
+			message: '#^Parameter \#1 \$rows of method App\\Services\\InventoryStock\:\:combinedLabel\(\) expects Illuminate\\Support\\Collection\<int, array\{quantity\: float, unit\: string, label\: string\}\>, Illuminate\\Support\\Collection\<int, array\{id\: int\<0, max\>, name\: string, code\: string, sequence\: int\<0, max\>, quantity\: float, unit\: string, label\: string\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/InventoryStock.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/ProductionLedger.php
+
+		-
+			message: '#^Method App\\Services\\ProductionLedger\:\:recentHarvests\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, harvest_date\: string\|null, farm_name\: string, farmer_name\: string, crop_label\: string, quantity_label\: string, status\: string, status_label\: string\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/ProductionLedger.php
+
+		-
+			message: '#^Comparison operation "\<\=" between 1\|2\|3\|4\|5\|6 and 9 is always true\.$#'
+			identifier: smallerOrEqual.alwaysTrue
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Method App\\Services\\QrCode\:\:multiply\(\) should return list\<int\> but returns array\<int\<0, max\>, int\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Offset int\<min, \-1\>\|int\<1, max\> might not exist on list\<int\>\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter \#1 \$modules of method App\\Services\\QrCode\:\:drawData\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter \#2 \$functions of method App\\Services\\QrCode\:\:drawData\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter \#2 \$length of function array_chunk expects int\<1, max\>, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$functions by\-ref type of method App\\Services\\QrCode\:\:drawAlignment\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$functions by\-ref type of method App\\Services\\QrCode\:\:drawFinders\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$functions by\-ref type of method App\\Services\\QrCode\:\:drawTiming\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 2
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$functions by\-ref type of method App\\Services\\QrCode\:\:reserveFormat\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 2
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$functions by\-ref type of method App\\Services\\QrCode\:\:reserveFormat\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 2
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:applyMask\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawAlignment\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawData\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawFinders\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawFormat\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 3
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawFormat\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 5
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawTiming\(\) expects list\<list\<bool\>\>, non\-empty\-list\<array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Parameter &\$modules by\-ref type of method App\\Services\\QrCode\:\:drawTiming\(\) expects list\<list\<bool\>\>, non\-empty\-list\<non\-empty\-array\<int\<0, max\>, bool\>\> given\.$#'
+			identifier: parameterByRef.type
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Property App\\Services\\QrCode\:\:\$exp \(list\<int\>\) does not accept non\-empty\-array\<int\<0, max\>, int\>\.$#'
+			identifier: assign.propertyType
+			count: 2
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Property App\\Services\\QrCode\:\:\$log \(list\<int\>\) does not accept non\-empty\-array\<int, int\>\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Services/QrCode.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 6
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 3
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Method App\\Services\\TraceabilityJourney\:\:journeyRows\(\) should return list\<array\{date\: string\|null, from_stage\: string\|null, input_label\: string, to_stage\: string\|null, output_label\: string\|null\}\> but returns array\<int, array\{date\: mixed, from_stage\: string\|null, input_label\: string, to_stage\: string\|null, output_label\: string\|null\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\InventoryMovement\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,App\\Models\\InventoryMovement\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:all\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:values\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 8
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/TraceabilityJourney.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\TraceabilityLot\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Cannot call method format\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Method App\\Services\\TraceabilitySummary\:\:forFarm\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Method App\\Services\\TraceabilitySummary\:\:recent\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Method App\\Services\\TraceabilitySummary\:\:scoped\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Method App\\Services\\TraceabilitySummary\:\:tracedLabel\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: string, Closure\(App\\Models\\TraceabilityLot\)\: string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/TraceabilitySummary.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, bool\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: config/sanctum.php
+
+		-
+			message: '#^Call to an undefined method Faker\\Generator\:\:state\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: database/factories/FarmFactory.php
+
+		-
+			message: '#^Call to an undefined method Faker\\Generator\:\:state\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: database/factories/FarmerFactory.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between int\<0, max\> and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: database/factories/TraceabilityLotFactory.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: database/factories/TraceabilityLotFactory.php

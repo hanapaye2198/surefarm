@@ -14,12 +14,14 @@ use Illuminate\Support\Carbon;
  * not be copied onto farms.declared_area_hectares.
  *
  * @property array{type: string, coordinates: array<int, array<int, array<int, float>>>} $boundary_geojson
+ * @property array<int, float|null>|null $gps_point_accuracies
  * @property string|null $gps_measured_area_hectares
  * @property Carbon|null $captured_at
  */
 #[Fillable([
     'farm_id',
     'boundary_geojson',
+    'gps_point_accuracies',
     'gps_measured_area_hectares',
     'created_by',
     'updated_by',
@@ -37,6 +39,7 @@ class FarmBoundary extends Model
     {
         return [
             'boundary_geojson' => 'array',
+            'gps_point_accuracies' => 'array',
             'gps_measured_area_hectares' => 'decimal:2',
             'captured_at' => 'datetime',
         ];

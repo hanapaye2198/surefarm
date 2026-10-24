@@ -1,27 +1,27 @@
 const steps = [
     {
         number: '01',
-        title: 'Register Farmers',
+        title: 'Register',
         description:
-            'Create a structured profile for each farmer, including identity and location details.',
+            'Create the farmer profile, then attach each farm with its crop, location, and declared area.',
     },
     {
         number: '02',
-        title: 'Register Farms',
+        title: 'Map',
         description:
-            'Attach farms to a farmer, with the crop, location, and declared area.',
+            'Place the farm and draw the boundary so the measured area is stored with the record.',
     },
     {
         number: '03',
-        title: 'Map & Measure',
+        title: 'Verify',
         description:
-            'Place the farm on the map and record a boundary so measured area can be compared.',
+            'A field verifier compares the declaration with the mapped area, using GPS and photos from the mobile app.',
     },
     {
         number: '04',
-        title: 'Verify',
+        title: 'Follow the harvest',
         description:
-            'Review declared information and measured area before a farm is marked verified.',
+            'Record production and harvest, receive it into inventory, and publish a lot buyers can follow.',
     },
 ];
 
@@ -29,18 +29,21 @@ export function HowItWorks() {
     return (
         <section
             id="how-it-works"
-            className="scroll-mt-20 py-16 sm:py-20"
+            className="scroll-mt-20 border-t bg-muted/40 py-16 sm:py-20"
         >
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
-                <h2 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                    How it works
-                </h2>
-                <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="max-w-2xl">
+                    <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                        How it works
+                    </h2>
+                    <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                        The same farm moves from a declared area to a verified
+                        boundary, then into harvest and traceability.
+                    </p>
+                </div>
+                <ol className="mt-10 grid gap-px overflow-hidden rounded-3xl border bg-border sm:grid-cols-2 lg:grid-cols-4">
                     {steps.map((step) => (
-                        <li
-                            key={step.number}
-                            className="rounded-2xl border bg-card p-5 shadow-sm"
-                        >
+                        <li key={step.number} className="bg-card p-5 sm:p-6">
                             <p className="font-mono text-sm font-semibold text-primary">
                                 {step.number}
                             </p>

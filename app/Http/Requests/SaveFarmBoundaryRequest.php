@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\FarmVerificationStatus;
+use App\Models\Farm;
 use App\Models\User;
 use App\Services\FarmBoundaryGeometry;
 use App\UserRole;
@@ -14,8 +16,19 @@ class SaveFarmBoundaryRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $farm = $this->route('farm');
 
-        return $user instanceof User && $user->canAccess(UserRole::Operations);
+        if (! $user instanceof User || ! $farm instanceof Farm) {
+            return false;
+        }
+
+        if ($user->canAccess(UserRole::Operations)) {
+            return true;
+        }
+
+        return $user->role === UserRole::FieldVerifier
+            && $farm->assigned_verifier_id === $user->id
+            && $farm->verification_status === FarmVerificationStatus::InProgress;
     }
 
     /**
@@ -25,6 +38,8 @@ class SaveFarmBoundaryRequest extends FormRequest
     {
         return [
             'boundary_geojson' => ['required', 'array'],
+            'gps_point_accuracies' => ['sometimes', 'array', 'max:1000'],
+            'gps_point_accuracies.*' => ['nullable', 'numeric', 'between:0,1000'],
         ];
     }
 
@@ -43,6 +58,25 @@ class SaveFarmBoundaryRequest extends FormRequest
 
                 if ($message !== null) {
                     $validator->errors()->add('boundary_geojson', $message);
+
+                    return;
+                }
+
+                $accuracies = $this->input('gps_point_accuracies');
+
+                if (! is_array($accuracies)) {
+                    return;
+                }
+
+                $geometry = app(FarmBoundaryGeometry::class)->inspect($this->input('boundary_geojson'));
+                $positions = $geometry['polygon']['coordinates'][0] ?? [];
+                $expectedCount = max(0, count($positions) - 1);
+
+                if (count($accuracies) !== $expectedCount) {
+                    $validator->errors()->add(
+                        'gps_point_accuracies',
+                        'GPS accuracy readings must match the boundary points.',
+                    );
                 }
             },
         ];

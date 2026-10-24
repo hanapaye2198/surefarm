@@ -1,3 +1,5 @@
+import { usePage } from '@inertiajs/react';
+
 export type GoogleMapType = 'roadmap' | 'hybrid';
 
 export type GoogleLatLng = {
@@ -99,6 +101,16 @@ declare global {
 
 let loading: Promise<void> | null = null;
 
+export function useGoogleMapsApiKey(): string {
+    const { google_maps_api_key } = usePage().props;
+
+    return (
+        google_maps_api_key?.trim() ||
+        import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() ||
+        ''
+    );
+}
+
 export function loadGoogleMaps(apiKey: string): Promise<void> {
     if (window.google?.maps?.Map) {
         return Promise.resolve();
@@ -115,7 +127,21 @@ export function loadGoogleMaps(apiKey: string): Promise<void> {
 
             windowWithCallback[callbackName] = () => {
                 delete windowWithCallback[callbackName];
-                resolve();
+                const maps = window.google?.maps;
+
+                if (!maps?.importLibrary) {
+                    resolve();
+
+                    return;
+                }
+
+                maps
+                    .importLibrary('maps')
+                    .then(() => resolve())
+                    .catch((error: unknown) => {
+                        loading = null;
+                        reject(error);
+                    });
             };
 
             const script = document.createElement('script');

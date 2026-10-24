@@ -33,10 +33,14 @@ export default function CoffeeProcessing({
                     actions={
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Button asChild>
-                                <Link href={processInventory()}>Process coffee</Link>
+                                <Link href={processInventory()}>
+                                    Process coffee
+                                </Link>
                             </Button>
                             <Button variant="outline" asChild>
-                                <Link href={inventoryIndex()}>Back to inventory</Link>
+                                <Link href={inventoryIndex()}>
+                                    Back to inventory
+                                </Link>
                             </Button>
                         </div>
                     }
@@ -49,12 +53,21 @@ export default function CoffeeProcessing({
                     <CardContent className="grid gap-4">
                         <ol className="grid gap-2 sm:grid-cols-4">
                             {summary.stages.map((stage, index) => (
-                                <li key={stage.id} className="rounded-xl border p-4">
-                                    <p className="text-xs text-muted-foreground">Stage {index + 1}</p>
+                                <li
+                                    key={stage.id}
+                                    className="rounded-xl border p-4"
+                                >
+                                    <p className="text-xs text-muted-foreground">
+                                        Stage {index + 1}
+                                    </p>
                                     <p className="font-medium">{stage.name}</p>
-                                    <p className="text-lg font-semibold tabular-nums">{stage.label}</p>
+                                    <p className="text-lg font-semibold tabular-nums">
+                                        {stage.label}
+                                    </p>
                                     {index < summary.stages.length - 1 && (
-                                        <p className="mt-2 text-xs text-muted-foreground sm:hidden">↓</p>
+                                        <p className="mt-2 text-xs text-muted-foreground sm:hidden">
+                                            ↓
+                                        </p>
                                     )}
                                 </li>
                             ))}
@@ -69,14 +82,29 @@ export default function CoffeeProcessing({
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         {movements.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No processing movements yet.</p>
+                            <p className="text-sm text-muted-foreground">
+                                No processing movements yet.
+                            </p>
                         ) : (
                             movements.map((movement) => (
-                                <div key={movement.id} className="border-b pb-4 last:border-0 last:pb-0">
-                                    <p className="text-sm font-medium">{movement.movement_date}</p>
-                                    <p className="text-sm">{movement.summary}</p>
+                                <div
+                                    key={movement.id}
+                                    className="border-b pb-4 last:border-0 last:pb-0"
+                                >
+                                    <p className="text-sm font-medium">
+                                        {movement.movement_date}
+                                    </p>
+                                    <p className="text-sm">
+                                        {movement.summary}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {[movement.farmer_name, movement.farm_name, movement.created_by].filter(Boolean).join(' · ')}
+                                        {[
+                                            movement.farmer_name,
+                                            movement.farm_name,
+                                            movement.created_by,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
                                     </p>
                                 </div>
                             ))

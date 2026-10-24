@@ -1,6 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 import { ProductionForm } from '@/components/production-form';
-import type { ProductionFarmOption, StatusOption } from '@/components/production-form';
+import type {
+    ProductionFarmOption,
+    StatusOption,
+} from '@/components/production-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { index as productionIndex } from '@/routes/production';
@@ -29,7 +32,9 @@ export default function CreateProduction({
                     description="Record the expected quantity for a farm. Harvest totals are kept separately."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={productionIndex()}>Back to production</Link>
+                            <Link href={productionIndex()}>
+                                Back to production
+                            </Link>
                         </Button>
                     }
                 />

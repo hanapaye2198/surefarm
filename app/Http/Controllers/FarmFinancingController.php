@@ -9,12 +9,48 @@ use App\Http\Requests\StoreFarmFinancingRequest;
 use App\Http\Requests\UpdateFarmFinancingRequest;
 use App\Models\Farm;
 use App\Models\FarmFinancing;
+use App\Models\User;
+use App\UserRole;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FarmFinancingController extends Controller
 {
+    public function index(Request $request): Response
+    {
+        $records = FarmFinancing::query()
+            ->with(['farm.farmer'])
+            ->latest('date_granted')
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(function (FarmFinancing $financing): array {
+                $presented = $financing->present();
+
+                return [
+                    'id' => $financing->id,
+                    'farm_record_id' => $financing->farm_id,
+                    'farm_id' => $financing->farm->farm_id,
+                    'farm_name' => $financing->farm->displayName(),
+                    'farmer_name' => $financing->farm->farmer->fullName(),
+                    'summary' => $presented['financing_type_label'].' · '.$presented['amount_label'],
+                    'detail' => 'Balance '.$presented['loan_balance_label'],
+                ];
+            });
+
+        $user = $request->user();
+
+        return Inertia::render('coverage/index', [
+            'kind' => 'financing',
+            'title' => 'Finance',
+            'description' => 'Financing is recorded on each farm. Open a farm to use the existing financing form.',
+            'records' => $records,
+            'can_manage' => $user instanceof User && $user->canAccess(UserRole::Operations),
+        ]);
+    }
+
     public function create(Farm $farm): Response
     {
         $farm->load('farmer');

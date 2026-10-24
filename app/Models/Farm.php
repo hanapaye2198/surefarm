@@ -28,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'farm_id',
     'farmer_id',
+    'assigned_verifier_id',
+    'assigned_at',
     'farm_name',
     'crop_type',
     'declared_area_hectares',
@@ -70,6 +72,7 @@ class Farm extends Model
             'verified_area_hectares' => 'decimal:2',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'assigned_at' => 'datetime',
             'verification_status' => FarmVerificationStatus::class,
             'status' => FarmStatus::class,
             'current_stage' => FarmDevelopmentStage::class,
@@ -86,6 +89,14 @@ class Farm extends Model
     public function farmer(): BelongsTo
     {
         return $this->belongsTo(Farmer::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function assignedVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_verifier_id');
     }
 
     /**
@@ -108,6 +119,12 @@ class Farm extends Model
     public function verifications(): HasMany
     {
         return $this->hasMany(FarmVerification::class)->latest('id');
+    }
+
+    /** @return HasMany<FarmBoundaryUpdateRequest, $this> */
+    public function boundaryUpdateRequests(): HasMany
+    {
+        return $this->hasMany(FarmBoundaryUpdateRequest::class)->latest('id');
     }
 
     /**

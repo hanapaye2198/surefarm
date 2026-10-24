@@ -1,5 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
+import { Mail } from 'lucide-react';
 import InputError from '@/components/input-error';
+import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -9,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import PasskeyVerify from '@/components/passkey-verify';
 
 type Props = {
     status?: string;
@@ -21,6 +22,12 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
+            {status && (
+                <div className="mb-5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-center text-sm font-medium text-primary">
+                    {status}
+                </div>
+            )}
+
             <PasskeyVerify />
 
             <Form
@@ -30,32 +37,36 @@ export default function Login({ status, canResetPassword }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
+                        <div className="grid gap-5">
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
+                                <div className="relative">
+                                    <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        autoFocus
+                                        tabIndex={1}
+                                        autoComplete="email"
+                                        placeholder="email@example.com"
+                                        className="h-11 pl-10 text-base sm:text-sm"
+                                    />
+                                </div>
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
-                                <div className="flex items-center">
+                                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                                     <Label htmlFor="password">Password</Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
+                                            className="text-sm"
                                             tabIndex={5}
                                         >
-                                            Forgot your password?
+                                            Forgot password?
                                         </TextLink>
                                     )}
                                 </div>
@@ -66,22 +77,25 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    className="h-11 pl-3 text-base sm:text-sm"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center gap-3">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember">Remember me</Label>
+                                <Label htmlFor="remember" className="font-normal">
+                                    Remember me
+                                </Label>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="h-11 w-full text-base"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -93,12 +107,6 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
         </>
     );
 }

@@ -8,12 +8,49 @@ use App\Http\Requests\StoreFarmInsuranceRequest;
 use App\Http\Requests\UpdateFarmInsuranceRequest;
 use App\Models\Farm;
 use App\Models\FarmInsurance;
+use App\Models\User;
+use App\UserRole;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FarmInsuranceController extends Controller
 {
+    public function index(Request $request): Response
+    {
+        $records = FarmInsurance::query()
+            ->with(['farm.farmer'])
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString()
+            ->through(function (FarmInsurance $insurance): array {
+                $presented = $insurance->present();
+
+                return [
+                    'id' => $insurance->id,
+                    'farm_record_id' => $insurance->farm_id,
+                    'farm_id' => $insurance->farm->farm_id,
+                    'farm_name' => $insurance->farm->displayName(),
+                    'farmer_name' => $insurance->farm->farmer->fullName(),
+                    'summary' => $presented['covered_label'] === 'Yes'
+                        ? 'Covered · '.$presented['amount_label']
+                        : 'Not covered',
+                    'detail' => $presented['term_label'],
+                ];
+            });
+
+        $user = $request->user();
+
+        return Inertia::render('coverage/index', [
+            'kind' => 'insurance',
+            'title' => 'Insurance',
+            'description' => 'Crop insurance is recorded on each farm. Open a farm to use the existing insurance form.',
+            'records' => $records,
+            'can_manage' => $user instanceof User && $user->canAccess(UserRole::Operations),
+        ]);
+    }
+
     public function create(Farm $farm): Response
     {
         $farm->load('farmer');

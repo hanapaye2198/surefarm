@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { ConfirmAction } from '@/components/confirm-action';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -37,7 +39,9 @@ export default function ReceiveHarvest({
     receipt_token: string;
     today: string;
 }) {
-    const cherry = stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
+    const cherry =
+        stages.find((stage) => stage.code === 'COFFEE_CHERRY') ?? stages[0];
+    const [confirming, setConfirming] = useState(false);
     const form = useForm({
         quantity: remaining > 0 ? String(remaining) : '',
         unit: harvest.unit,
@@ -48,9 +52,31 @@ export default function ReceiveHarvest({
         receipt_token,
     });
 
+    const stage = stages.find(
+        (item) => String(item.id) === form.data.processing_stage_id,
+    );
+
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(store.url(harvest.id));
+
+        if (
+            form.data.quantity.trim() === '' ||
+            form.data.unit.trim() === '' ||
+            form.data.processing_stage_id.trim() === '' ||
+            form.data.received_date.trim() === ''
+        ) {
+            form.post(store.url(harvest.id));
+
+            return;
+        }
+
+        setConfirming(true);
+    }
+
+    function saveReceipt() {
+        form.post(store.url(harvest.id), {
+            onError: () => setConfirming(false),
+        });
     }
 
     return (
@@ -62,7 +88,9 @@ export default function ReceiveHarvest({
                     description={`${harvest.farm?.farm_name ?? 'Farm'} · ${harvest.quantity_label} ${harvest.crop_label}`}
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={showHarvest(harvest.id)}>Back to harvest</Link>
+                            <Link href={showHarvest(harvest.id)}>
+                                Back to harvest
+                            </Link>
                         </Button>
                     }
                 />
@@ -73,13 +101,29 @@ export default function ReceiveHarvest({
                         </CardHeader>
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <p className="text-sm text-muted-foreground sm:col-span-2">
-                                {harvest.farmer?.name ?? 'Farmer'} · {remaining} {harvest.unit} not yet received. The harvest quantity stays {harvest.quantity_label}. Receipts stay in {harvest.unit}; kg, tons, and bags are not converted.
+                                {harvest.farmer?.name ?? 'Farmer'} · {remaining}{' '}
+                                {harvest.unit} not yet received. The harvest
+                                quantity stays {harvest.quantity_label}. Receipts
+                                stay in {harvest.unit}; kg, tons, and bags are
+                                not converted.
                             </p>
                             <input type="hidden" name="unit" value={harvest.unit} />
                             <input type="hidden" name="receipt_token" value={form.data.receipt_token} />
                             <div className="grid gap-2">
-                                <Label htmlFor="quantity">Quantity ({harvest.unit})</Label>
-                                <Input id="quantity" inputMode="decimal" value={form.data.quantity} onChange={(event) => form.setData('quantity', event.target.value)} />
+                                <Label htmlFor="quantity">
+                                    Quantity ({harvest.unit})
+                                </Label>
+                                <Input
+                                    id="quantity"
+                                    inputMode="decimal"
+                                    value={form.data.quantity}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'quantity',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.quantity} />
                                 <InputError message={form.errors.unit} />
                                 <InputError message={form.errors.receipt_token} />
@@ -89,35 +133,94 @@ export default function ReceiveHarvest({
                                 <Input id="unit" value={harvest.unit} readOnly />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="processing_stage_id">Processing stage</Label>
-                                <select id="processing_stage_id" className={selectClassName} value={form.data.processing_stage_id} onChange={(event) => form.setData('processing_stage_id', event.target.value)}>
+                                <Label htmlFor="processing_stage_id">
+                                    Processing stage
+                                </Label>
+                                <select
+                                    id="processing_stage_id"
+                                    className={selectClassName}
+                                    value={form.data.processing_stage_id}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'processing_stage_id',
+                                            event.target.value,
+                                        )
+                                    }
+                                >
                                     {stages.map((stage) => (
-                                        <option key={stage.id} value={stage.id}>{stage.name}</option>
+                                        <option key={stage.id} value={stage.id}>
+                                            {stage.name}
+                                        </option>
                                     ))}
                                 </select>
-                                <InputError message={form.errors.processing_stage_id} />
+                                <InputError
+                                    message={form.errors.processing_stage_id}
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="location">Location</Label>
-                                <Input id="location" value={form.data.location} onChange={(event) => form.setData('location', event.target.value)} />
+                                <Input
+                                    id="location"
+                                    value={form.data.location}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'location',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.location} />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="received_date">Received date</Label>
-                                <Input id="received_date" type="date" value={form.data.received_date} onChange={(event) => form.setData('received_date', event.target.value)} />
-                                <InputError message={form.errors.received_date} />
+                                <Label htmlFor="received_date">
+                                    Received date
+                                </Label>
+                                <Input
+                                    id="received_date"
+                                    type="date"
+                                    value={form.data.received_date}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'received_date',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={form.errors.received_date}
+                                />
                             </div>
                             <div className="grid gap-2 sm:col-span-2">
                                 <Label htmlFor="notes">Notes</Label>
-                                <Input id="notes" value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                                <Input
+                                    id="notes"
+                                    value={form.data.notes}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'notes',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
                                 <InputError message={form.errors.notes} />
                             </div>
                         </CardContent>
                     </Card>
                     <div>
-                        <Button type="submit" disabled={form.processing}>Save inventory</Button>
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing ? 'Saving...' : 'Receive stock'}
+                        </Button>
                     </div>
                 </form>
+                <ConfirmAction
+                    open={confirming}
+                    title="Receive this harvest into inventory?"
+                    description={`This records ${form.data.quantity} ${form.data.unit} as ${stage?.name ?? 'inventory'}. The harvest quantity stays ${harvest.quantity_label}.`}
+                    confirmLabel="Receive stock"
+                    pending={form.processing}
+                    onOpenChange={setConfirming}
+                    onConfirm={saveReceipt}
+                />
             </div>
         </>
     );

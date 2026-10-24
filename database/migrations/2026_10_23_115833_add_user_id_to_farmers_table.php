@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,8 +14,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasColumn('farmers', 'user_id')) {
+            Schema::table('farmers', function (Blueprint $table) {
+                $table->foreignId('user_id')->nullable()->unique()->constrained()->nullOnDelete();
+            });
+        }
+
         Schema::table('farmers', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->unique()->constrained()->nullOnDelete();
             $table->index('province');
         });
 
@@ -33,9 +39,18 @@ return new class extends Migration
         });
 
         Schema::table('farmers', function (Blueprint $table) {
-            $table->dropUnique(['user_id']);
-            $table->dropConstrainedForeignId('user_id');
             $table->dropIndex(['province']);
         });
+
+        $mobileLinkMigration = '2026_10_11_090000_add_mobile_links_to_farmers_and_farms';
+        $earlierOwnsUserId = Schema::hasTable('migrations')
+            && DB::table('migrations')->where('migration', $mobileLinkMigration)->exists();
+
+        if (! $earlierOwnsUserId && Schema::hasColumn('farmers', 'user_id')) {
+            Schema::table('farmers', function (Blueprint $table) {
+                $table->dropUnique(['user_id']);
+                $table->dropConstrainedForeignId('user_id');
+            });
+        }
     }
 };

@@ -7,6 +7,7 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmVerification;
 use App\Models\User;
+use App\Notifications\FarmVerificationStatusNotification;
 use App\Services\FarmAreaComparison;
 use App\Services\RegistryScope;
 use App\UserRole;
@@ -22,47 +23,58 @@ class StartFarmVerification
     ) {}
 
     /**
-     * Open one verification attempt and mark the farm in progress.
+     * Open one verification attempt. The mobile workflow may begin before
+     * boundary capture; the established web workflow still requires a boundary.
      * Declared area on the farm is not changed.
      */
-    public function handle(Farm $farm, User $actor): FarmVerification
+    public function handle(Farm $farm, User $actor, bool $mobileWorkflow = false): FarmVerification
     {
         if ($actor->isSuspended() || ! $actor->hasRole(UserRole::FieldVerifier, UserRole::Admin)) {
             abort(403);
         }
 
-        if (! app(RegistryScope::class)->canViewFarm($actor, $farm)) {
+        $assignedOnFarm = $farm->assigned_verifier_id === $actor->id;
+
+        if (! $assignedOnFarm && ! app(RegistryScope::class)->canViewFarm($actor, $farm)) {
             abort(404);
         }
 
-        return DB::transaction(function () use ($farm): FarmVerification {
+        $verification = DB::transaction(function () use ($farm, $mobileWorkflow): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');
 
-            if ($locked->verification_status === FarmVerificationStatus::InProgress) {
+            if (! in_array($locked->verification_status, [
+                FarmVerificationStatus::Pending,
+                FarmVerificationStatus::NeedsReview,
+                FarmVerificationStatus::Failed,
+                FarmVerificationStatus::Verified,
+            ], true)) {
                 throw ValidationException::withMessages([
-                    'verification' => 'Verification is already in progress.',
+                    'verification' => 'This farm cannot start another verification in its current status.',
                 ]);
             }
 
-            $comparison = $this->areas->calculate(
-                $locked->declared_area_hectares,
-                $locked->boundary?->gps_measured_area_hectares,
-            );
-
-            if ($comparison === null) {
+            if (! $mobileWorkflow && $locked->boundary === null) {
                 throw ValidationException::withMessages([
                     'verification' => 'Farm boundary is required before verification.',
                 ]);
             }
 
+            $comparison = $locked->boundary === null
+                ? null
+                : $this->areas->calculate(
+                    $locked->declared_area_hectares,
+                    $locked->boundary->gps_measured_area_hectares,
+                );
+
             $verification = $locked->verifications()->create([
                 'verification_reference' => 'TMP-'.Str::uuid()->toString(),
                 'previous_status' => $locked->verification_status,
-                'declared_area_hectares' => $comparison['declared'],
-                'measured_area_hectares' => $comparison['measured'],
-                'difference_hectares' => $comparison['difference'],
-                'variance_percentage' => $comparison['variance'],
+                'declared_area_hectares' => (float) $locked->declared_area_hectares,
+                'measured_area_hectares' => $comparison['measured'] ?? null,
+                'difference_hectares' => $comparison['difference'] ?? null,
+                'variance_percentage' => $comparison['variance'] ?? null,
+                'mobile_workflow' => $mobileWorkflow,
             ]);
 
             $verification->update([
@@ -75,5 +87,14 @@ class StartFarmVerification
 
             return $verification->refresh();
         });
+
+        $farm->loadMissing('farmer.user');
+        $farm->farmer?->user?->notify(new FarmVerificationStatusNotification(
+            $farm,
+            FarmVerificationStatus::InProgress->value,
+            'A field verifier has started work on your farm verification.',
+        ));
+
+        return $verification;
     }
 }

@@ -1,25 +1,42 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { login } from '@/routes';
 
 const links = [
     { href: '#platform', label: 'Platform' },
-    { href: '#how-it-works', label: 'How It Works' },
+    { href: '#how-it-works', label: 'How it works' },
+    { href: '#verification', label: 'Verification' },
+    { href: '#map', label: 'Map' },
+    { href: '#about', label: 'About' },
 ];
 
 export function LandingFooter() {
+    const { name } = usePage().props;
     const year = new Date().getFullYear();
 
     return (
         <footer className="border-t">
             <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row md:items-start md:justify-between">
                 <div className="max-w-sm">
-                    <AppLogoIcon className="h-10" />
+                    <div className="flex items-center gap-2.5 font-semibold">
+                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                            <AppLogoIcon className="size-5" />
+                        </span>
+                        {name}
+                    </div>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        Digital Farm Management & Verification Platform
+                        Farmer records, mapped boundaries, field verification,
+                        and coffee traceability for cooperatives and field
+                        teams.
+                    </p>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                        Accounts are issued by your organization.
                     </p>
                 </div>
-                <nav aria-label="Footer" className="flex flex-col gap-2 text-sm">
+                <nav
+                    aria-label="Footer"
+                    className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm"
+                >
                     {links.map((link) => (
                         <a
                             key={link.href}
@@ -39,7 +56,7 @@ export function LandingFooter() {
             </div>
             <div className="border-t">
                 <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground sm:px-6">
-                    © {year} SureFarm. All rights reserved.
+                    © {year} {name}. All rights reserved.
                 </p>
             </div>
         </footer>

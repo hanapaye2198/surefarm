@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AcceptUserInvitationController;
+use App\Http\Controllers\AccountNotificationController;
 use App\Http\Controllers\CooperativeController;
 use App\Http\Controllers\CooperativeMembershipController;
 use App\Http\Controllers\CooperativeOfficerController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\InventoryReceiptReversalController;
 use App\Http\Controllers\InventoryReconciliationController;
 use App\Http\Controllers\ModulePlaceholderController;
 use App\Http\Controllers\RegistryGrantController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\ActivityTypeController;
 use App\Http\Controllers\TraceabilityController;
 use App\Http\Controllers\TraceabilityPublicController;
@@ -52,12 +54,16 @@ Route::get('trace/{token}', [TraceabilityPublicController::class, 'show'])
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('search', SearchController::class)->name('search');
+    Route::get('notifications', [AccountNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/{notification}/read', [AccountNotificationController::class, 'read'])->name('notifications.read');
 
     Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
-        ->where('module', 'crop-management|finance|insurance|logistics-export|reports')
+        ->where('module', 'crop-management|logistics-export|reports')
         ->name('modules.show');
 
     Route::middleware(['role:operations', 'registry.scope'])->group(function () {
+        Route::get('farms/register', [FarmController::class, 'chooseFarmer'])->name('farms.register');
         Route::get('farmers/create', [FarmerController::class, 'create'])->name('farmers.create');
         Route::post('farmers', [FarmerController::class, 'store'])->name('farmers.store');
         Route::get('farmers/{farmer}/edit', [FarmerController::class, 'edit'])->name('farmers.edit');
@@ -66,8 +72,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('farmers/{farmer}/farms', [FarmController::class, 'store'])->name('farmers.farms.store');
         Route::get('farms/{farm}/edit', [FarmController::class, 'edit'])->name('farms.edit');
         Route::put('farms/{farm}', [FarmController::class, 'update'])->name('farms.update');
-        Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store'])->name('farms.boundary.store');
-        Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update'])->name('farms.boundary.update');
         Route::get('farm-activities/create', [FarmActivityController::class, 'create'])->name('farm-activities.create');
         Route::post('farm-activities', [FarmActivityController::class, 'store'])->name('farm-activities.store');
         Route::get('farm-activities/{activity}/edit', [FarmActivityController::class, 'edit'])->name('farm-activities.edit');
@@ -138,9 +142,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('settings/activity-types/{activityType}', [ActivityTypeController::class, 'update'])->name('activity-types.update');
     });
 
-    Route::middleware('role:operations,field_verifier,farmer,cooperative_officer')->group(function () {
+    Route::middleware('role:operations,field_verifier')->group(function () {
+        Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store'])->name('farms.boundary.store');
+        Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update'])->name('farms.boundary.update');
+    });
+
+    Route::middleware('role:operations,cooperative_officer')->group(function () {
         Route::get('cooperatives', [CooperativeController::class, 'index'])->name('cooperatives.index');
         Route::get('cooperatives/{cooperative}', [CooperativeController::class, 'show'])->name('cooperatives.show');
+    });
+
+    Route::middleware('role:operations,field_verifier')->group(function () {
+        Route::get('finance', [FarmFinancingController::class, 'index'])->name('finance.index');
+        Route::get('insurance', [FarmInsuranceController::class, 'index'])->name('insurance.index');
+    });
+
+    Route::middleware('role:operations,field_verifier,farmer,cooperative_officer')->group(function () {
         Route::get('farmers', [FarmerController::class, 'index'])->name('farmers.index');
         Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo'])->name('farmers.photo');
         Route::get('farmers/{farmer}', [FarmerController::class, 'show'])->name('farmers.show');
@@ -165,6 +182,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('farm-verification', [FarmVerificationController::class, 'index'])->name('farm-verification.index');
         Route::get('farm-verification/{farm}', [FarmVerificationController::class, 'show'])->name('farm-verification.show');
         Route::post('farm-verification/{farm}', [FarmVerificationController::class, 'store'])->name('farm-verification.store');
+        Route::post('farm-verification/{farm}/inspection', [FarmVerificationController::class, 'inspection'])->name('farm-verification.inspection');
         Route::put('farm-verification/{farm}', [FarmVerificationController::class, 'update'])->name('farm-verification.update');
     });
 });

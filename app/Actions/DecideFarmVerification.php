@@ -7,6 +7,7 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\FarmVerification;
 use App\Models\User;
+use App\Notifications\FarmVerificationStatusNotification;
 use App\Services\FarmAreaComparison;
 use App\Services\RegistryScope;
 use App\UserRole;
@@ -30,11 +31,13 @@ class DecideFarmVerification
             abort(403);
         }
 
-        if (! app(RegistryScope::class)->canViewFarm($verifier, $farm)) {
+        $assignedOnFarm = $farm->assigned_verifier_id === $verifier->id;
+
+        if (! $assignedOnFarm && ! app(RegistryScope::class)->canViewFarm($verifier, $farm)) {
             abort(404);
         }
 
-        return DB::transaction(function () use ($farm, $verifier, $result, $remarks): FarmVerification {
+        $verification = DB::transaction(function () use ($farm, $verifier, $result, $remarks): FarmVerification {
             $locked = Farm::query()->lockForUpdate()->findOrFail($farm->id);
             $locked->load('boundary');
 
@@ -51,7 +54,7 @@ class DecideFarmVerification
             }
 
             $comparison = $this->areas->calculate(
-                $locked->declared_area_hectares,
+                $open->declared_area_hectares,
                 $locked->boundary?->gps_measured_area_hectares,
             );
 
@@ -61,8 +64,31 @@ class DecideFarmVerification
                 ]);
             }
 
+            if ($open->mobile_workflow && ($open->inspection_checklist === null || ! $open->photos()->exists())) {
+                throw ValidationException::withMessages([
+                    'verification' => 'Complete the field inspection checklist and upload evidence before saving a result.',
+                ]);
+            }
+
+            if ($open->mobile_workflow && $result === FarmVerificationResult::Verified) {
+                $requiredChecks = [
+                    'farm_exists',
+                    'location_matches',
+                    'coffee_crop_observed',
+                    'boundary_captured',
+                    'area_checked',
+                    'required_photos_captured',
+                ];
+                $checklist = $open->inspection_checklist;
+
+                if (collect($requiredChecks)->contains(fn (string $check): bool => ($checklist[$check] ?? false) !== true)) {
+                    throw ValidationException::withMessages([
+                        'verification' => 'A farm cannot be marked verified while a required field check is marked No.',
+                    ]);
+                }
+            }
+
             $open->update([
-                'declared_area_hectares' => $comparison['declared'],
                 'measured_area_hectares' => $comparison['measured'],
                 'difference_hectares' => $comparison['difference'],
                 'variance_percentage' => $comparison['variance'],
@@ -88,6 +114,26 @@ class DecideFarmVerification
 
             return $open->refresh();
         });
+
+        $farm->loadMissing('farmer.user');
+        $remarks = $this->remarks($remarks);
+        $message = match ($result) {
+            FarmVerificationResult::Verified => 'Your farm verification was marked verified.',
+            FarmVerificationResult::Failed => 'Your farm verification needs follow-up.',
+            FarmVerificationResult::NeedsReview => 'Your farm verification needs another review.',
+        };
+
+        if ($remarks !== null) {
+            $message .= ' Verifier note: '.$remarks;
+        }
+
+        $farm->farmer?->user?->notify(new FarmVerificationStatusNotification(
+            $farm,
+            $result->value,
+            $message,
+        ));
+
+        return $verification;
     }
 
     private function remarks(?string $remarks): ?string

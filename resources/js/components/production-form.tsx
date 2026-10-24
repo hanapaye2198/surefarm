@@ -161,8 +161,8 @@ export function ProductionForm({
                                 {farm?.farm_name} · {farm?.farm_id}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                {farm?.farmer_name}. This estimate stays on
-                                the same farm.
+                                {farm?.farmer_name}. This estimate stays on the
+                                same farm.
                             </p>
                         </div>
                     )}

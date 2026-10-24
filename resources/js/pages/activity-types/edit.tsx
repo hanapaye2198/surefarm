@@ -76,14 +76,20 @@ export default function EditActivityType({
                     description="Activate or deactivate a type without deleting historical activities."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={activityTypesIndex()}>Back to types</Link>
+                            <Link href={activityTypesIndex()}>
+                                Back to types
+                            </Link>
                         </Button>
                     }
                 />
                 <Card className="shadow-sm">
                     <CardContent className="pt-6">
                         <form onSubmit={submit} className="grid max-w-xl gap-4">
-                            <Field label="Name" htmlFor="name" error={form.errors.name}>
+                            <Field
+                                label="Name"
+                                htmlFor="name"
+                                error={form.errors.name}
+                            >
                                 <Input
                                     id="name"
                                     value={form.data.name}
@@ -92,7 +98,11 @@ export default function EditActivityType({
                                     }
                                 />
                             </Field>
-                            <Field label="Code" htmlFor="code" error={form.errors.code}>
+                            <Field
+                                label="Code"
+                                htmlFor="code"
+                                error={form.errors.code}
+                            >
                                 <Input
                                     id="code"
                                     value={form.data.code}
@@ -110,7 +120,10 @@ export default function EditActivityType({
                                     id="category"
                                     value={form.data.category}
                                     onChange={(event) =>
-                                        form.setData('category', event.target.value)
+                                        form.setData(
+                                            'category',
+                                            event.target.value,
+                                        )
                                     }
                                     className={selectClassName}
                                 >
@@ -134,12 +147,18 @@ export default function EditActivityType({
                                     id="status"
                                     value={form.data.status}
                                     onChange={(event) =>
-                                        form.setData('status', event.target.value)
+                                        form.setData(
+                                            'status',
+                                            event.target.value,
+                                        )
                                     }
                                     className={selectClassName}
                                 >
                                     {statuses.map((status) => (
-                                        <option key={status.value} value={status.value}>
+                                        <option
+                                            key={status.value}
+                                            value={status.value}
+                                        >
                                             {status.label}
                                         </option>
                                     ))}
@@ -162,7 +181,10 @@ export default function EditActivityType({
                                 />
                             </Field>
                             <div>
-                                <Button type="submit" disabled={form.processing}>
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                >
                                     Save activity type
                                 </Button>
                             </div>

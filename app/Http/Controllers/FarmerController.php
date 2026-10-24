@@ -15,6 +15,8 @@ use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmInsurance;
+use App\Models\FarmVerification;
+use App\Models\FarmVerificationPhoto;
 use App\Models\User;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
@@ -131,8 +133,14 @@ class FarmerController extends Controller
                 'id' => $farmer->id,
                 'farmer_id' => $farmer->farmer_id,
                 'full_name' => $farmer->fullName(),
+                'suffix' => $farmer->suffix,
+                'user_id' => $farmer->user_id === null ? '' : (string) $farmer->user_id,
                 'date_of_birth' => $farmer->date_of_birth?->format('Y-m-d') ?? '',
                 'government_id' => $farmer->government_id ?? '',
+                'sitio_purok_code' => $farmer->sitio_purok_code ?? '',
+                'barangay_code' => $farmer->barangay_code ?? '',
+                'lgu_code' => $farmer->lgu_code ?? '',
+                'security_control_code' => $farmer->security_control_code ?? '',
                 'has_bank_account' => $account !== null,
                 'bank_name' => $account?->bank_name ?? '',
                 'account_number' => '',
@@ -140,6 +148,22 @@ class FarmerController extends Controller
                 'account_name' => $account?->account_name ?? $farmer->fullName(),
                 'bank_account_status' => $account?->status->value ?? BankAccountStatus::Unverified->value,
             ],
+            'farmerAccounts' => array_merge(
+                [['value' => '', 'label' => 'No mobile account linked']],
+                User::query()
+                    ->where('role', UserRole::Farmer)
+                    ->whereNotNull('email_verified_at')
+                    ->where(function ($query) use ($farmer): void {
+                        $query->whereDoesntHave('farmer')->orWhere('id', $farmer->user_id);
+                    })
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'email'])
+                    ->map(fn (User $user): array => [
+                        'value' => (string) $user->id,
+                        'label' => $user->name.' · '.$user->email,
+                    ])
+                    ->all(),
+            ),
         ]);
     }
 
@@ -170,8 +194,9 @@ class FarmerController extends Controller
     {
         $viewer = request()->user();
         $viewer = $viewer instanceof User ? $viewer : null;
-        $inspectionOnly = $viewer?->role === UserRole::FieldVerifier
-            || $viewer?->role === UserRole::CooperativeOfficer;
+        $canViewSensitiveDetails = $viewer instanceof User
+            && ! $viewer->isSuspended()
+            && $viewer->canAccess(UserRole::Operations);
 
         $farmer->load([
             'spouse',
@@ -194,8 +219,13 @@ class FarmerController extends Controller
                 'first_name' => $farmer->first_name,
                 'middle_name' => $farmer->middle_name,
                 'last_name' => $farmer->last_name,
+                'suffix' => $farmer->suffix,
+                'sitio_purok_code' => $farmer->sitio_purok_code,
+                'barangay_code' => $farmer->barangay_code,
+                'lgu_code' => $farmer->lgu_code,
+                'security_control_code' => $farmer->security_control_code,
                 'date_of_birth' => $farmer->date_of_birth?->format('F j, Y'),
-                'government_id' => $inspectionOnly ? null : $farmer->government_id,
+                'government_id' => $canViewSensitiveDetails ? $farmer->government_id : null,
                 'address' => $farmer->addressLabel(),
                 'photo_url' => $farmer->photo_path !== null
                     ? route('farmers.photo', $farmer)
@@ -210,14 +240,14 @@ class FarmerController extends Controller
                 'cooperative' => $farmer->cooperative?->name,
                 'member_since' => $farmer->created_at?->format('Y'),
                 'registration_date' => $farmer->created_at?->format('F j, Y'),
-                'bank_account' => $inspectionOnly || $farmer->bankAccount === null ? null : [
+                'bank_account' => ! $canViewSensitiveDetails || $farmer->bankAccount === null ? null : [
                     'bank_name' => $farmer->bankAccount->bank_name,
                     'account_number' => $farmer->bankAccount->maskedAccountNumber(),
                     'account_name' => $farmer->bankAccount->account_name,
                     'status' => $farmer->bankAccount->status->value,
                     'status_label' => $farmer->bankAccount->status->label(),
                 ],
-                'spouse' => $farmer->spouse === null ? null : [
+                'spouse' => ! $canViewSensitiveDetails || $farmer->spouse === null ? null : [
                     'first_name' => $farmer->spouse->first_name,
                     'middle_name' => $farmer->spouse->middle_name,
                     'last_name' => $farmer->spouse->last_name,
@@ -238,20 +268,26 @@ class FarmerController extends Controller
                 'production_summary' => $ledger->farmerSummary($farmer),
                 'inventory_summary' => $stock->balances(farmerId: $farmer->id, viewer: $viewer),
                 'traceability_summary' => $traceability->metrics(farmerId: $farmer->id, viewer: $viewer),
-                'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index) use ($inspectionOnly): array {
+                'documents' => $this->documents($farmer),
+                'verification_history' => $this->verificationHistory($farmer),
+                'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index) use ($canViewSensitiveDetails): array {
                     return [
                         'id' => $farm->id,
                         'number_label' => 'Farm '.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT),
                         'farm_id' => $farm->farm_id,
                         'farm_name' => $farm->displayName(),
-                        'insurances' => $inspectionOnly ? [] : $farm->insurances
-                            ->map(fn (FarmInsurance $insurance): array => $insurance->present())
-                            ->values()
-                            ->all(),
-                        'financings' => $inspectionOnly ? [] : $farm->financings
-                            ->map(fn (FarmFinancing $financing): array => $financing->present())
-                            ->values()
-                            ->all(),
+                        'insurances' => $canViewSensitiveDetails
+                            ? $farm->insurances
+                                ->map(fn (FarmInsurance $insurance): array => $insurance->present())
+                                ->values()
+                                ->all()
+                            : [],
+                        'financings' => $canViewSensitiveDetails
+                            ? $farm->financings
+                                ->map(fn (FarmFinancing $financing): array => $financing->present())
+                                ->values()
+                                ->all()
+                            : [],
                     ];
                 })->all(),
             ],
@@ -260,11 +296,11 @@ class FarmerController extends Controller
 
     public function photo(Farmer $farmer): StreamedResponse
     {
-        if ($farmer->photo_path === null || ! Storage::exists($farmer->photo_path)) {
+        if ($farmer->photo_path === null || ! Storage::disk('local')->exists($farmer->photo_path)) {
             abort(404);
         }
 
-        return Storage::response($farmer->photo_path);
+        return Storage::disk('local')->response($farmer->photo_path);
     }
 
     private function activityCount(Farmer $farmer): int
@@ -296,6 +332,94 @@ class FarmerController extends Controller
             ->get()
             ->map(fn (FarmActivity $activity): array => $activity->summaryRow())
             ->values()
+            ->all();
+    }
+
+    /**
+     * Profile photo, drone images, and verification photos already stored
+     * for this farmer. There is no separate documents table.
+     *
+     * @return list<array{id: string, label: string, name: string, href: string, recorded_at: string|null}>
+     */
+    private function documents(Farmer $farmer): array
+    {
+        $documents = [];
+
+        if ($farmer->photo_path !== null) {
+            $documents[] = [
+                'id' => 'farmer-photo-'.$farmer->id,
+                'label' => 'Profile photo',
+                'name' => $farmer->fullName(),
+                'href' => route('farmers.photo', $farmer),
+                'recorded_at' => $farmer->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        foreach ($farmer->farms as $farm) {
+            if ($farm->drone_image_path === null) {
+                continue;
+            }
+
+            $documents[] = [
+                'id' => 'drone-'.$farm->id,
+                'label' => 'Drone image',
+                'name' => $farm->displayName(),
+                'href' => route('farms.drone-image', $farm),
+                'recorded_at' => $farm->updated_at?->format('M j, Y'),
+            ];
+        }
+
+        $photos = FarmVerificationPhoto::query()
+            ->with(['verification.farm', 'uploader'])
+            ->whereHas('verification.farm', fn ($query) => $query
+                ->where('farmer_id', $farmer->id)
+                ->visibleTo($this->registryViewer()))
+            ->orderBy('id')
+            ->get();
+
+        foreach ($photos as $photo) {
+            $presented = $photo->present();
+            $name = $presented['name'] ?? null;
+            $farm = $photo->verification?->farm;
+
+            $documents[] = [
+                'id' => 'photo-'.$photo->id,
+                'label' => 'Verification photo',
+                'name' => is_string($name) && $name !== '' ? $name : ($farm?->displayName() ?? 'Photo'),
+                'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farmers.show', $farmer),
+                'recorded_at' => $photo->verification?->verified_at?->format('M j, Y')
+                    ?? $photo->created_at?->format('M j, Y'),
+            ];
+        }
+
+        return $documents;
+    }
+
+    /**
+     * Verification attempts across this farmer's farms, newest first.
+     *
+     * @return list<array{id: int, date: string, reference: string, result: string|null, verified_by: string|null, remarks: string|null, farm_record_id: int, farm_name: string}>
+     */
+    private function verificationHistory(Farmer $farmer): array
+    {
+        return FarmVerification::query()
+            ->with(['farm', 'verifier'])
+            ->whereHas('farm', fn ($query) => $query
+                ->where('farmer_id', $farmer->id)
+                ->visibleTo($this->registryViewer()))
+            ->orderByDesc('verified_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (FarmVerification $verification): array => [
+                'id' => $verification->id,
+                'date' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y') ?? '—',
+                'reference' => $verification->verification_reference,
+                'result' => $verification->result?->value,
+                'verified_by' => $verification->verifier?->name,
+                'remarks' => $verification->remarks,
+                'farm_record_id' => $verification->farm_id,
+                'farm_name' => $verification->farm?->displayName() ?? 'Farm',
+            ])
             ->all();
     }
 }

@@ -31,9 +31,14 @@ class StoreFarmerRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
+            'suffix' => ['nullable', 'string', 'max:24'],
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'government_id' => ['nullable', 'string', 'max:64'],
             'purok_sitio' => ['required', 'string', 'max:255'],
+            'sitio_purok_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'barangay_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'lgu_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'security_control_code' => ['nullable', 'regex:/^\d{3}$/'],
             'barangay' => ['required', 'string', 'max:255'],
             'municipality' => ['required', 'string', 'max:255'],
             'province' => ['required', 'string', 'max:255'],
@@ -135,9 +140,14 @@ class StoreFarmerRequest extends FormRequest
             'first_name' => $this->string('first_name')->trim()->toString(),
             'middle_name' => $middleName === '' ? null : $middleName,
             'last_name' => $this->string('last_name')->trim()->toString(),
+            'suffix' => $this->cleanOptional('suffix'),
             'date_of_birth' => $dateOfBirth === '' ? null : $dateOfBirth,
             'government_id' => $governmentId === '' ? null : $governmentId,
             'purok_sitio' => $this->string('purok_sitio')->trim()->toString(),
+            'sitio_purok_code' => $this->cleanOptional('sitio_purok_code'),
+            'barangay_code' => $this->cleanOptional('barangay_code'),
+            'lgu_code' => $this->cleanOptional('lgu_code'),
+            'security_control_code' => $this->cleanOptional('security_control_code'),
             'barangay' => $this->string('barangay')->trim()->toString(),
             'municipality' => $this->string('municipality')->trim()->toString(),
             'province' => $this->string('province')->trim()->toString(),
@@ -154,5 +164,12 @@ class StoreFarmerRequest extends FormRequest
                 ? $this->string('bank_account_status')->trim()->toString()
                 : BankAccountStatus::Unverified->value,
         ]);
+    }
+
+    private function cleanOptional(string $key): ?string
+    {
+        $value = $this->string($key)->trim()->toString();
+
+        return $value === '' ? null : $value;
     }
 }

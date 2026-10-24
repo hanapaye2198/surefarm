@@ -26,10 +26,23 @@ class UpdateFarmerDetailsRequest extends FormRequest
     {
         $recordingBankAccount = $this->boolean('has_bank_account');
         $keepsStoredNumber = $this->keepsStoredAccountNumber();
+        $farmerRoute = $this->route('farmer');
+        $farmerId = $farmerRoute instanceof Farmer ? $farmerRoute->getKey() : $farmerRoute;
 
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
             'government_id' => ['nullable', 'string', 'max:64'],
+            'suffix' => ['nullable', 'string', 'max:24'],
+            'sitio_purok_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'barangay_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'lgu_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'security_control_code' => ['nullable', 'regex:/^\d{3}$/'],
+            'user_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id')->where('role', UserRole::Farmer->value),
+                Rule::unique('farmers', 'user_id')->ignore($farmerId),
+            ],
             'has_bank_account' => ['boolean'],
             'bank_name' => [
                 Rule::excludeUnless($recordingBankAccount),
@@ -84,7 +97,7 @@ class UpdateFarmerDetailsRequest extends FormRequest
         $accountNumber = $this->string('account_number')->trim()->toString();
         $accountName = $this->string('account_name')->trim()->toString();
 
-        $this->merge([
+        $values = [
             'date_of_birth' => $dateOfBirth === '' ? null : $dateOfBirth,
             'government_id' => $governmentId === '' ? null : $governmentId,
             'has_bank_account' => $this->boolean('has_bank_account'),
@@ -94,7 +107,26 @@ class UpdateFarmerDetailsRequest extends FormRequest
             'bank_account_status' => $this->filled('bank_account_status')
                 ? $this->string('bank_account_status')->trim()->toString()
                 : BankAccountStatus::Unverified->value,
-        ]);
+        ];
+
+        if ($this->exists('user_id')) {
+            $values['user_id'] = $this->filled('user_id') ? $this->input('user_id') : null;
+        }
+
+        foreach (['suffix', 'sitio_purok_code', 'barangay_code', 'lgu_code', 'security_control_code'] as $field) {
+            if ($this->exists($field)) {
+                $values[$field] = $this->cleanOptional($field);
+            }
+        }
+
+        $this->merge($values);
+    }
+
+    private function cleanOptional(string $key): ?string
+    {
+        $value = $this->string($key)->trim()->toString();
+
+        return $value === '' ? null : $value;
     }
 
     private function keepsStoredAccountNumber(): bool

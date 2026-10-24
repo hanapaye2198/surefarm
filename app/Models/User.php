@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property int $id
@@ -38,7 +39,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
      * Least privilege when a caller forgets to assign a role.
@@ -67,11 +68,21 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
+     * The optional farmer profile owned by this login.
+     *
+     * @return HasOne<Farmer, $this>
+     */
+    public function farmer(): HasOne
+    {
+        return $this->hasOne(Farmer::class);
+    }
+
+    /**
      * @return HasOne<Farmer, $this>
      */
     public function farmerProfile(): HasOne
     {
-        return $this->hasOne(Farmer::class);
+        return $this->farmer();
     }
 
     /**

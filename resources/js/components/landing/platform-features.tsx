@@ -1,7 +1,7 @@
 import {
-    BarChart3,
     BadgeCheck,
     MapPinned,
+    QrCode,
     Sprout,
     Tractor,
     Users,
@@ -13,65 +13,56 @@ const features: {
     title: string;
     description: string;
     icon: LucideIcon;
-    status: 'Available' | 'Planned';
 }[] = [
     {
-        title: 'Farmer Management',
-        description: 'Maintain structured farmer profiles and records.',
+        title: 'Farmer records',
+        description:
+            'Identity, location, household, and bank details in a structured profile.',
         icon: Users,
-        status: 'Available',
     },
     {
-        title: 'Farm Registration',
-        description: 'Register farms, locations, crops, and declared areas.',
+        title: 'Farm registration',
+        description:
+            'Crop, location, declared area, ownership, and status for every farm.',
         icon: Sprout,
-        status: 'Available',
     },
     {
-        title: 'Farm Mapping',
+        title: 'Farm mapping',
         description:
-            'Visualize farm locations and boundaries on an interactive map.',
+            'Locations and boundaries on an interactive map, with the measured area stored on the record.',
         icon: MapPinned,
-        status: 'Available',
     },
     {
-        title: 'Area Verification',
+        title: 'Field verification',
         description:
-            'Compare declared and measured farm areas before verification.',
+            'Declared hectares stay separate from the mapped area until a reviewer confirms the farm.',
         icon: BadgeCheck,
-        status: 'Available',
     },
     {
-        title: 'Agricultural Operations',
+        title: 'Harvest and inventory',
         description:
-            'A foundation for activities, production, inventory, and logistics is planned.',
+            'Activities, production, harvest, receiving, processing, insurance, and financing.',
         icon: Tractor,
-        status: 'Planned',
     },
     {
-        title: 'Reports & Insights',
+        title: 'Coffee traceability',
         description:
-            'Dashboard summaries are available today. A full reports module is planned.',
-        icon: BarChart3,
-        status: 'Planned',
+            'A public lot page follows coffee from the farm through harvest and processing.',
+        icon: QrCode,
     },
 ];
 
 export function PlatformFeatures() {
     return (
-        <section
-            id="platform"
-            className="scroll-mt-20 border-t bg-muted/40 py-16 sm:py-20"
-        >
+        <section id="platform" className="scroll-mt-20 border-t py-16 sm:py-20">
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
                 <div className="max-w-2xl">
                     <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                        Everything you need to manage the farm lifecycle.
+                        One record from registration to the lot.
                     </h2>
                     <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-                        SureFarm helps organizations manage farmers, farms,
-                        farm areas, verification, production, and agricultural
-                        operations in one platform.
+                        Register the farmer, map the farm, verify the area, and
+                        follow the harvest without leaving SureFarm.
                     </p>
                 </div>
                 <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,14 +72,9 @@ export function PlatformFeatures() {
                             className="h-full shadow-sm transition-shadow hover:shadow-md"
                         >
                             <CardHeader>
-                                <div className="flex items-start justify-between gap-3">
-                                    <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                        <feature.icon className="size-5" />
-                                    </span>
-                                    <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium tracking-wide text-secondary-foreground uppercase">
-                                        {feature.status}
-                                    </span>
-                                </div>
+                                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <feature.icon className="size-5" />
+                                </span>
                                 <CardTitle className="text-lg">
                                     {feature.title}
                                 </CardTitle>

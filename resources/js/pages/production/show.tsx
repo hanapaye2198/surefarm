@@ -3,8 +3,14 @@ import { Plus } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { ProductionBalance } from '@/components/production-balance';
-import { HarvestStatusBadge, ProductionStatusBadge } from '@/components/status-badge';
-import type { HarvestRecordStatus, ProductionRecordStatus } from '@/components/status-badge';
+import {
+    HarvestStatusBadge,
+    ProductionStatusBadge,
+} from '@/components/status-badge';
+import type {
+    HarvestRecordStatus,
+    ProductionRecordStatus,
+} from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { userCanAccess } from '@/lib/access';
@@ -84,7 +90,9 @@ export default function ProductionShow({
                                 </Button>
                             )}
                             <Button variant="outline" asChild>
-                                <Link href={productionIndex()}>Back to production</Link>
+                                <Link href={productionIndex()}>
+                                    Back to production
+                                </Link>
                             </Button>
                         </div>
                     }
@@ -113,12 +121,32 @@ export default function ProductionShow({
                     </CardHeader>
                     <CardContent>
                         <dl className="grid gap-4 sm:grid-cols-2">
-                            <Detail label="Farm" value={production.farm?.farm_name ?? '—'} href={production.farm ? showFarm(production.farm.id).url : undefined} />
-                            <Detail label="Farmer" value={production.farmer?.name ?? '—'} />
-                            <Detail label="Crop" value={production.crop_label} />
-                            <Detail label="Period" value={display(production.production_period)} />
+                            <Detail
+                                label="Farm"
+                                value={production.farm?.farm_name ?? '—'}
+                                href={
+                                    production.farm
+                                        ? showFarm(production.farm.id).url
+                                        : undefined
+                                }
+                            />
+                            <Detail
+                                label="Farmer"
+                                value={production.farmer?.name ?? '—'}
+                            />
+                            <Detail
+                                label="Crop"
+                                value={production.crop_label}
+                            />
+                            <Detail
+                                label="Period"
+                                value={display(production.production_period)}
+                            />
                             <Detail label="Unit" value={production.unit} />
-                            <Detail label="Notes" value={display(production.notes)} />
+                            <Detail
+                                label="Notes"
+                                value={display(production.notes)}
+                            />
                         </dl>
                     </CardContent>
                 </Card>
@@ -136,17 +164,28 @@ export default function ProductionShow({
                         ) : (
                             <ul className="divide-y">
                                 {harvests.map((harvest) => (
-                                    <li key={harvest.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                                    <li
+                                        key={harvest.id}
+                                        className="flex flex-wrap items-center justify-between gap-3 py-3"
+                                    >
                                         <div>
-                                            <Link href={showHarvest(harvest.id)} className="text-sm font-medium hover:underline">
+                                            <Link
+                                                href={showHarvest(harvest.id)}
+                                                className="text-sm font-medium hover:underline"
+                                            >
                                                 {harvest.harvest_date}
                                             </Link>
                                             <p className="text-sm text-muted-foreground">
-                                                {harvest.crop_label} · {harvest.quantity_label}
-                                                {harvest.quality_grade ? ` · ${harvest.quality_grade}` : ''}
+                                                {harvest.crop_label} ·{' '}
+                                                {harvest.quantity_label}
+                                                {harvest.quality_grade
+                                                    ? ` · ${harvest.quality_grade}`
+                                                    : ''}
                                             </p>
                                         </div>
-                                        <HarvestStatusBadge status={harvest.status} />
+                                        <HarvestStatusBadge
+                                            status={harvest.status}
+                                        />
                                     </li>
                                 ))}
                             </ul>
@@ -169,7 +208,9 @@ function Detail({
 }) {
     return (
         <div>
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</dt>
+            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {label}
+            </dt>
             <dd className="mt-1 text-sm">
                 {href ? (
                     <Link href={href} className="font-medium hover:underline">
