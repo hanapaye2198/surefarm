@@ -108,22 +108,6 @@ export default function AuthSplitLayout({
                     </div>
                 </main>
             </div>
-            <div className="relative hidden min-h-svh lg:block">
-                <img
-                    src={loginImage}
-                    alt="Coffee trees growing in rows on a green hillside"
-                    className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/10" />
-                <div className="absolute right-10 bottom-10 left-10 text-white">
-                    <p className="text-xs font-semibold tracking-[0.16em] uppercase">
-                        SureFarm
-                    </p>
-                    <p className="mt-2 max-w-sm text-3xl font-semibold tracking-tight text-balance">
-                        Verified from the ground up.
-                    </p>
-                </div>
-            </div>
         </div>
     );
 }

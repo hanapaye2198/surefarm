@@ -19,9 +19,26 @@ export type GoogleLatLngBounds = {
     isEmpty: () => boolean;
 };
 
+export type GoogleMapMouseEvent = {
+    latLng?: {
+        lat: () => number;
+        lng: () => number;
+    } | null;
+};
+
+export type GoogleInfoWindow = {
+    setContent: (content: string) => void;
+    setPosition: (position: GoogleLatLng) => void;
+    open: (map: GoogleMapInstance) => void;
+    close: () => void;
+};
+
 export type GoogleOverlay = {
     setMap: (map: GoogleMapInstance | null) => void;
-    addListener: (eventName: string, handler: () => void) => void;
+    addListener: (
+        eventName: string,
+        handler: (event?: GoogleMapMouseEvent) => void,
+    ) => void;
 };
 
 type GoogleMapOptions = {
@@ -83,6 +100,10 @@ type GoogleMapsNamespace = {
     Polygon: new (options: GoogleShapeOptions) => GoogleOverlay;
     Polyline: new (options: GoogleShapeOptions) => GoogleOverlay;
     Marker: new (options: GoogleMarkerOptions) => GoogleOverlay;
+    InfoWindow: new (options?: {
+        maxWidth?: number;
+        disableAutoPan?: boolean;
+    }) => GoogleInfoWindow;
     LatLngBounds: new () => GoogleLatLngBounds;
     SymbolPath: { CIRCLE: number };
     event: {
