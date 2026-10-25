@@ -11,6 +11,7 @@ use App\Models\Farm;
 use App\Models\FarmFinancing;
 use App\Models\User;
 use App\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,7 +21,11 @@ class FarmFinancingController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
         $records = FarmFinancing::query()
+            ->whereHas('farm', fn (Builder $farm) => $farm->visibleTo($user))
             ->with(['farm.farmer'])
             ->latest('date_granted')
             ->latest('id')
@@ -39,8 +44,6 @@ class FarmFinancingController extends Controller
                     'detail' => 'Balance '.$presented['loan_balance_label'],
                 ];
             });
-
-        $user = $request->user();
 
         return Inertia::render('coverage/index', [
             'kind' => 'financing',

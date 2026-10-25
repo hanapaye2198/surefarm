@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\CropType;
 use App\HarvestStatus;
 use App\Models\FarmHarvest;
 use App\Models\User;
@@ -25,7 +26,7 @@ class UpdateFarmHarvestRequest extends FormRequest
     {
         $optional = [];
 
-        foreach (['quality_grade', 'notes'] as $field) {
+        foreach (['quality_grade', 'notes', 'coffee_variety', 'estimated_green_bean_quantity_kg'] as $field) {
             if ($this->input($field) === '') {
                 $optional[$field] = null;
             }
@@ -45,6 +46,8 @@ class UpdateFarmHarvestRequest extends FormRequest
             'harvest_date' => ['required', 'date'],
             'quantity' => ['required', 'numeric', 'gt:0'],
             'unit' => ['required', 'string', Rule::in(ProductionLedger::UNITS)],
+            'coffee_variety' => ['nullable', 'string', 'max:100'],
+            'estimated_green_bean_quantity_kg' => ['nullable', 'numeric', 'gt:0', 'max:9999999999.99'],
             'quality_grade' => ['nullable', 'string', 'max:64'],
             'status' => ['required', Rule::enum(HarvestStatus::class)],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -62,6 +65,11 @@ class UpdateFarmHarvestRequest extends FormRequest
 
             if ($harvest->status === HarvestStatus::Completed && $this->input('status') === HarvestStatus::Cancelled->value) {
                 $validator->errors()->add('status', 'A completed harvest stays in the production history.');
+            }
+
+            if ($harvest->farm?->crop_type !== CropType::Coffee
+                && ($this->filled('coffee_variety') || $this->filled('estimated_green_bean_quantity_kg'))) {
+                $validator->errors()->add('coffee_variety', 'Coffee variety and green bean estimate apply only to coffee farms.');
             }
         });
     }

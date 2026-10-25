@@ -40,6 +40,9 @@ type HarvestFormValues = {
     quality_grade: string;
     status: string;
     notes: string;
+    coffee_variety: string;
+    estimated_green_bean_quantity_kg: string;
+    photos: File[];
 };
 
 const selectClassName =
@@ -122,6 +125,9 @@ export function HarvestForm({
             harvest_date: data.harvest_date,
             quantity: data.quantity,
             unit: data.unit,
+            coffee_variety: data.coffee_variety,
+            estimated_green_bean_quantity_kg:
+                data.estimated_green_bean_quantity_kg,
             quality_grade: data.quality_grade,
             status: data.status,
             notes: data.notes,
@@ -163,6 +169,14 @@ export function HarvestForm({
                                                 ? form.data.crop_type
                                                 : '',
                                         production_id: '',
+                                        coffee_variety:
+                                            match?.crop_type === 'coffee'
+                                                ? form.data.coffee_variety
+                                                : '',
+                                        estimated_green_bean_quantity_kg:
+                                            match?.crop_type === 'coffee'
+                                                ? form.data.estimated_green_bean_quantity_kg
+                                                : '',
                                     });
                                 }}
                                 className={selectClassName}
@@ -284,7 +298,11 @@ export function HarvestForm({
                     </Field>
 
                     <Field
-                        label="Quantity"
+                        label={
+                            selectedFarm?.crop_type === 'coffee'
+                                ? 'Coffee cherry quantity'
+                                : 'Harvest quantity'
+                        }
                         htmlFor="quantity"
                         required
                         error={form.errors.quantity}
@@ -340,6 +358,54 @@ export function HarvestForm({
                         />
                     </Field>
 
+                    {selectedFarm?.crop_type === 'coffee' && (
+                        <>
+                            <Field
+                                label="Coffee variety"
+                                htmlFor="coffee_variety"
+                                error={form.errors.coffee_variety}
+                            >
+                                <Input
+                                    id="coffee_variety"
+                                    value={form.data.coffee_variety}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'coffee_variety',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Arabica, Robusta, Liberica"
+                                />
+                            </Field>
+                            <Field
+                                label="Estimated green bean quantity (kg)"
+                                htmlFor="estimated_green_bean_quantity_kg"
+                                error={
+                                    form.errors.estimated_green_bean_quantity_kg
+                                }
+                            >
+                                <Input
+                                    id="estimated_green_bean_quantity_kg"
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    inputMode="decimal"
+                                    value={
+                                        form.data
+                                            .estimated_green_bean_quantity_kg
+                                    }
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'estimated_green_bean_quantity_kg',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="120"
+                                />
+                            </Field>
+                        </>
+                    )}
+
                     <Field
                         label="Status"
                         htmlFor="status"
@@ -375,6 +441,38 @@ export function HarvestForm({
                             }
                         />
                     </Field>
+                    {mode === 'create' && (
+                        <Field
+                            label="Harvest photos"
+                            htmlFor="photos"
+                            error={
+                                form.errors.photos ?? form.errors['photos.0']
+                            }
+                        >
+                            <Input
+                                id="photos"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                multiple
+                                onChange={(event) =>
+                                    form.setData(
+                                        'photos',
+                                        Array.from(event.target.files ?? []).slice(0, 6),
+                                    )
+                                }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Add up to six photos. Field capture time and GPS
+                                metadata are attached when submitted from the
+                                mobile app.
+                            </p>
+                            {form.data.photos.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                    {form.data.photos.map((file) => file.name).join(', ')}
+                                </p>
+                            )}
+                        </Field>
+                    )}
                 </CardContent>
             </Card>
 

@@ -5,9 +5,11 @@ namespace App\Actions;
 use App\AccessEventAction;
 use App\Models\Farmer;
 use App\Models\User;
+use App\Notifications\FarmerRegistrationReceivedNotification;
 use App\UserRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LinkFarmerAccount
 {
@@ -19,7 +21,8 @@ class LinkFarmerAccount
      */
     public function handle(User $actor, User $subject, string $farmerCode): Farmer
     {
-        return DB::transaction(function () use ($actor, $subject, $farmerCode): Farmer {
+        $linkedNow = false;
+        $farmer = DB::transaction(function () use ($actor, $subject, $farmerCode, &$linkedNow): Farmer {
             $this->ensureAdministrator($actor);
 
             $subject = User::query()->lockForUpdate()->findOrFail($subject->id);
@@ -63,6 +66,7 @@ class LinkFarmerAccount
             }
 
             $farmer->forceFill(['user_id' => $subject->id])->save();
+            $linkedNow = true;
 
             $this->events->handle(
                 $actor,
@@ -74,6 +78,17 @@ class LinkFarmerAccount
 
             return $farmer;
         });
+
+        if ($linkedNow) {
+            try {
+                $farmer->loadMissing('user');
+                $farmer->user?->notify(new FarmerRegistrationReceivedNotification($farmer));
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $farmer;
     }
 
     private function ensureAdministrator(User $actor): void

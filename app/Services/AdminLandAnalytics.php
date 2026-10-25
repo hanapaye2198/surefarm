@@ -239,8 +239,7 @@ class AdminLandAnalytics
             $farms->whereNotNull('verified_area_hectares')
                 ->whereColumn('declared_area_hectares', '!=', 'verified_area_hectares');
         } elseif ($filters['area'] === 'unrecorded') {
-            $farms->where('verification_status', FarmVerificationStatus::Verified)
-                ->whereNull('verified_area_hectares');
+            $farms->whereNull('verified_area_hectares');
         }
 
         if ($filters['search'] !== '') {
@@ -298,7 +297,6 @@ class AdminLandAnalytics
         $farmCount = (clone $farms)->count();
         $declared = round((float) (clone $farms)->sum('declared_area_hectares'), 2);
         $verifiedRecorded = (clone $farms)
-            ->where('verification_status', FarmVerificationStatus::Verified)
             ->whereNotNull('verified_area_hectares');
         $verified = round((float) (clone $verifiedRecorded)->sum('verified_area_hectares'), 2);
         $verifiedMissing = (clone $farms)
@@ -306,7 +304,7 @@ class AdminLandAnalytics
             ->whereNull('verified_area_hectares')
             ->count();
         $unverified = round((float) (clone $farms)
-            ->where('verification_status', '!=', FarmVerificationStatus::Verified)
+            ->whereNull('verified_area_hectares')
             ->sum('declared_area_hectares'), 2);
 
         $farmerDetail = $this->farmFiltersActive($filters)
@@ -322,11 +320,11 @@ class AdminLandAnalytics
                 'Verified farm area',
                 $this->hectares($verified),
                 $verifiedMissing > 0
-                    ? "Sum of recorded verified area on farms currently verified. {$verifiedMissing} verified ".($verifiedMissing === 1 ? 'farm has' : 'farms have').' no verified area recorded and '.($verifiedMissing === 1 ? 'is' : 'are').' excluded from this sum.'
-                    : 'Sum of recorded verified area on farms whose current status is verified.',
-                $this->url($filters, ['verification_status' => FarmVerificationStatus::Verified->value]),
+                    ? "Sum of accepted verified area across farms. {$verifiedMissing} currently verified ".($verifiedMissing === 1 ? 'farm has' : 'farms have').' no verified area recorded and '.($verifiedMissing === 1 ? 'is' : 'are').' excluded from this sum.'
+                    : 'Sum of accepted verified area across farms. A new verification does not remove the previously accepted area.',
+                $this->url($filters, ['verification_status' => '']),
             ),
-            $this->metric('unverified', 'Declared area not verified', $this->hectares($unverified), 'Declared hectares on farms whose current status is not verified. This is not a measured gap.', $this->url($filters, ['verification_status' => 'unverified'])),
+            $this->metric('unverified', 'Declared area without accepted area', $this->hectares($unverified), 'Declared hectares on farms with no recorded accepted verified area. This is not a measured gap.', $this->url($filters, ['area' => 'unrecorded'])),
             $this->metric('active', 'Active farms', (string) (clone $farms)->where('status', FarmStatus::Active)->count(), 'Farms whose farm status is active inside the current filters.', $this->url($filters, ['status' => FarmStatus::Active->value])),
             $this->metric('pending', 'Pending verification', (string) (clone $farms)->where('verification_status', FarmVerificationStatus::Pending)->count(), 'Farms whose current verification status is pending.', $this->url($filters, ['verification_status' => FarmVerificationStatus::Pending->value])),
             $this->metric('review', 'Needs review', (string) (clone $farms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(), 'Farms whose current verification status is needs review.', $this->url($filters, ['verification_status' => FarmVerificationStatus::NeedsReview->value])),
@@ -401,7 +399,7 @@ class AdminLandAnalytics
     {
         $declared = round((float) (clone $farms)->sum('declared_area_hectares'), 2);
         $verified = round((float) (clone $farms)
-            ->where('verification_status', FarmVerificationStatus::Verified)
+            ->whereNotNull('verified_area_hectares')
             ->sum('verified_area_hectares'), 2);
 
         return [
@@ -789,7 +787,7 @@ class AdminLandAnalytics
         return match ($layer) {
             'boundaries' => $farms->whereHas('boundary'),
             'verified' => $farms
-                ->where('verification_status', FarmVerificationStatus::Verified)
+                ->whereNotNull('verified_area_hectares')
                 ->whereHas('boundary'),
             'pending' => $farms->whereIn('verification_status', [
                 FarmVerificationStatus::Pending,
@@ -917,7 +915,7 @@ class AdminLandAnalytics
             $this->insight('action', 'Needs review', 'The latest decision asked for another review.', (clone $farms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(), $this->url($filters, ['verification_status' => FarmVerificationStatus::NeedsReview->value])),
             $this->insight('review', 'Verification failed', 'The latest decision is failed. Declared area was not changed.', (clone $farms)->where('verification_status', FarmVerificationStatus::Failed)->count(), $this->url($filters, ['verification_status' => FarmVerificationStatus::Failed->value])),
             $this->insight('review', 'No saved boundary', 'These farms have no polygon. Coordinates, when present, remain a point on the location layer.', (clone $farms)->whereDoesntHave('boundary')->count(), $this->url($filters, ['boundary' => 'missing'])),
-            $this->insight('review', 'Verified without a recorded area', 'Status is verified, but verified area is empty. The sum of verified hectares does not treat that gap as zero without telling you.', (clone $farms)->where('verification_status', FarmVerificationStatus::Verified)->whereNull('verified_area_hectares')->count(), $this->url($filters, ['area' => 'unrecorded'])),
+            $this->insight('review', 'No accepted area recorded', 'These farms have no recorded verified area. The declared area remains available, but it is not treated as a measured value.', (clone $farms)->whereNull('verified_area_hectares')->count(), $this->url($filters, ['area' => 'unrecorded'])),
             $this->insight('info', 'Declared and verified area differ', 'Both measurements are recorded and they are not equal. SureFarm has no configured policy threshold for this list.', (clone $farms)->whereNotNull('verified_area_hectares')->whereColumn('declared_area_hectares', '!=', 'verified_area_hectares')->count(), $this->url($filters, ['area' => 'differs'])),
             $this->insight('review', 'Incomplete location', 'Province or municipality is blank, or the farm has neither a boundary nor coordinates. A blank barangay is optional and is not included here.', $this->incompleteLocationCount(clone $farms), $this->url($filters, ['location' => 'incomplete'])),
             $this->insight('info', 'Farmers with more than one farm', 'Area is summed across every farm registered to the same farmer.', $this->farmersWithSeveralFarms(clone $farms), $this->url($filters, ['rank' => 'declared'])),

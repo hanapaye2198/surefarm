@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\MobileAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CooperativeController;
 use App\Http\Controllers\FarmActivityController;
 use App\Http\Controllers\FarmBoundaryController;
 use App\Http\Controllers\FarmController;
@@ -34,8 +35,16 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
         ->middleware('signed')->name('media.farm-drone-image');
     Route::get('media/farm-verification/{photo}', [FarmVerificationController::class, 'signedPhoto'])
         ->middleware('signed')->name('media.farm-verification-photo');
+    Route::get('media/farm-harvest/{photo}', [FarmHarvestController::class, 'signedPhoto'])
+        ->middleware('signed')->name('media.farm-harvest-photo');
 
-    Route::middleware(['auth:sanctum', 'verified', 'abilities:mobile'])->group(function (): void {
+    Route::middleware([
+        'auth:sanctum',
+        'verified',
+        'abilities:mobile',
+        App\Http\Middleware\EnsureMobileAccountIsUsable::class,
+        'registry.scope',
+    ])->group(function (): void {
         Route::get('me', [MobileAuthController::class, 'me']);
         Route::delete('logout', [MobileAuthController::class, 'logout']);
 
@@ -48,11 +57,18 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             Route::middleware('role:admin,operations')->get('modules/{module}', [ModulePlaceholderController::class, 'show'])
                 ->where('module', 'crop-management|finance|insurance|logistics-export|cooperatives|reports');
 
+            Route::middleware('role:operations,cooperative_officer')->group(function (): void {
+                Route::get('cooperatives', [CooperativeController::class, 'index']);
+                Route::get('cooperatives/{cooperative}', [CooperativeController::class, 'show']);
+            });
+
             Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
                 Route::get('farms', [MobileFarmerController::class, 'farms']);
                 Route::get('farms/{farm}', [MobileFarmerController::class, 'showFarm']);
                 Route::post('farms/{farm}/boundary-update-request', [MobileFarmerController::class, 'requestBoundaryUpdate']);
-                Route::get('activities', [MobileFarmerController::class, 'activities']);
+                Route::get('activities', [MobileFarmerController::class, 'activities'])->name('farmer.activities');
+                Route::post('activities', [MobileFarmerController::class, 'storeActivity'])->name('farmer.activities.store');
+                Route::post('harvests', [MobileFarmerController::class, 'storeHarvest'])->name('farmer.harvests.store');
                 Route::get('notifications', [MobileFarmerController::class, 'notifications']);
                 Route::post('notifications/{notification}/read', [MobileFarmerController::class, 'markNotificationRead']);
                 Route::get('profile', [MobileFarmerController::class, 'profile']);
@@ -61,7 +77,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                     ->name('farmer.profile.photo');
             });
 
-            Route::middleware('role:operations')->group(function (): void {
+            Route::middleware(['role:operations', 'registry.scope'])->group(function (): void {
                 Route::get('farmers/create', [FarmerController::class, 'create']);
                 Route::post('farmers', [FarmerController::class, 'store']);
                 Route::get('farmers/{farmer}/edit', [FarmerController::class, 'edit']);
@@ -109,7 +125,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::put('farms/{farm}/financing/{financing}', [FarmFinancingController::class, 'update']);
             });
 
-            Route::middleware('role:admin')->group(function (): void {
+            Route::middleware(['role:admin', 'registry.scope'])->group(function (): void {
                 Route::delete('farms/{farm}/boundary', [FarmBoundaryController::class, 'destroy']);
                 Route::get('settings/activity-types', [ActivityTypeController::class, 'index']);
                 Route::post('settings/activity-types', [ActivityTypeController::class, 'store']);
@@ -117,12 +133,12 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::put('settings/activity-types/{activityType}', [ActivityTypeController::class, 'update']);
             });
 
-            Route::middleware('role:operations,field_verifier')->group(function (): void {
+            Route::middleware(['role:admin,operations,field_verifier', 'registry.scope'])->group(function (): void {
                 Route::post('farms/{farm}/boundary', [FarmBoundaryController::class, 'store']);
                 Route::put('farms/{farm}/boundary', [FarmBoundaryController::class, 'update']);
             });
 
-            Route::middleware('role:operations')->group(function (): void {
+            Route::middleware(['role:operations', 'registry.scope'])->group(function (): void {
                 Route::get('farmers', [FarmerController::class, 'index']);
                 Route::get('farmers/{farmer}/photo', [FarmerController::class, 'photo']);
                 Route::get('farmers/{farmer}', [FarmerController::class, 'show']);
@@ -143,7 +159,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::get('traceability/{lot}', [TraceabilityController::class, 'show']);
             });
 
-            Route::middleware('role:field_verifier')->group(function (): void {
+            Route::middleware('role:admin,field_verifier')->group(function (): void {
                 Route::get('farm-verification', [FarmVerificationController::class, 'index']);
                 Route::get('farm-verification/{farm}', [FarmVerificationController::class, 'show']);
                 Route::post('farm-verification/{farm}', [FarmVerificationController::class, 'store']);

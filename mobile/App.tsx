@@ -43,7 +43,12 @@ import {
     type FormSpec,
 } from './src/forms';
 
-type Role = 'admin' | 'operations' | 'field_verifier' | 'farmer';
+type Role =
+    | 'admin'
+    | 'operations'
+    | 'field_verifier'
+    | 'cooperative_officer'
+    | 'farmer';
 type User = {
     id: number;
     name: string;
@@ -104,6 +109,186 @@ type Section = {
 
 const APP_FONT_FAMILY = 'Proxima Nova';
 
+type BoundaryDraft = {
+    points: [number, number][];
+    accuracies: (number | null)[];
+    capturedAt: string[];
+};
+
+const boundaryDraftWriteQueue = new Map<string, Promise<void>>();
+const BOUNDARY_DRAFT_CHUNK_SIZE = 1500;
+
+function isBoundaryDraft(value: unknown): value is BoundaryDraft {
+    if (!value || typeof value !== 'object') return false;
+    const draft = value as Partial<BoundaryDraft>;
+    if (
+        !Array.isArray(draft.points) ||
+        !Array.isArray(draft.accuracies) ||
+        !Array.isArray(draft.capturedAt) ||
+        draft.points.length < 1 ||
+        draft.points.length > 1000 ||
+        draft.accuracies.length !== draft.points.length ||
+        draft.capturedAt.length !== draft.points.length
+    )
+        return false;
+
+    return draft.points.every(
+        (point) =>
+            Array.isArray(point) &&
+            point.length === 2 &&
+            Number.isFinite(point[0]) &&
+            Number.isFinite(point[1]) &&
+            Math.abs(point[0]) <= 180 &&
+            Math.abs(point[1]) <= 90,
+    ) && draft.accuracies.every(
+        (accuracy) =>
+            accuracy === null ||
+            (typeof accuracy === 'number' &&
+                Number.isFinite(accuracy) &&
+                accuracy >= 0 &&
+                accuracy <= 1000),
+    ) && draft.capturedAt.every(
+        (capturedAt) =>
+            typeof capturedAt === 'string' &&
+            !Number.isNaN(Date.parse(capturedAt)),
+    );
+}
+
+async function getBoundaryDraftItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+        return typeof window === 'undefined' ? null : window.localStorage.getItem(key);
+    }
+
+    return SecureStore.getItemAsync(key);
+}
+
+async function setBoundaryDraftItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+        if (typeof window === 'undefined') throw new Error('Local storage is unavailable.');
+        window.localStorage.setItem(key, value);
+        return;
+    }
+
+    await SecureStore.setItemAsync(key, value);
+}
+
+async function removeBoundaryDraftItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(key);
+        return;
+    }
+
+    await SecureStore.deleteItemAsync(key);
+}
+
+async function readBoundaryDraft(key: string): Promise<BoundaryDraft | null> {
+    const rawManifest = await getBoundaryDraftItem(`${key}:manifest`);
+    if (!rawManifest) return null;
+
+    const manifest = JSON.parse(rawManifest) as {
+        generation?: unknown;
+        chunks?: unknown;
+    };
+    if (
+        typeof manifest.generation !== 'string' ||
+        !Number.isInteger(manifest.chunks) ||
+        Number(manifest.chunks) < 1 ||
+        Number(manifest.chunks) > 1000
+    )
+        throw new Error('The saved GPS draft is incomplete.');
+
+    const chunks: string[] = [];
+    for (let index = 0; index < Number(manifest.chunks); index += 1) {
+        const chunk = await getBoundaryDraftItem(
+            `${key}:${manifest.generation}:${index}`,
+        );
+        if (chunk === null) throw new Error('The saved GPS draft is incomplete.');
+        chunks.push(chunk);
+    }
+
+    const draft: unknown = JSON.parse(chunks.join(''));
+    if (!isBoundaryDraft(draft)) throw new Error('The saved GPS draft is invalid.');
+    return draft;
+}
+
+async function writeBoundaryDraft(
+    key: string,
+    draft: BoundaryDraft | null,
+): Promise<void> {
+    const rawPrevious = await getBoundaryDraftItem(`${key}:manifest`);
+    let previous: { generation?: unknown; chunks?: unknown } | null = null;
+    try {
+        previous = rawPrevious ? JSON.parse(rawPrevious) : null;
+    } catch {
+        previous = null;
+    }
+    const previousGeneration =
+        typeof previous?.generation === 'string' ? previous.generation : null;
+    const previousChunkCount =
+        Number.isInteger(previous?.chunks) &&
+        Number(previous?.chunks) >= 1 &&
+        Number(previous?.chunks) <= 1000
+            ? Number(previous?.chunks)
+            : 0;
+
+    if (!draft || draft.points.length === 0) {
+        await removeBoundaryDraftItem(`${key}:manifest`);
+        if (previousGeneration && previousChunkCount > 0) {
+            await Promise.all(
+                Array.from({ length: previousChunkCount }, (_, index) =>
+                    removeBoundaryDraftItem(
+                        `${key}:${previousGeneration}:${index}`,
+                    ),
+                ),
+            );
+        }
+        return;
+    }
+
+    const generation = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const serialized = JSON.stringify(draft);
+    const chunks: string[] = [];
+    for (let index = 0; index < serialized.length; index += BOUNDARY_DRAFT_CHUNK_SIZE) {
+        chunks.push(serialized.slice(index, index + BOUNDARY_DRAFT_CHUNK_SIZE));
+    }
+
+    for (const [index, chunk] of chunks.entries()) {
+        await setBoundaryDraftItem(`${key}:${generation}:${index}`, chunk);
+    }
+    await setBoundaryDraftItem(
+        `${key}:manifest`,
+        JSON.stringify({ generation, chunks: chunks.length }),
+    );
+
+    if (previousGeneration && previousChunkCount > 0) {
+        await Promise.all(
+            Array.from({ length: previousChunkCount }, (_, index) =>
+                removeBoundaryDraftItem(
+                    `${key}:${previousGeneration}:${index}`,
+                ).catch(() => undefined),
+            ),
+        );
+    }
+}
+
+async function enqueueBoundaryDraftWrite(
+    key: string,
+    draft: BoundaryDraft | null,
+): Promise<void> {
+    const previous = boundaryDraftWriteQueue.get(key) ?? Promise.resolve();
+    const next = previous
+        .catch(() => undefined)
+        .then(() => writeBoundaryDraft(key, draft));
+    boundaryDraftWriteQueue.set(key, next);
+
+    try {
+        await next;
+    } finally {
+        if (boundaryDraftWriteQueue.get(key) === next)
+            boundaryDraftWriteQueue.delete(key);
+    }
+}
+
 function imageCaptureTimestamp(
     asset: ImagePicker.ImagePickerAsset,
 ): string | null {
@@ -132,6 +317,63 @@ function imageCaptureTimestamp(
     );
 
     return Number.isNaN(capturedAt.getTime()) ? null : capturedAt.toISOString();
+}
+
+function exifNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (value && typeof value === 'object' && 'numerator' in value) {
+        const rational = value as { numerator?: unknown; denominator?: unknown };
+        const numerator = exifNumber(rational.numerator);
+        const denominator = exifNumber(rational.denominator);
+        return numerator === null || denominator === null || denominator === 0
+            ? null
+            : numerator / denominator;
+    }
+    if (typeof value !== 'string') return null;
+
+    const trimmed = value.trim();
+    const fraction = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+    if (fraction) {
+        const denominator = Number(fraction[2]);
+        return denominator === 0 ? null : Number(fraction[1]) / denominator;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function imageCaptureCoordinates(
+    asset: ImagePicker.ImagePickerAsset,
+): { latitude: number; longitude: number } | null {
+    const metadata = asset.exif;
+    if (!metadata || typeof metadata !== 'object') return null;
+
+    const exif = metadata as Record<string, unknown>;
+    const coordinate = (value: unknown, reference: unknown): number | null => {
+        const parts = Array.isArray(value)
+            ? value.map(exifNumber)
+            : typeof value === 'string' && value.includes(',')
+              ? value.split(',').map(exifNumber)
+              : [exifNumber(value)];
+
+        if (parts.some((part) => part === null)) return null;
+
+        const numbers = parts as number[];
+        const degrees = numbers.length >= 3
+            ? numbers[0] + numbers[1] / 60 + numbers[2] / 3600
+            : numbers[0];
+        const hemisphere = typeof reference === 'string' ? reference.toUpperCase() : '';
+        const signed = hemisphere === 'S' || hemisphere === 'W' ? -degrees : degrees;
+
+        return Number.isFinite(signed) ? signed : null;
+    };
+
+    const latitude = coordinate(exif.GPSLatitude, exif.GPSLatitudeRef);
+    const longitude = coordinate(exif.GPSLongitude, exif.GPSLongitudeRef);
+
+    return latitude === null || longitude === null
+        ? null
+        : { latitude, longitude };
 }
 
 function withoutDemoWords(
@@ -342,7 +584,8 @@ const SECTIONS: Section[] = [
         key: 'cooperatives',
         title: 'Cooperatives',
         description: 'Cooperative directory',
-        path: '/modules/cooperatives',
+        path: '/cooperatives',
+        roles: ['operations', 'cooperative_officer'],
         icon: 'cooperatives',
     },
     {
@@ -394,9 +637,11 @@ const ROLE_LABEL: Record<Role, string> = {
     admin: 'Administrator',
     operations: 'Operations',
     field_verifier: 'Farm validator',
+    cooperative_officer: 'Cooperative officer',
     farmer: 'Farmer',
 };
 const COLLECTION: Record<string, string> = {
+    'cooperatives/index': 'cooperatives',
     'farmers/index': 'farmers',
     'farms/index': 'farms',
     'farm-verification/index': 'farms',
@@ -468,6 +713,8 @@ const COLLECTION_FILTERS: Record<
 };
 const TITLES: Record<string, string> = {
     dashboard: 'Dashboard',
+    'cooperatives/index': 'Cooperatives',
+    'cooperatives/show': 'Cooperative details',
     'farmers/index': 'Farmers',
     'farmers/show': 'Farmer details',
     'farmers/create': 'Register farmer',
@@ -541,7 +788,7 @@ function SureFarmApp() {
     const [pageError, setPageError] = useState('');
     const [values, setValues] = useState<Record<string, any>>({});
     const [photos, setPhotos] = useState<
-        Record<string, ImagePicker.ImagePickerAsset>
+        Record<string, ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]>
     >({});
     const [formError, setFormError] = useState('');
     const [search, setSearch] = useState('');
@@ -560,6 +807,8 @@ function SureFarmApp() {
                     return ['dashboard', 'farm-verification'].includes(
                         item.key,
                     );
+                if (user?.role === 'cooperative_officer')
+                    return ['dashboard', 'cooperatives'].includes(item.key);
                 return (
                     !item.roles ||
                     user?.role === 'admin' ||
@@ -579,10 +828,18 @@ function SureFarmApp() {
                 const result = await apiRequest<Page>(path, activeToken);
                 setPage(result);
             } catch (error) {
-                if (error instanceof ApiError && error.status === 401) {
+                if (
+                    error instanceof ApiError &&
+                    (error.status === 401 ||
+                        ['account_suspended', 'two_factor_setup_required'].includes(
+                            error.code ?? '',
+                        ))
+                ) {
                     await removeStoredToken().catch(() => undefined);
                     setToken(null);
                     setUser(null);
+                    setPage(null);
+                    setAuthError(error.message);
                 } else {
                     setPageError(
                         error instanceof Error
@@ -618,6 +875,7 @@ function SureFarmApp() {
                     (error.status === 401 || error.status === 403)
                 ) {
                     await removeStoredToken().catch(() => undefined);
+                    if (error.status === 403) setAuthError(error.message);
                 } else if (mounted) {
                     setAuthError(
                         error instanceof Error
@@ -789,13 +1047,28 @@ function SureFarmApp() {
     };
 
     const openLocalForm = (component: string, data: Record<string, any>) => {
-        const spec = formForPage(component, data);
+        const contextualData =
+            component === 'farm-verification/inspection' &&
+            page?.component === 'farm-verification/show'
+                ? {
+                      ...data,
+                      cropLabel: page.data.farm?.crop_label,
+                      boundary_revision:
+                          page.data.inspection?.boundary_revision ?? 0,
+                      crop_observed:
+                          data.crop_observed ??
+                          data.coffee_crop_observed ??
+                          page.data.inspection?.checklist?.crop_observed ??
+                          page.data.inspection?.checklist?.coffee_crop_observed,
+                  }
+                : data;
+        const spec = formForPage(component, contextualData);
         if (!spec) return;
         setStack((previous) => [
             ...previous,
             { path: `local:${component}`, title: spec.title },
         ]);
-        setPage({ component, data });
+        setPage({ component, data: contextualData });
         setPanel('page');
     };
 
@@ -859,19 +1132,27 @@ function SureFarmApp() {
                     else if (value !== null && value !== undefined)
                         form.append(key.replace(/_input$/, ''), String(value));
                 }
-                for (const [key, asset] of Object.entries(photos))
-                    form.append(key, {
-                        uri: asset.uri,
-                        name: asset.fileName ?? `${key}.jpg`,
-                        type: asset.mimeType ?? 'image/jpeg',
-                    } as unknown as Blob);
+                for (const [key, selection] of Object.entries(photos)) {
+                    const assets = Array.isArray(selection)
+                        ? selection
+                        : [selection];
+                    assets.forEach((asset, index) => {
+                        form.append(key === 'photos' ? 'photos[]' : key, {
+                            uri: asset.uri,
+                            name: asset.fileName ?? `${key}-${index + 1}.jpg`,
+                            type: asset.mimeType ?? 'image/jpeg',
+                        } as unknown as Blob);
+                    });
+                }
                 body = form;
             } else {
                 body = Object.fromEntries(
-                    Object.entries(values).map(([key, value]) => [
-                        key.replace(/_input$/, ''),
-                        typeof value === 'boolean' ? Number(value) : value,
-                    ]),
+                    Object.entries(values)
+                        .filter(([key]) => spec.fields.find((field) => field.key === key)?.kind !== 'image')
+                        .map(([key, value]) => [
+                            key.replace(/_input$/, ''),
+                            typeof value === 'boolean' ? Number(value) : value,
+                        ]),
                 );
                 for (const field of spec.fields.filter(
                     (item) => item.kind === 'geojson',
@@ -884,11 +1165,33 @@ function SureFarmApp() {
             }
             const requestMethod =
                 body instanceof FormData ? 'POST' : spec.method;
-            await apiRequest(spec.path, token, { method: requestMethod, body });
-            const nextStack =
-                stack.length > 1
-                    ? stack.slice(0, -1)
-                    : [{ path: '/dashboard', title: 'Dashboard' }];
+            const response = await apiRequest<{ redirect_url?: string }>(
+                spec.path,
+                token,
+                { method: requestMethod, body },
+            );
+            if (
+                page?.data?.verificationCapture === true &&
+                page.data.farmId &&
+                page.data.verificationReference
+            ) {
+                const draftKey = `surefarm:boundary-draft:${page.data.farmId}:${page.data.verificationReference}`;
+                await enqueueBoundaryDraftWrite(draftKey, null).catch(
+                    () => undefined,
+                );
+            }
+            const previousStack = stack.slice(0, -1);
+            const destination = response.redirect_url
+                ? nextPath(response.redirect_url)
+                : null;
+            const nextStack = destination
+                ? [
+                      ...previousStack,
+                      { path: destination, title: titleFor(destination) },
+                  ]
+                : previousStack.length > 0
+                  ? previousStack
+                  : [{ path: '/dashboard', title: 'Dashboard' }];
             setStack(nextStack);
             await loadPage(nextStack[nextStack.length - 1].path);
             Alert.alert('Saved', 'Your changes have been saved.');
@@ -930,19 +1233,122 @@ function SureFarmApp() {
                   mediaTypes: ['images'],
                   exif: true,
                   quality: 0.8,
+                  allowsMultipleSelection: field === 'photos',
+                  ...(field === 'photos' ? { selectionLimit: 6 } : {}),
               });
-        if (!result.canceled && result.assets[0]) {
-            const asset = result.assets[0];
-            setPhotos((old) => ({ ...old, [field]: asset }));
-            if (
-                page?.component === 'farm-verification/inspection' &&
-                field === 'evidence_photo'
-            ) {
-                const capturedAt =
-                    imageCaptureTimestamp(asset) ??
-                    (camera ? new Date().toISOString() : '');
-                setValues((old) => ({ ...old, captured_at: capturedAt }));
+        if (result.canceled || !result.assets[0]) return;
+
+        const pickedAssets = field === 'photos'
+            ? result.assets
+            : result.assets.slice(0, 1);
+        const currentSelection = photos[field];
+        const currentAssets = Array.isArray(currentSelection)
+            ? currentSelection
+            : currentSelection
+              ? [currentSelection]
+              : [];
+        const nextAssets = field === 'photos'
+            ? [...currentAssets, ...pickedAssets].slice(0, 6)
+            : pickedAssets;
+        if (field === 'photos' && currentAssets.length + pickedAssets.length > 6) {
+            Alert.alert('Photo limit', 'A harvest can include up to six photos.');
+        }
+        setPhotos((old) => ({
+            ...old,
+            [field]: field === 'photos' ? nextAssets : nextAssets[0],
+        }));
+
+        if (field === 'photos') {
+            let oldMetadata: Record<string, unknown>[] = [];
+            try {
+                const parsed = JSON.parse(String(values.photos_metadata ?? '[]'));
+                if (Array.isArray(parsed)) oldMetadata = parsed;
+            } catch {
+                oldMetadata = [];
             }
+            const retainedCount = Math.min(currentAssets.length, nextAssets.length);
+            const addedCount = Math.max(0, nextAssets.length - retainedCount);
+            const metadata = oldMetadata.slice(0, Math.max(0, retainedCount));
+            let fallbackCoordinates: { latitude: number; longitude: number } | null = null;
+
+            if (
+                camera &&
+                pickedAssets.some((asset) => imageCaptureCoordinates(asset) === null)
+            ) {
+                try {
+                    const locationPermission =
+                        await Location.requestForegroundPermissionsAsync();
+                    if (locationPermission.granted) {
+                        const position = await Location.getCurrentPositionAsync({
+                            accuracy: Location.Accuracy.High,
+                        });
+                        fallbackCoordinates = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        };
+                    }
+                } catch {
+                    // The photo is kept if device location is unavailable.
+                }
+            }
+
+            for (const asset of pickedAssets.slice(0, addedCount)) {
+                const coordinates =
+                    imageCaptureCoordinates(asset) ??
+                    (camera ? fallbackCoordinates : null);
+                metadata.push({
+                    captured_at:
+                        imageCaptureTimestamp(asset) ??
+                        (camera ? new Date().toISOString() : null),
+                    latitude: coordinates?.latitude ?? null,
+                    longitude: coordinates?.longitude ?? null,
+                });
+            }
+
+            setValues((old) => ({
+                ...old,
+                photos_metadata: JSON.stringify(metadata.slice(0, nextAssets.length)),
+            }));
+        }
+
+        const asset = pickedAssets[0];
+        if (
+            page?.component === 'farm-verification/inspection' &&
+            field === 'evidence_photo'
+        ) {
+            const capturedAt =
+                imageCaptureTimestamp(asset) ??
+                (camera ? new Date().toISOString() : '');
+            let coordinates = imageCaptureCoordinates(asset);
+
+            if (coordinates === null && camera) {
+                try {
+                    const locationPermission =
+                        await Location.requestForegroundPermissionsAsync();
+                    if (locationPermission.granted) {
+                        const position = await Location.getCurrentPositionAsync({
+                            accuracy: Location.Accuracy.High,
+                        });
+                        coordinates = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        };
+                    }
+                } catch {
+                    // Keep the photo if location metadata is unavailable.
+                }
+            }
+
+            setValues((old) => ({
+                ...old,
+                captured_at: capturedAt,
+                ...(coordinates === null
+                    ? {}
+                    : {
+                          latitude: coordinates.latitude.toFixed(7),
+                          longitude: coordinates.longitude.toFixed(7),
+                      }),
+            }));
         }
     };
 
@@ -1101,7 +1507,7 @@ function SureFarmApp() {
                 </View>
             ) : spec && page ? (
                 <FormView
-                    key={`${current.path}:${page.data.farmId ?? ''}`}
+                    key={`${current.path}:${page.data.farmId ?? ''}:${page.data.verificationReference ?? ''}`}
                     spec={spec}
                     data={page.data}
                     token={token ?? ''}
@@ -1118,6 +1524,7 @@ function SureFarmApp() {
                                 : {}),
                         }))
                     }
+                    onClearImages={() => setPhotos({})}
                     onImage={(key, camera) => void chooseImage(key, camera)}
                     onOpen={(path, title) => void navigate(path, title)}
                     onSubmit={() => void submitForm(spec)}
@@ -1634,8 +2041,8 @@ function Dashboard({
         },
         {
             icon: 'calendar',
-            label: "Today's assignments",
-            value: summary.assigned_today ?? 0,
+            label: 'Scheduled today',
+            value: summary.scheduled_today ?? 0,
         },
         {
             icon: 'verified',
@@ -1887,6 +2294,48 @@ function Dashboard({
                         ))}
                     </View>
                 )}
+            {user?.role === 'field_verifier' && (
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Today’s scheduled farms</Text>
+                    {(page.data.today_assignments ?? []).length ? (
+                        page.data.today_assignments.map((farm: any) => (
+                            <Pressable
+                                key={farm.id}
+                                onPress={() =>
+                                    onOpen({
+                                        key: 'farm-verification',
+                                        title: farm.farm_name,
+                                        path: `/farm-verification/${farm.id}`,
+                                        icon: 'verification',
+                                        description: '',
+                                    })
+                                }
+                                style={({ pressed }) => [
+                                    styles.relatedRow,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text style={styles.recordTitle}>
+                                    {farm.farm_name}
+                                </Text>
+                                <Text style={styles.recordCode}>
+                                    {farm.farm_id} · {farm.scheduled_for}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {farm.farmer_name ?? 'Farmer'} · {farm.location}
+                                </Text>
+                                <VerificationProgress
+                                    status={farm.verification_status}
+                                />
+                            </Pressable>
+                        ))
+                    ) : (
+                        <Text style={styles.inlineEmpty}>
+                            No farm visits are scheduled for today.
+                        </Text>
+                    )}
+                </View>
+            )}
             {user?.role === 'field_verifier' && (
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Assigned farm map</Text>
@@ -2157,6 +2606,164 @@ function DataPage(props: {
           ? collection.data
           : [];
 
+    if (page.component === 'cooperatives/show') {
+        const cooperative = page.data.cooperative ?? {};
+        const stats = page.data.stats ?? {};
+        const memberships = page.data.memberships ?? {};
+        const members: any[] = Array.isArray(memberships.data)
+            ? memberships.data
+            : [];
+        const officers: any[] = Array.isArray(page.data.officers)
+            ? page.data.officers
+            : [];
+        const history: any[] = Array.isArray(page.data.history)
+            ? page.data.history
+            : [];
+
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>
+                        {cooperative.name ?? 'Cooperative'}
+                    </Text>
+                    <Text style={styles.mutedSmall}>
+                        {[cooperative.code, cooperative.status_label]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </Text>
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Overview</Text>
+                    <SummaryRow
+                        label="Active members"
+                        value={stats.active_members ?? 0}
+                    />
+                    <SummaryRow
+                        label="Suspended memberships"
+                        value={stats.suspended_members ?? 0}
+                    />
+                    <SummaryRow
+                        label="Ended memberships"
+                        value={stats.ended_members ?? 0}
+                    />
+                    <SummaryRow label="Farms" value={stats.farms ?? 0} />
+                    <SummaryRow
+                        label="Verified farms"
+                        value={stats.verified_farms ?? 0}
+                    />
+                    <SummaryRow
+                        label="Activities in period"
+                        value={stats.activities ?? 0}
+                    />
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Completed harvest</Text>
+                    {(page.data.harvests ?? []).length === 0 ? (
+                        <Text style={styles.mutedSmall}>
+                            No completed harvest is recorded for this period.
+                        </Text>
+                    ) : (
+                        (page.data.harvests as any[]).map((harvest, index) => (
+                            <Text
+                                key={`${harvest.unit}-${index}`}
+                                style={styles.muted}
+                            >
+                                {harvest.label}
+                            </Text>
+                        ))
+                    )}
+                    <Text style={[styles.mutedSmall, { marginTop: 8 }]}>
+                        Quantities remain in their recorded units.
+                    </Text>
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Members</Text>
+                    {members.length === 0 ? (
+                        <Text style={styles.mutedSmall}>
+                            No memberships match this view.
+                        </Text>
+                    ) : (
+                        members.map((member) => (
+                            <View key={member.id} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>
+                                    {member.farmer_name}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {[
+                                        member.farmer_code,
+                                        member.province,
+                                        member.status_label,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    {member.joined_on
+                                        ? `Joined ${member.joined_on}`
+                                        : member.origin}
+                                </Text>
+                            </View>
+                        ))
+                    )}
+                    {memberships.next_page_url && (
+                        <Secondary
+                            title="Load more members"
+                            onPress={() =>
+                                props.onLoadMore(
+                                    nextPath(memberships.next_page_url),
+                                    'Cooperative details',
+                                    'memberships',
+                                )
+                            }
+                        />
+                    )}
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Officers</Text>
+                    {officers.length === 0 ? (
+                        <Text style={styles.mutedSmall}>
+                            No active officers are assigned.
+                        </Text>
+                    ) : (
+                        officers.map((officer) => (
+                            <View key={officer.id} style={styles.relatedRow}>
+                                <Text style={styles.recordTitle}>
+                                    {officer.name}
+                                </Text>
+                                <Text style={styles.mutedSmall}>
+                                    Assigned {officer.assigned_on}
+                                </Text>
+                            </View>
+                        ))
+                    )}
+                </View>
+
+                {history.length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Recent history</Text>
+                        {history.map((event) => (
+                            <View key={event.id} style={styles.relatedRow}>
+                                <Text style={styles.muted}>{event.summary}</Text>
+                                <Text style={styles.mutedSmall}>
+                                    {[event.actor, event.created_at]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+        );
+    }
+
     if (page.component === 'mobile/farmer-farms') {
         const farms: any[] = page.data.farms ?? [];
         return (
@@ -2299,6 +2906,45 @@ function DataPage(props: {
                         />
                     </View>
                 )}
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Declared area history</Text>
+                    {(page.data.area_declarations ?? []).length > 0 ? (
+                        page.data.area_declarations.map((entry: any) => {
+                            const title =
+                                entry.event_type === 'legacy_baseline'
+                                    ? 'Baseline at history rollout'
+                                    : entry.event_type === 'initial'
+                                      ? 'Initial declaration'
+                                      : 'Declared area updated';
+                            const previous =
+                                entry.previous_area_hectares == null
+                                    ? 'No earlier value recorded'
+                                    : `${Number(entry.previous_area_hectares).toFixed(2)} ha`;
+
+                            return (
+                                <View
+                                    key={`area-declaration-${entry.id}`}
+                                    style={styles.relatedRow}
+                                >
+                                    <Text style={styles.recordTitle}>{title}</Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {previous} {'→'}{' '}
+                                        {Number(entry.declared_area_hectares).toFixed(2)} ha
+                                    </Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {entry.recorded_at ?? 'Date not recorded'}
+                                        {' · '}
+                                        {entry.recorded_by ?? 'System baseline'}
+                                    </Text>
+                                </View>
+                            );
+                        })
+                    ) : (
+                        <Text style={styles.inlineEmpty}>
+                            No declared area changes have been recorded.
+                        </Text>
+                    )}
+                </View>
                 {page.data.boundary && (
                     <BoundaryCard
                         boundary={page.data.boundary}
@@ -2411,6 +3057,35 @@ function DataPage(props: {
                                         ? ` · ${item.quality_grade}`
                                         : ''}
                                 </Text>
+                                {item.coffee_variety ? (
+                                    <SummaryRow
+                                        label="Coffee variety"
+                                        value={item.coffee_variety}
+                                    />
+                                ) : null}
+                                {item.estimated_green_bean_quantity_kg != null ? (
+                                    <SummaryRow
+                                        label="Estimated green beans"
+                                        value={`${item.estimated_green_bean_quantity_kg} kg`}
+                                    />
+                                ) : null}
+                                {(item.photos ?? []).length > 0 && (
+                                    <ScrollView horizontal style={styles.evidenceGrid}>
+                                        {item.photos.map((photo: any) => (
+                                            <View key={photo.id} style={styles.evidenceItem}>
+                                                <Image
+                                                    source={{ uri: photo.url }}
+                                                    style={[styles.evidenceImage, { width: 112, height: 92 }]}
+                                                />
+                                                {photo.captured_at ? (
+                                                    <Text style={styles.mutedSmall}>
+                                                        {new Date(photo.captured_at).toLocaleDateString()}
+                                                    </Text>
+                                                ) : null}
+                                            </View>
+                                        ))}
+                                    </ScrollView>
+                                )}
                                 {item.notes ? (
                                     <Text style={styles.mutedSmall}>
                                         {item.notes}
@@ -2446,6 +3121,38 @@ function DataPage(props: {
                 contentContainerStyle={styles.content}
             >
                 <Text style={styles.cardTitle}>Farm activities</Text>
+                {page.data.farms?.length > 0 && (
+                    <View style={styles.card}>
+                        <Text style={styles.mutedSmall}>
+                            Keep your farm records up to date.
+                        </Text>
+                        <Primary
+                            title="Record an activity"
+                            onPress={() =>
+                                props.onLocalForm('farmer/activity', {
+                                    farms: page.data.farms,
+                                    activityTypes: page.data.activityTypes ?? [],
+                                    activityStatuses:
+                                        page.data.activityStatuses ?? [],
+                                    units: page.data.units ?? [],
+                                    today: page.data.today,
+                                })
+                            }
+                        />
+                        <Secondary
+                            title="Record a harvest"
+                            onPress={() =>
+                                props.onLocalForm('farmer/harvest', {
+                                    farms: page.data.farms,
+                                    harvestStatuses:
+                                        page.data.harvestStatuses ?? [],
+                                    units: page.data.units ?? [],
+                                    today: page.data.today,
+                                })
+                            }
+                        />
+                    </View>
+                )}
                 {activities.length ? (
                     activities.map((item) => (
                         <View key={`activity-${item.id}`} style={styles.card}>
@@ -2497,6 +3204,35 @@ function DataPage(props: {
                                 {item.harvest_date ?? ''} ·{' '}
                                 {item.status_label ?? item.status}
                             </Text>
+                            {item.coffee_variety ? (
+                                <SummaryRow
+                                    label="Coffee variety"
+                                    value={item.coffee_variety}
+                                />
+                            ) : null}
+                            {item.estimated_green_bean_quantity_kg != null ? (
+                                <SummaryRow
+                                    label="Estimated green beans"
+                                    value={`${item.estimated_green_bean_quantity_kg} kg`}
+                                />
+                            ) : null}
+                            {(item.photos ?? []).length > 0 && (
+                                <ScrollView horizontal style={styles.evidenceGrid}>
+                                    {item.photos.map((photo: any) => (
+                                        <View key={photo.id} style={styles.evidenceItem}>
+                                            <Image
+                                                source={{ uri: photo.url }}
+                                                style={[styles.evidenceImage, { width: 112, height: 92 }]}
+                                            />
+                                            {photo.captured_at ? (
+                                                <Text style={styles.mutedSmall}>
+                                                    {new Date(photo.captured_at).toLocaleDateString()}
+                                                </Text>
+                                            ) : null}
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
                         </View>
                     ))
                 ) : (
@@ -3031,26 +3767,41 @@ function DataPage(props: {
 
     if (page.component === 'farm-verification/show') {
         const farm = page.data.farm ?? {};
+        const canVerify = ['field_verifier', 'admin'].includes(props.user.role);
         const canVerifierManageBoundary =
-            props.user.role === 'field_verifier' &&
+            canVerify &&
             ['pending', 'needs_review', 'failed', 'in_progress'].includes(
                 farm.verification_status,
             );
         const inspection = page.data.inspection;
+        const cropObserved =
+            inspection?.checklist?.crop_observed ??
+            (farm.crop_label === 'Coffee'
+                ? inspection?.checklist?.coffee_crop_observed
+                : undefined);
         const inspectionChecks = [
             'farm_exists',
             'location_matches',
-            'coffee_crop_observed',
+            'crop_observed',
             'boundary_captured',
             'area_checked',
-            'required_photos_captured',
             'farmer_or_representative_met',
         ];
         const hasCompleteChecklist = inspectionChecks.every(
-            (key) => typeof inspection?.checklist?.[key] === 'boolean',
+            (key) =>
+                typeof (key === 'crop_observed'
+                    ? cropObserved
+                    : inspection?.checklist?.[key]) === 'boolean',
         );
+        const hasFreshBoundary =
+            inspection?.boundary_captured_for_attempt === true;
         const hasInspection = Boolean(
-            hasCompleteChecklist && inspection?.photos?.length,
+            hasFreshBoundary &&
+                hasCompleteChecklist &&
+                inspection?.photos?.some(
+                    (photo) =>
+                        photo.boundary_revision === inspection.boundary_revision,
+                ),
         );
         return (
             <ScrollView
@@ -3068,7 +3819,9 @@ function DataPage(props: {
                     <Text style={styles.mutedSmall}>
                         {page.data.boundary
                             ? farm.verification_status === 'in_progress'
-                                ? 'Capture or review the boundary, complete the field checks, then submit a result.'
+                                ? hasFreshBoundary
+                                    ? 'Complete the field checks, attach evidence, then submit a result.'
+                                    : 'Capture and save a fresh GPS boundary for this verification before completing field checks.'
                                 : 'Start the field visit to open a verification session.'
                             : farm.verification_status === 'in_progress'
                               ? 'Capture and save the GPS boundary to continue this verification.'
@@ -3123,6 +3876,7 @@ function DataPage(props: {
                                 farmId: farm.id,
                                 hasBoundary: Boolean(page.data.boundary),
                                 boundary: page.data.boundary,
+                                freshBoundaryCapture: true,
                                 google_maps_api_key:
                                     page.data.google_maps_api_key,
                             })
@@ -3133,12 +3887,20 @@ function DataPage(props: {
                     farm.verification_status === 'in_progress' &&
                     (page.data.boundary ? (
                         <Secondary
-                            title="Update GPS boundary"
+                            title={
+                                hasFreshBoundary
+                                    ? 'Update GPS boundary'
+                                    : 'Capture fresh GPS boundary'
+                            }
                             onPress={() =>
                                 props.onLocalForm('farm-boundary/edit', {
                                     farmId: farm.id,
                                     hasBoundary: true,
                                     boundary: page.data.boundary,
+                                    freshBoundaryCapture: true,
+                                    verificationCapture: true,
+                                    verificationReference:
+                                        page.data.inspection?.verification_reference,
                                     google_maps_api_key:
                                         page.data.google_maps_api_key,
                                 })
@@ -3151,13 +3913,17 @@ function DataPage(props: {
                                 props.onLocalForm('farm-boundary/edit', {
                                     farmId: farm.id,
                                     hasBoundary: false,
+                                    freshBoundaryCapture: true,
+                                    verificationCapture: true,
+                                    verificationReference:
+                                        page.data.inspection?.verification_reference,
                                     google_maps_api_key:
                                         page.data.google_maps_api_key,
                                 })
                             }
                         />
                     ))}
-                {props.user.role === 'field_verifier' &&
+                {canVerify &&
                     farm.verification_status === 'verified' && (
                         <View style={styles.noticeCard}>
                             <AppIcon name="lock" size={17} color={API_FOREST} />
@@ -3167,7 +3933,7 @@ function DataPage(props: {
                             </Text>
                         </View>
                     )}
-                {props.user.role === 'field_verifier' &&
+                {canVerify &&
                     ['pending', 'needs_review', 'failed'].includes(
                         farm.verification_status,
                     ) && (
@@ -3181,7 +3947,7 @@ function DataPage(props: {
                             onPress={() => props.onStartVerification(farm.id)}
                         />
                     )}
-                {props.user.role === 'field_verifier' &&
+                {canVerify &&
                     farm.verification_status === 'verified' && (
                         <Primary
                             title="Start re-verification"
@@ -3189,12 +3955,13 @@ function DataPage(props: {
                             onPress={() => props.onStartVerification(farm.id)}
                         />
                     )}
-                {props.user.role === 'field_verifier' &&
+                {canVerify &&
                     farm.verification_status === 'in_progress' && (
                         <>
                             {page.data.boundary &&
+                                hasFreshBoundary &&
                                 !hasInspection &&
-                                props.user.role === 'field_verifier' && (
+                                canVerify && (
                                     <Primary
                                         title="Complete inspection & add evidence"
                                         onPress={() =>
@@ -3263,9 +4030,6 @@ function DataPage(props: {
                                                     area_checked:
                                                         inspection.checklist
                                                             .area_checked,
-                                                    required_photos_captured:
-                                                        inspection.checklist
-                                                            .required_photos_captured,
                                                     farmer_or_representative_met:
                                                         inspection.checklist
                                                             .farmer_or_representative_met,
@@ -3354,9 +4118,6 @@ function DataPage(props: {
                                                 area_checked:
                                                     inspection.checklist
                                                         ?.area_checked,
-                                                required_photos_captured:
-                                                    inspection.checklist
-                                                        ?.required_photos_captured,
                                                 farmer_or_representative_met:
                                                     inspection.checklist
                                                         ?.farmer_or_representative_met,
@@ -3371,7 +4132,7 @@ function DataPage(props: {
                                     }
                                 />
                             )}
-                            {inspection && (
+                            {inspection && hasFreshBoundary && (
                                 <View style={styles.card}>
                                     <Text style={styles.cardTitle}>
                                         Field inspection
@@ -3390,10 +4151,11 @@ function DataPage(props: {
                                         )}
                                     />
                                     <SummaryRow
-                                        label="Coffee crop observed"
+                                        label={`${farm.crop_label ?? 'Registered crop'} observed`}
                                         value={checklistAnswer(
-                                            inspection.checklist
-                                                ?.coffee_crop_observed,
+                                            inspection.checklist?.crop_observed ??
+                                                inspection.checklist
+                                                    ?.coffee_crop_observed,
                                         )}
                                     />
                                     <SummaryRow
@@ -3410,11 +4172,8 @@ function DataPage(props: {
                                         )}
                                     />
                                     <SummaryRow
-                                        label="Required photos captured"
-                                        value={checklistAnswer(
-                                            inspection.checklist
-                                                ?.required_photos_captured,
-                                        )}
+                                        label="Evidence photos"
+                                        value={`${inspection.photos?.length ?? 0} uploaded`}
                                     />
                                     <SummaryRow
                                         label="Farmer or representative met"
@@ -3477,6 +4236,18 @@ function DataPage(props: {
                                                               ).toLocaleString()
                                                             : 'Capture time unavailable'}
                                                     </Text>
+                                                    {photo.uploaded_at ? (
+                                                        <Text
+                                                            style={
+                                                                styles.mutedSmall
+                                                            }
+                                                        >
+                                                            Uploaded{' '}
+                                                            {new Date(
+                                                                photo.uploaded_at,
+                                                            ).toLocaleString()}
+                                                        </Text>
+                                                    ) : null}
                                                     {photo.latitude != null &&
                                                     photo.longitude != null ? (
                                                         <Text
@@ -4384,6 +5155,17 @@ function BoundaryCard({
                     <Text style={styles.mutedSmall}>Captured</Text>
                 </View>
             </View>
+            <Text style={styles.mutedSmall}>
+                Reported capture method: {boundary.capture_method === 'device_gps'
+                    ? 'Device GPS'
+                    : boundary.capture_method === 'map_manual'
+                      ? 'Web map edit'
+                      : 'Not recorded'}
+            </Text>
+            <Text style={styles.mutedSmall}>
+                GPS source and capture times are reported by the app and are
+                not independently verified by the server.
+            </Text>
             {Array.isArray(boundary.gps_point_accuracies) &&
                 boundary.gps_point_accuracies.length > 0 && (
                     <View style={styles.boundaryAccuracyList}>
@@ -4397,6 +5179,22 @@ function BoundaryCard({
                                     {accuracy == null
                                         ? 'accuracy unavailable'
                                         : `±${Number(accuracy).toFixed(0)} m`}
+                                </Text>
+                            ),
+                        )}
+                    </View>
+                )}
+            {Array.isArray(boundary.gps_point_captured_at) &&
+                boundary.gps_point_captured_at.length > 0 && (
+                    <View style={styles.boundaryAccuracyList}>
+                        {boundary.gps_point_captured_at.map(
+                            (capturedAt: string, index: number) => (
+                                <Text
+                                    key={`gps-captured-at-${index}`}
+                                    style={styles.mutedSmall}
+                                >
+                                    Point {index + 1} device-reported time:{' '}
+                                    {new Date(capturedAt).toLocaleString()}
                                 </Text>
                             ),
                         )}
@@ -4489,10 +5287,11 @@ function FormView(props: {
     data: Record<string, any>;
     token: string;
     values: Record<string, any>;
-    photos: Record<string, ImagePicker.ImagePickerAsset>;
+    photos: Record<string, ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]>;
     error: string;
     busy: boolean;
     onChange: (key: string, value: any) => void;
+    onClearImages: () => void;
     onImage: (key: string, camera: boolean) => void;
     onOpen: (path: string, title: string) => void;
     onSubmit: () => void;
@@ -4503,6 +5302,7 @@ function FormView(props: {
     const [boundaryPointAccuracies, setBoundaryPointAccuracies] = useState<
         (number | null)[]
     >(() =>
+        !props.data.freshBoundaryCapture && !props.data.verificationCapture &&
         Array.isArray(props.data.boundary?.gps_point_accuracies)
             ? props.data.boundary.gps_point_accuracies.map(
                   (accuracy: unknown) =>
@@ -4512,6 +5312,14 @@ function FormView(props: {
               )
             : [],
     );
+    const [boundaryPointCapturedAt, setBoundaryPointCapturedAt] = useState<
+        string[]
+    >(() =>
+        !props.data.freshBoundaryCapture && !props.data.verificationCapture &&
+        Array.isArray(props.data.boundary?.gps_point_captured_at)
+            ? props.data.boundary.gps_point_captured_at.map(String)
+            : [],
+    );
     const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
     const [gpsCoordinate, setGpsCoordinate] = useState<BoundaryPoint | null>(
         null,
@@ -4519,7 +5327,9 @@ function FormView(props: {
     const [measuredBoundaryPreview, setMeasuredBoundaryPreview] = useState<
         string | null
     >(() => {
-        const existingArea = props.data.boundary?.gps_measured_area_hectares;
+        const existingArea = props.data.freshBoundaryCapture || props.data.verificationCapture
+            ? null
+            : props.data.boundary?.gps_measured_area_hectares;
         return existingArea == null
             ? null
             : typeof existingArea === 'string'
@@ -4529,6 +5339,120 @@ function FormView(props: {
     const boundaryField = props.spec.fields.find(
         (field) => field.kind === 'geojson',
     );
+    const verificationCapture = props.data.verificationCapture === true;
+    const boundaryDraftKey =
+        verificationCapture &&
+        props.data.farmId &&
+        typeof props.data.verificationReference === 'string' &&
+        props.data.verificationReference.length > 0
+            ? `surefarm:boundary-draft:${props.data.farmId}:${props.data.verificationReference}`
+            : null;
+    const [boundaryDraftReady, setBoundaryDraftReady] = useState(
+        () => !verificationCapture,
+    );
+    const [boundaryDraftMessage, setBoundaryDraftMessage] = useState('');
+    const [boundaryDraftError, setBoundaryDraftError] = useState('');
+    const persistedBoundarySnapshot = useRef('');
+    const gpsCaptureInProgress = useRef(false);
+    const onChangeRef = useRef(props.onChange);
+    onChangeRef.current = props.onChange;
+
+    useEffect(() => {
+        let cancelled = false;
+
+        if (!verificationCapture || !boundaryDraftKey || !boundaryField) {
+            if (verificationCapture && !boundaryDraftKey) {
+                setBoundaryDraftError(
+                    'This verification is missing its reference, so its GPS draft cannot be safely restored. Reload the verification before capturing points.',
+                );
+            }
+            setBoundaryDraftReady(true);
+            return;
+        }
+
+        setBoundaryDraftReady(false);
+        void readBoundaryDraft(boundaryDraftKey)
+            .then((draft) => {
+                if (cancelled) return;
+                if (draft) {
+                    persistedBoundarySnapshot.current = JSON.stringify(draft);
+                    setBoundaryPoints(draft.points);
+                    setBoundaryPointAccuracies(draft.accuracies);
+                    setBoundaryPointCapturedAt(draft.capturedAt);
+                    onChangeRef.current(
+                        boundaryField.key,
+                        JSON.stringify({
+                            type: 'Polygon',
+                            coordinates: [draft.points],
+                        }),
+                    );
+                    onChangeRef.current('gps_point_accuracies', draft.accuracies);
+                    onChangeRef.current('gps_point_captured_at', draft.capturedAt);
+                    onChangeRef.current('capture_method', 'device_gps');
+                    setBoundaryDraftMessage(
+                        'Restored GPS points saved on this device.',
+                    );
+                } else {
+                    setBoundaryDraftMessage(
+                        'GPS points are saved on this device as you add them.',
+                    );
+                }
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setBoundaryDraftError(
+                    'Could not restore the saved GPS draft. Keep this screen open while recording the boundary.',
+                );
+            })
+            .finally(() => {
+                if (!cancelled) setBoundaryDraftReady(true);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [boundaryDraftKey, boundaryField?.key, verificationCapture]);
+
+    useEffect(() => {
+        if (!verificationCapture || !boundaryDraftKey || !boundaryDraftReady)
+            return;
+
+        const draft: BoundaryDraft | null = boundaryPoints.length
+            ? {
+                  points: boundaryPoints,
+                  accuracies: boundaryPoints.map(
+                      (_, index) => boundaryPointAccuracies[index] ?? null,
+                  ),
+                  capturedAt: boundaryPoints.map(
+                      (_, index) => boundaryPointCapturedAt[index] ?? '',
+                  ),
+              }
+            : null;
+        const snapshot = draft ? JSON.stringify(draft) : '';
+        if (snapshot === persistedBoundarySnapshot.current) return;
+
+        void enqueueBoundaryDraftWrite(boundaryDraftKey, draft)
+            .then(() => {
+                persistedBoundarySnapshot.current = snapshot;
+                if (draft) {
+                    setBoundaryDraftError('');
+                    setBoundaryDraftMessage('GPS draft saved on this device.');
+                }
+            })
+            .catch(() => {
+                setBoundaryDraftError(
+                    'Could not save the GPS draft on this device. Keep this screen open until the boundary is submitted.',
+                );
+            });
+    }, [
+        boundaryDraftKey,
+        boundaryDraftReady,
+        boundaryPointAccuracies,
+        boundaryPointCapturedAt,
+        boundaryPoints,
+        verificationCapture,
+    ]);
+
     const hasCoordinates =
         props.spec.fields.some((field) => field.key === 'latitude') &&
         props.spec.fields.some((field) => field.key === 'longitude');
@@ -4575,16 +5499,28 @@ function FormView(props: {
     }, [boundaryField?.key, boundaryPoints, props.values]);
 
     const captureLocation = async () => {
-        const permission = await Location.requestForegroundPermissionsAsync();
-        if (!permission.granted) {
+        if (gpsCaptureInProgress.current) return;
+        if (verificationCapture && !boundaryDraftReady) {
             Alert.alert(
-                'Location permission needed',
-                'Allow location access while using SureFarm to record farm coordinates.',
+                'Restoring GPS draft',
+                'Wait for saved boundary points to load before adding another point.',
             );
             return;
         }
 
+        gpsCaptureInProgress.current = true;
+
         try {
+            const permission =
+                await Location.requestForegroundPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert(
+                    'Location permission needed',
+                    'Allow location access while using SureFarm to record farm coordinates.',
+                );
+                return;
+            }
+
             const position = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
             });
@@ -4610,9 +5546,43 @@ function FormView(props: {
                     ...existingAccuracies,
                     position.coords.accuracy,
                 ];
+                const existingCaptureTimes = currentBoundaryPoints.map(
+                    (_, index) => boundaryPointCapturedAt[index] ?? '',
+                );
+                const positionTimestamp = Number(position.timestamp);
+                const nextCaptureTimes = [
+                    ...existingCaptureTimes,
+                    new Date(
+                        Number.isFinite(positionTimestamp)
+                            ? positionTimestamp
+                            : Date.now(),
+                    ).toISOString(),
+                ];
+                if (verificationCapture && boundaryDraftKey) {
+                    const draft = {
+                        points: nextPoints,
+                        accuracies: nextAccuracies,
+                        capturedAt: nextCaptureTimes,
+                    };
+                    try {
+                        await enqueueBoundaryDraftWrite(boundaryDraftKey, draft);
+                        persistedBoundarySnapshot.current = JSON.stringify(draft);
+                        setBoundaryDraftError('');
+                        setBoundaryDraftMessage(
+                            'GPS draft saved on this device.',
+                        );
+                    } catch {
+                        setBoundaryDraftError(
+                            'Could not save the GPS draft on this device. Keep this screen open until the boundary is submitted.',
+                        );
+                    }
+                }
                 setBoundaryPoints(nextPoints);
                 setBoundaryPointAccuracies(nextAccuracies);
+                setBoundaryPointCapturedAt(nextCaptureTimes);
                 props.onChange('gps_point_accuracies', nextAccuracies);
+                props.onChange('gps_point_captured_at', nextCaptureTimes);
+                props.onChange('capture_method', 'device_gps');
                 setMeasuredBoundaryPreview(null);
                 props.onChange(
                     boundaryField.key,
@@ -4631,10 +5601,28 @@ function FormView(props: {
                 'Could not read location',
                 'Move outdoors and try again.',
             );
+        } finally {
+            gpsCaptureInProgress.current = false;
         }
     };
 
     const closeBoundary = async () => {
+        if (gpsCaptureInProgress.current) {
+            Alert.alert(
+                'GPS point in progress',
+                'Wait for the current location reading before closing the boundary.',
+            );
+            return;
+        }
+
+        if (verificationCapture && !boundaryDraftReady) {
+            Alert.alert(
+                'Restoring GPS draft',
+                'Wait for saved boundary points to load before closing the boundary.',
+            );
+            return;
+        }
+
         const points: [number, number][] = currentBoundaryPoints.map(
             (item): [number, number] => [item.longitude, item.latitude],
         );
@@ -4653,8 +5641,21 @@ function FormView(props: {
         const accuracies = points.map(
             (_, index) => boundaryPointAccuracies[index] ?? null,
         );
+        const capturedAt = points.map(
+            (_, index) => boundaryPointCapturedAt[index] ?? '',
+        );
+        if (capturedAt.some((timestamp) => timestamp === '')) {
+            Alert.alert(
+                'GPS capture details missing',
+                'Undo the affected point and capture it again with device GPS.',
+            );
+            return;
+        }
         setBoundaryPointAccuracies(accuracies);
+        setBoundaryPointCapturedAt(capturedAt);
         props.onChange('gps_point_accuracies', accuracies);
+        props.onChange('gps_point_captured_at', capturedAt);
+        props.onChange('capture_method', 'device_gps');
         setBoundaryPoints(points);
         setMeasuredBoundaryPreview(null);
         try {
@@ -4678,10 +5679,42 @@ function FormView(props: {
         }
     };
 
-    const undoBoundaryPoint = () => {
+    const undoBoundaryPoint = async () => {
+        if (gpsCaptureInProgress.current) {
+            Alert.alert(
+                'GPS point in progress',
+                'Wait for the current location reading before undoing a point.',
+            );
+            return;
+        }
+
         if (!boundaryField || currentBoundaryPoints.length === 0) return;
         const next = currentBoundaryPoints.slice(0, -1);
         const nextAccuracies = boundaryPointAccuracies.slice(0, -1);
+        const nextCaptureTimes = boundaryPointCapturedAt.slice(0, -1);
+        if (verificationCapture && boundaryDraftKey) {
+            const draft: BoundaryDraft | null = next.length
+                ? {
+                      points: next.map((point): [number, number] => [
+                          point.longitude,
+                          point.latitude,
+                      ]),
+                      accuracies: nextAccuracies,
+                      capturedAt: nextCaptureTimes,
+                  }
+                : null;
+            try {
+                await enqueueBoundaryDraftWrite(boundaryDraftKey, draft);
+                persistedBoundarySnapshot.current = draft
+                    ? JSON.stringify(draft)
+                    : '';
+                setBoundaryDraftError('');
+            } catch {
+                setBoundaryDraftError(
+                    'Could not update the saved GPS draft. Keep this screen open until the boundary is submitted.',
+                );
+            }
+        }
         setBoundaryPoints(
             next.map((point): [number, number] => [
                 point.longitude,
@@ -4689,7 +5722,9 @@ function FormView(props: {
             ]),
         );
         setBoundaryPointAccuracies(nextAccuracies);
+        setBoundaryPointCapturedAt(nextCaptureTimes);
         props.onChange('gps_point_accuracies', nextAccuracies);
+        props.onChange('gps_point_captured_at', nextCaptureTimes);
         setMeasuredBoundaryPreview(null);
         props.onChange(
             boundaryField.key,
@@ -4823,6 +5858,21 @@ function FormView(props: {
                             the polygon. Undo removes the most recent point
                             before you submit.
                         </Text>
+                        {verificationCapture && !boundaryDraftReady && (
+                            <Text style={styles.mutedSmall}>
+                                Restoring saved GPS points from this device…
+                            </Text>
+                        )}
+                        {verificationCapture && boundaryDraftMessage ? (
+                            <Text style={styles.mutedSmall}>
+                                {boundaryDraftMessage}
+                            </Text>
+                        ) : null}
+                        {verificationCapture && boundaryDraftError ? (
+                            <Text style={styles.errorText}>
+                                {boundaryDraftError}
+                            </Text>
+                        ) : null}
                         <BoundaryMap
                             points={currentBoundaryPoints}
                             height={210}
@@ -4858,6 +5908,15 @@ function FormView(props: {
                                     : `±${Math.round(boundaryPointAccuracies[index] as number)} m`}
                             </Text>
                         ))}
+                        {boundaryPointCapturedAt.map((capturedAt, index) => (
+                            <Text
+                                key={`captured-point-time-${index}`}
+                                style={styles.mutedSmall}
+                            >
+                                Point {index + 1} device-reported time:{' '}
+                                {new Date(capturedAt).toLocaleTimeString()}
+                            </Text>
+                        ))}
                         {gpsCoordinate && (
                             <Text style={styles.coordinateText}>
                                 Latest: {gpsCoordinate.latitude.toFixed(6)},{' '}
@@ -4879,6 +5938,22 @@ function FormView(props: {
                     </View>
                 )}
                 {props.spec.fields.map((field) => {
+                    if (field.kind === 'hidden') return null;
+                    if (
+                        field.key === 'boundary_geojson' &&
+                        props.spec.path.includes('/boundary')
+                    ) return null;
+                    const selectedFarm = (props.data.farms ?? []).find(
+                        (farm: any) => String(farm.id) === String(props.values.farm_id ?? ''),
+                    ) ?? props.data.harvest?.farm;
+                    if (
+                        (field.key === 'coffee_variety' || field.key === 'estimated_green_bean_quantity_kg') &&
+                        selectedFarm?.crop_type !== 'coffee'
+                    ) return null;
+
+                    const displayField = field.key === 'quantity' && selectedFarm
+                        ? { ...field, label: selectedFarm?.crop_type === 'coffee' ? 'Coffee cherry quantity' : 'Harvest quantity' }
+                        : field;
                     let options = optionList(field.options, props.data);
                     if (
                         field.key === 'destination_stage_id' &&
@@ -4906,7 +5981,7 @@ function FormView(props: {
                     return (
                         <InputField
                             key={field.key}
-                            field={field}
+                            field={displayField}
                             value={props.values[field.key]}
                             options={options}
                             photo={props.photos[field.key]}
@@ -4918,6 +5993,15 @@ function FormView(props: {
                             onChange={(value) => {
                                 if (field.kind === 'geojson')
                                     setMeasuredBoundaryPreview(null);
+                                if (field.key === 'farm_id') {
+                                    props.onChange('coffee_variety', '');
+                                    props.onChange(
+                                        'estimated_green_bean_quantity_kg',
+                                        '',
+                                    );
+                                    props.onChange('photos_metadata', '');
+                                    props.onClearImages();
+                                }
                                 props.onChange(field.key, value);
                             }}
                             onImage={(camera) =>
@@ -4932,7 +6016,16 @@ function FormView(props: {
                 <Primary
                     title="Save changes"
                     busy={props.busy}
-                    onPress={props.onSubmit}
+                    onPress={() => {
+                        if (verificationCapture && !boundaryDraftReady) {
+                            Alert.alert(
+                                'Restoring GPS draft',
+                                'Wait for saved boundary points to load before submitting.',
+                            );
+                            return;
+                        }
+                        props.onSubmit();
+                    }}
                 />
                 {props.spec.path === '/settings/profile' && (
                     <Secondary
@@ -4954,12 +6047,17 @@ function InputField(props: {
     field: FieldSpec;
     value: any;
     options: { value: string; label: string }[];
-    photo?: ImagePicker.ImagePickerAsset;
+    photo?: ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[];
     captureTime?: string;
     onChange: (value: any) => void;
     onImage: (camera: boolean) => void;
 }) {
     const { field } = props;
+    const selectedPhotos = Array.isArray(props.photo)
+        ? props.photo
+        : props.photo
+          ? [props.photo]
+          : [];
     if (field.kind === 'toggle')
         return (
             <View style={styles.toggle}>
@@ -5008,24 +6106,27 @@ function InputField(props: {
         return (
             <View style={styles.field}>
                 <Label text={field.label} />
-                {props.photo && (
-                    <>
+                {field.hint && <Text style={styles.hint}>{field.hint}</Text>}
+                {selectedPhotos.map((photo, index) => (
+                    <View key={`${photo.uri}-${index}`}>
                         <Image
-                            source={{ uri: props.photo.uri }}
+                            source={{ uri: photo.uri }}
                             style={styles.photoPreview}
                         />
                         <Text style={styles.mutedSmall}>
-                            {props.captureTime
+                            {field.multiple
+                                ? `Photo ${index + 1} selected`
+                                : props.captureTime
                                 ? `Captured ${new Date(props.captureTime).toLocaleString()}`
                                 : 'Capture time unavailable. The upload time will be recorded.'}
                         </Text>
-                    </>
-                )}
+                    </View>
+                ))}
                 <View style={styles.imageActions}>
                     {field.cameraOnly ? (
                         <Secondary
                             title={
-                                props.photo
+                                selectedPhotos.length > 0
                                     ? 'Retake face photo'
                                     : 'Capture face photo'
                             }
@@ -5034,7 +6135,7 @@ function InputField(props: {
                     ) : (
                         <>
                             <Secondary
-                                title="Choose photo"
+                                title={field.multiple ? 'Choose photos' : 'Choose photo'}
                                 onPress={() => props.onImage(false)}
                             />
                             <Secondary
@@ -5595,6 +6696,7 @@ function BottomItem({
 
 function titleFor(path: string) {
     const clean = path.split('?')[0].replace(/^\//, '');
+    if (/^cooperatives\/\d+$/.test(clean)) return TITLES['cooperatives/show'];
     return (
         TITLES[clean] ??
         TITLES[`${clean}/index`] ??
@@ -5603,6 +6705,7 @@ function titleFor(path: string) {
 }
 function collectionIcon(component: string): IconName {
     const icons: Record<string, IconName> = {
+        'cooperatives/index': 'cooperatives',
         'farmers/index': 'farmers',
         'farms/index': 'farms',
         'farm-verification/index': 'verification',
@@ -5618,6 +6721,7 @@ function collectionIcon(component: string): IconName {
 }
 function collectionDescription(component: string) {
     const descriptions: Record<string, string> = {
+        'cooperatives/index': 'Cooperative directory and membership totals',
         'farmers/index': 'Farmer profiles and registered farm portfolios',
         'farms/index':
             'Registered land, declared area, and verification status',
@@ -5636,6 +6740,7 @@ function collectionDescription(component: string) {
 }
 function emptyCollectionDescription(component: string) {
     const messages: Record<string, string> = {
+        'cooperatives/index': 'Cooperatives will appear here when they are registered.',
         'farmers/index':
             'No farmer profiles match this view. Register a farmer to start a portfolio.',
         'farms/index':
@@ -5782,6 +6887,10 @@ function recordSubtitle(row: Record<string, any>) {
         row.received_date,
         row.activity_date,
         row.status_label,
+        row.code ? `Code ${row.code}` : null,
+        row.active_members_count != null
+            ? `${row.active_members_count} active members`
+            : null,
     ]
         .filter((x) => x !== undefined && x !== null && x !== '')
         .map(String)
@@ -5810,7 +6919,8 @@ function withCollectionQuery(
 }
 function nextPath(url: string) {
     try {
-        const parsed = new URL(url, API_URL);
+        const parsed = new URL(url, SITE_URL);
+        if (parsed.origin !== new URL(SITE_URL).origin) return '/dashboard';
         const root = '/api/mobile';
         return `${parsed.pathname.startsWith(root) ? parsed.pathname.slice(root.length) : parsed.pathname}${parsed.search}`;
     } catch {
@@ -5862,6 +6972,7 @@ function rowPath(component: string, row: Record<string, any>) {
     const id = row.id;
     if (id === undefined || id === null) return null;
     const routes: Record<string, string> = {
+        'cooperatives/index': `/cooperatives/${id}`,
         'farmers/index': `/farmers/${id}`,
         'farms/index': `/farms/${id}`,
         'farm-verification/index': `/farm-verification/${id}`,
@@ -5949,19 +7060,24 @@ function detailActions(
             { title: 'Add farm', path: `/farmers/${id}/farms/create` },
         );
     if (component === 'farms/show' && id && operations)
-        actions.push(
-            { title: 'Edit farm', path: `/farms/${id}/edit` },
-            {
-                title: 'Edit farm boundary',
-                local: 'farm-boundary/edit',
-                data: {
-                    farmId: id,
-                    hasBoundary: Boolean(data.boundary),
-                    boundary: data.boundary,
-                    google_maps_api_key: data.google_maps_api_key,
-                },
+        actions.push({ title: 'Edit farm', path: `/farms/${id}/edit` });
+    if (
+        component === 'farms/show' &&
+        id &&
+        operations &&
+        data.can_manage_boundary
+    )
+        actions.push({
+            title: 'Edit farm boundary',
+            local: 'farm-boundary/edit',
+            data: {
+                farmId: id,
+                hasBoundary: Boolean(data.boundary),
+                boundary: data.boundary,
+                freshBoundaryCapture: true,
+                google_maps_api_key: data.google_maps_api_key,
             },
-        );
+        });
     if (
         component === 'farms/show' &&
         id &&

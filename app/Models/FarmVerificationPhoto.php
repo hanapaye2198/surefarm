@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\URL;
 
 #[Fillable([
     'farm_verification_id',
+    'boundary_revision',
     'evidence_type',
     'storage_path',
     'original_name',
@@ -29,6 +30,7 @@ class FarmVerificationPhoto extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'file_size' => 'integer',
+            'boundary_revision' => 'integer',
         ];
     }
 
@@ -50,6 +52,7 @@ class FarmVerificationPhoto extends Model
         return [
             'id' => $this->id,
             'type' => $this->evidence_type,
+            'boundary_revision' => (int) $this->boundary_revision,
             'name' => $this->original_name,
             'url' => URL::temporarySignedRoute(
                 'api.mobile.media.farm-verification-photo',
@@ -59,6 +62,7 @@ class FarmVerificationPhoto extends Model
             'captured_at' => $this->captured_at === null
                 ? null
                 : Carbon::parse($this->captured_at)->toIso8601String(),
+            'uploaded_at' => $this->created_at?->toIso8601String(),
             'latitude' => $this->latitude === null ? null : (float) $this->latitude,
             'longitude' => $this->longitude === null ? null : (float) $this->longitude,
             'uploaded_by' => $this->uploader?->name,

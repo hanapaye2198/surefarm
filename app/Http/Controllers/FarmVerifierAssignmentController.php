@@ -24,7 +24,13 @@ class FarmVerifierAssignmentController extends Controller
             abort(403);
         }
 
-        $assign->handle($actor, $user, (string) $request->validated('farm_code'));
+        $scheduledFor = $request->validated('scheduled_for');
+        $assign->handle(
+            $actor,
+            $user,
+            (string) $request->validated('farm_code'),
+            is_string($scheduledFor) ? $scheduledFor : null,
+        );
 
         Inertia::flash('toast', [
             'type' => 'success',

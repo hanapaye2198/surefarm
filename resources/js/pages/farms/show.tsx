@@ -73,6 +73,9 @@ type FarmProfile = {
     boundary: {
         geojson: BoundaryGeoJson;
         gps_measured_area_hectares: number;
+        gps_point_accuracies: (number | null)[] | null;
+        gps_point_captured_at: string[] | null;
+        capture_method: string | null;
         captured_by: string | null;
         captured_at: string | null;
         updated_by: string | null;
@@ -81,6 +84,14 @@ type FarmProfile = {
     can_manage_boundary: boolean;
     can_remove_boundary: boolean;
     verifications: VerificationHistoryRow[];
+    area_declarations: {
+        id: number;
+        previous_area_hectares: number | null;
+        declared_area_hectares: number;
+        event_type: string;
+        recorded_by: string | null;
+        recorded_at: string | null;
+    }[];
     documents: StoredFile[];
     purok_sitio: string | null;
     barangay: string | null;
@@ -180,6 +191,7 @@ const tabs = [
     'Overview',
     'Map',
     'Verification History',
+    'Area History',
     'Activities',
     'Production',
     'Harvest',
@@ -235,6 +247,10 @@ function initialTab(): FarmTab {
 
     if (tab === 'history') {
         return 'Verification History';
+    }
+
+    if (tab === 'area-history') {
+        return 'Area History';
     }
 
     if (tab === 'activities') {
@@ -656,6 +672,54 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                             <FarmVerificationHistory
                                 rows={farm.verifications}
                             />
+                        ))}
+
+                    {tab === 'Area History' &&
+                        (farm.area_declarations.length === 0 ? (
+                            <EmptyState
+                                title="No declared area history yet."
+                                description="Changes to the farmer-reported area will be recorded here."
+                            />
+                        ) : (
+                            <Card className="shadow-none">
+                                <CardHeader>
+                                    <CardTitle>Declared area history</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-3">
+                                    {farm.area_declarations.map((entry) => {
+                                        const eventLabel =
+                                            entry.event_type === 'legacy_baseline'
+                                                ? 'Baseline at history rollout'
+                                                : entry.event_type === 'initial'
+                                                  ? 'Initial declaration'
+                                                  : 'Declared area updated';
+
+                                        return (
+                                            <div
+                                                key={entry.id}
+                                                className="grid gap-2 rounded-lg border p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+                                            >
+                                                <div className="grid gap-1">
+                                                    <p className="font-medium">
+                                                        {eventLabel}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {entry.previous_area_hectares === null
+                                                            ? 'No earlier value recorded'
+                                                            : `${areaFormatter.format(entry.previous_area_hectares)} ha to `}
+                                                        {areaFormatter.format(entry.declared_area_hectares)} ha
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {entry.recorded_at ?? 'Date not recorded'}
+                                                        {' | '}
+                                                        {entry.recorded_by ?? 'System baseline'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
                         ))}
 
                     {tab === 'Activities' && (

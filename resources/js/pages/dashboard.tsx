@@ -72,6 +72,7 @@ type DashboardSummary = {
     in_progress: number;
     needs_review: number;
     failed: number;
+    scheduled_today?: number;
 };
 
 type AreaSummary = {
@@ -238,6 +239,8 @@ type AssignedFarm = {
     verification_status: FarmStatus;
 };
 
+type TodayAssignment = AssignedFarm & { scheduled_for: string };
+
 type FarmerProduction = {
     id: number;
     production_period: string | null;
@@ -267,10 +270,12 @@ type BoundaryRequest = {
 function VerifierDashboard({
     summary,
     assignments,
+    todayAssignments,
     locations,
 }: {
     summary: DashboardSummary;
     assignments: AssignedFarm[];
+    todayAssignments: TodayAssignment[];
     locations: FarmLocation[];
 }) {
     const next = assignments.filter((farm) =>
@@ -294,10 +299,15 @@ function VerifierDashboard({
                         </Button>
                     }
                 />
-                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                     <StatCard
                         label="Assigned"
                         value={countFormatter.format(summary.registered_farms)}
+                    />
+                    <StatCard
+                        label="Scheduled today"
+                        value={countFormatter.format(summary.scheduled_today ?? 0)}
+                        tone={summary.scheduled_today ? 'warning' : 'neutral'}
                     />
                     <StatCard
                         label="Pending"
@@ -326,6 +336,38 @@ function VerifierDashboard({
                         tone="positive"
                     />
                 </section>
+                <SectionCard
+                    kicker="Schedule"
+                    title="Today’s assigned farms"
+                    description="Active farm assignments scheduled for today."
+                    flush={todayAssignments.length > 0}
+                >
+                    {todayAssignments.length === 0 ? (
+                        <EmptyRegister
+                            title="No farms scheduled for today"
+                            description="An administrator can set a visit date from the verifier’s account page."
+                        />
+                    ) : (
+                        <ul>
+                            {todayAssignments.map((farm) => (
+                                <li key={farm.id} className="border-b last:border-b-0">
+                                    <Link
+                                        href={showVerification(farm.id)}
+                                        className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/50 sm:px-5"
+                                    >
+                                        <span className="min-w-0">
+                                            <span className="block truncate font-medium">{farm.farm_name}</span>
+                                            <span className="block truncate text-muted-foreground">
+                                                {farm.farm_id}{farm.farmer_name ? ` · ${farm.farmer_name}` : ''}{farm.location ? ` · ${farm.location}` : ''}
+                                            </span>
+                                        </span>
+                                        <StatusBadge status={farm.verification_status} />
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </SectionCard>
                 <SectionCard
                     kicker="Queue"
                     title="Next farms"
@@ -601,6 +643,7 @@ export default function Dashboard({
     farmer,
     assigned_farms_preview,
     assigned_farms_map,
+    today_assignments,
     recent_productions,
     recent_notifications,
     boundary_update_requests,
@@ -636,6 +679,7 @@ export default function Dashboard({
     }[];
     assigned_farms_preview?: AssignedFarm[];
     assigned_farms_map?: FarmLocation[];
+    today_assignments?: TodayAssignment[];
     recent_productions?: FarmerProduction[];
     recent_notifications?: FarmerNotice[];
     boundary_update_requests?: BoundaryRequest[];
@@ -667,6 +711,7 @@ export default function Dashboard({
             <VerifierDashboard
                 summary={summary}
                 assignments={assigned_farms_preview ?? []}
+                todayAssignments={today_assignments ?? []}
                 locations={assigned_farms_map ?? []}
             />
         );

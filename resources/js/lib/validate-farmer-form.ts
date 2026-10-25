@@ -58,7 +58,9 @@ export function validateFarmerForm(
         errors.email = 'Enter a valid email address.';
     }
 
-    if (photo) {
+    if (!photo) {
+        errors.photo = 'A farmer photo is required.';
+    } else {
         const allowed = ['image/jpeg', 'image/png'];
 
         if (!allowed.includes(photo.type)) {

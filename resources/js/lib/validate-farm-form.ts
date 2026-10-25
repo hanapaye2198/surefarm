@@ -1,6 +1,8 @@
 export type FarmFormInput = {
     crop_type: string;
     declared_area_hectares: string;
+    municipality: string;
+    province: string;
     latitude: string;
     longitude: string;
     number_of_hills?: string;
@@ -32,6 +34,14 @@ export function validateFarmForm(input: FarmFormInput): Record<string, string> {
         errors.declared_area_hectares = 'Declared farm area is too large.';
     }
 
+    if (input.municipality.trim() === '') {
+        errors.municipality = 'Farm municipality or city is required.';
+    }
+
+    if (input.province.trim() === '') {
+        errors.province = 'Farm province is required.';
+    }
+
     const latitude = input.latitude.trim();
 
     if (latitude !== '') {
@@ -43,6 +53,11 @@ export function validateFarmForm(input: FarmFormInput): Record<string, string> {
     }
 
     const longitude = input.longitude.trim();
+
+    if ((latitude === '') !== (longitude === '')) {
+        errors.latitude = 'Enter both farm coordinates, or leave both blank.';
+        errors.longitude = 'Enter both farm coordinates, or leave both blank.';
+    }
 
     if (longitude !== '') {
         const value = Number(longitude);

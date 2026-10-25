@@ -15,6 +15,8 @@ use Illuminate\Support\Carbon;
  *
  * @property array{type: string, coordinates: array<int, array<int, array<int, float>>>} $boundary_geojson
  * @property array<int, float|null>|null $gps_point_accuracies
+ * @property array<int, string>|null $gps_point_captured_at
+ * @property string|null $capture_method
  * @property string|null $gps_measured_area_hectares
  * @property Carbon|null $captured_at
  */
@@ -22,6 +24,8 @@ use Illuminate\Support\Carbon;
     'farm_id',
     'boundary_geojson',
     'gps_point_accuracies',
+    'gps_point_captured_at',
+    'capture_method',
     'gps_measured_area_hectares',
     'created_by',
     'updated_by',
@@ -40,6 +44,7 @@ class FarmBoundary extends Model
         return [
             'boundary_geojson' => 'array',
             'gps_point_accuracies' => 'array',
+            'gps_point_captured_at' => 'array',
             'gps_measured_area_hectares' => 'decimal:2',
             'captured_at' => 'datetime',
         ];

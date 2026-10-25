@@ -14,7 +14,6 @@ type FarmerDetails = {
     id: number;
     farmer_id: string;
     full_name: string;
-    user_id: string;
     date_of_birth: string;
     government_id: string;
     has_bank_account: boolean;
@@ -57,10 +56,8 @@ function Field({
 
 export default function EditFarmerDetails({
     farmer,
-    farmerAccounts,
 }: {
     farmer: FarmerDetails;
-    farmerAccounts: { value: string; label: string }[];
 }) {
     const pageErrors = usePage().props.errors as
         | Record<string, string>
@@ -84,7 +81,6 @@ export default function EditFarmerDetails({
     });
 
     const form = useForm({
-        user_id: farmer.user_id,
         date_of_birth: farmer.date_of_birth,
         government_id: farmer.government_id,
         has_bank_account: farmer.has_bank_account,
@@ -134,35 +130,11 @@ export default function EditFarmerDetails({
                     <CardHeader>
                         <CardTitle>Personal information</CardTitle>
                     </CardHeader>
+                    <p className="px-6 text-sm text-muted-foreground">
+                        Mobile login access is linked by an administrator from
+                        User Management.
+                    </p>
                     <CardContent className="grid gap-4 md:grid-cols-2">
-                        <Field
-                            label="Mobile app account"
-                            htmlFor="user_id"
-                            error={form.errors.user_id}
-                        >
-                            <select
-                                id="user_id"
-                                value={form.data.user_id}
-                                onChange={(event) =>
-                                    form.setData('user_id', event.target.value)
-                                }
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                            >
-                                {farmerAccounts.map((account) => (
-                                    <option
-                                        key={account.value}
-                                        value={account.value}
-                                    >
-                                        {account.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-muted-foreground">
-                                Link this farmer record to a verified farmer
-                                login so the farmer can see their farms in the
-                                mobile app.
-                            </p>
-                        </Field>
                         <Field
                             label="Date of Birth"
                             htmlFor="date_of_birth"

@@ -3,11 +3,11 @@
 namespace App\Contracts;
 
 /**
- * Allocates a unique farmer ID in the SF-XXX-XXX-XXX-XXX format.
+ * Allocates a unique farmer identifier.
  *
- * The official security-control algorithm is not defined. Bind a replacement
- * implementation when that specification arrives. Do not treat the current
- * segments as sitio, barangay, LGU, or security codes.
+ * The official location-code and security-control rules are not defined.
+ * The current implementation therefore returns an explicitly provisional ID.
+ * Bind the official implementation when those rules are approved.
  */
 interface FarmerIdGenerator
 {

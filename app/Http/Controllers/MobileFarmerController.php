@@ -2,19 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\RecordFarmActivity;
+use App\Actions\RecordFarmHarvest;
+use App\ActivityStatus;
+use App\ActivityTypeStatus;
+use App\FarmVerificationStatus;
+use App\HarvestStatus;
+use App\Http\Requests\StoreFarmerFarmActivityRequest;
+use App\Http\Requests\StoreFarmerHarvestRequest;
+use App\Models\ActivityType;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmBoundaryUpdateRequest;
 use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
+use App\Services\ProductionLedger;
 use App\UserRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
@@ -39,9 +51,16 @@ class MobileFarmerController extends Controller
     public function showFarm(Request $request, Farm $farm, FarmAreaComparison $areas): Response
     {
         abort_unless($farm->farmer_id === $this->farmer($request)->id, 404);
-        $farm->load(['boundary', 'verifications.verifier:id,name', 'verifications.photos.uploader:id,name']);
+        $farm->load([
+            'boundary',
+            'areaDeclarations.recorder:id,name',
+            'verifications.verifier:id,name',
+            'verifications.starter:id,name',
+            'verifications.boundaryCapturer:id,name',
+            'verifications.photos.uploader:id,name',
+        ]);
         $comparison = $areas->calculate($farm->declared_area_hectares, $farm->boundary?->gps_measured_area_hectares);
-        $boundaryUpdateRequest = $farm->boundaryUpdateRequests()->first();
+        $boundaryUpdateRequest = $farm->boundaryUpdateRequests()->latest('id')->first();
 
         return Inertia::render('mobile/farmer-farm', [
             'farm' => [
@@ -61,7 +80,7 @@ class MobileFarmerController extends Controller
                 ->map(fn (FarmActivity $activity): array => $activity->present())
                 ->values()->all(),
             'harvests' => FarmHarvest::query()
-                ->with(['farm.farmer', 'production', 'creator'])
+                ->with(['farm.farmer', 'production', 'creator', 'photos.uploader:id,name'])
                 ->where('farm_id', $farm->id)
                 ->latest('harvest_date')->latest('id')->limit(5)->get()
                 ->map(fn (FarmHarvest $harvest): array => $harvest->present())
@@ -78,9 +97,14 @@ class MobileFarmerController extends Controller
             'boundary' => $farm->boundary === null ? null : [
                 'geojson' => $farm->boundary->boundary_geojson,
                 'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
+                'gps_point_captured_at' => $farm->boundary->gps_point_captured_at,
+                'capture_method' => $farm->boundary->capture_method,
                 'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
-                'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),
+                'captured_at' => $farm->boundary->captured_at?->format('M j, Y g:i A'),
             ],
+            'area_declarations' => $farm->areaDeclarations
+                ->map(fn ($declaration): array => $declaration->present())
+                ->values()->all(),
             'history' => $farm->verifications->map(fn ($verification): array => $verification->present())->values()->all(),
             'comparison' => $comparison === null ? null : [
                 'declared' => $areas->hectares($comparison['declared']),
@@ -96,26 +120,36 @@ class MobileFarmerController extends Controller
     {
         $farmer = $this->farmer($request);
         abort_unless($farm->farmer_id === $farmer->id, 404);
-        abort_unless($farm->verification_status->value === 'verified' && $farm->boundary()->exists(), 422);
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
 
-        if ($farm->boundaryUpdateRequests()->where('status', 'pending')->exists()) {
-            throw ValidationException::withMessages([
-                'reason' => 'A boundary review request is already open for this farm.',
-            ]);
-        }
-
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 
-        $updateRequest = $farm->boundaryUpdateRequests()->create([
-            'farmer_id' => $farmer->id,
-            'requested_by' => $user->id,
-            'reason' => trim($validated['reason']),
-        ]);
+        $updateRequest = DB::transaction(function () use ($farm, $farmer, $user, $validated): FarmBoundaryUpdateRequest {
+            $lockedFarm = Farm::query()->lockForUpdate()->findOrFail($farm->id);
+
+            abort_unless(
+                $lockedFarm->farmer_id === $farmer->id
+                    && $lockedFarm->verification_status === FarmVerificationStatus::Verified
+                    && $lockedFarm->boundary()->exists(),
+                422,
+            );
+
+            if ($lockedFarm->boundaryUpdateRequests()->where('status', 'pending')->exists()) {
+                throw ValidationException::withMessages([
+                    'reason' => 'A boundary review request is already open for this farm.',
+                ]);
+            }
+
+            return $lockedFarm->boundaryUpdateRequests()->create([
+                'farmer_id' => $farmer->id,
+                'requested_by' => $user->id,
+                'reason' => trim($validated['reason']),
+            ]);
+        });
 
         return response()->json([
             'success' => true,
@@ -150,6 +184,7 @@ class MobileFarmerController extends Controller
                 'farm.farmer:id,first_name,middle_name,last_name',
                 'production:id,production_period',
                 'creator:id,name',
+                'photos.uploader:id,name',
             ])
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->latest('harvest_date')->latest('id')
@@ -167,7 +202,63 @@ class MobileFarmerController extends Controller
             'activities' => $activities,
             'harvests' => $harvests,
             'productions' => $productions,
+            'farms' => $farmer->farms()->orderBy('farm_name')->orderBy('id')->get()
+                ->map(fn (Farm $farm): array => [
+                    'id' => $farm->id,
+                    'label' => $farm->displayName().' · '.$farm->farm_id,
+                    'crop_type' => $farm->crop_type->value,
+                    'crop_label' => $farm->crop_type->label(),
+                ])
+                ->values()->all(),
+            'activityTypes' => ActivityType::query()
+                ->where('status', ActivityTypeStatus::Active)
+                ->orderBy('name')->get(['id', 'name'])
+                ->map(fn (ActivityType $type): array => ['id' => $type->id, 'name' => $type->name])
+                ->values()->all(),
+            'activityStatuses' => collect(ActivityStatus::cases())
+                ->reject(fn (ActivityStatus $status): bool => $status === ActivityStatus::Cancelled)
+                ->map(fn (ActivityStatus $status): array => ['value' => $status->value, 'label' => $status->label()])
+                ->values()->all(),
+            'harvestStatuses' => [
+                ['value' => HarvestStatus::InProgress->value, 'label' => HarvestStatus::InProgress->label()],
+                ['value' => HarvestStatus::Completed->value, 'label' => HarvestStatus::Completed->label()],
+            ],
+            'units' => ProductionLedger::UNITS,
+            'today' => now()->toDateString(),
         ]);
+    }
+
+    public function storeActivity(StoreFarmerFarmActivityRequest $request, RecordFarmActivity $record): RedirectResponse
+    {
+        $farmer = $this->farmer($request);
+        $farm = $farmer->farms()->findOrFail($request->validated('farm_id'));
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $data = $request->validated();
+        $data['farm_id'] = $farm->id;
+        $data['crop_type'] = $farm->crop_type->value;
+        $data['performed_by'] = $data['performed_by'] ?? $farmer->fullName();
+
+        $record->handle($data, $user);
+
+        return to_route('api.mobile.farmer.activities');
+    }
+
+    public function storeHarvest(StoreFarmerHarvestRequest $request, RecordFarmHarvest $record): RedirectResponse
+    {
+        $farmer = $this->farmer($request);
+        $farm = $farmer->farms()->findOrFail($request->validated('farm_id'));
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $data = $request->validated();
+        $data['farm_id'] = $farm->id;
+        $data['crop_type'] = $farm->crop_type->value;
+
+        $record->handle($data, $user);
+
+        return to_route('api.mobile.farmer.activities');
     }
 
     public function notifications(Request $request): Response
@@ -306,6 +397,8 @@ class MobileFarmerController extends Controller
             'measured_area' => $comparison === null ? null : $areas->hectares($comparison['measured']),
             'verified_area' => $farm->verified_area_hectares === null ? null : $areas->hectares((float) $farm->verified_area_hectares),
             'verification_status' => $farm->verification_status->value,
+            'geofence_status' => $farm->geofenceStatus(),
+            'geofence_status_label' => $farm->geofenceStatusLabel(),
             'status' => $farm->status->value,
             'boundary_saved' => $farm->boundary !== null,
         ];

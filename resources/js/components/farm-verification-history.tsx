@@ -12,6 +12,8 @@ export type VerificationHistoryRow = {
     measured_area: string;
     difference: string;
     variance: string;
+    boundary_captured_by: string | null;
+    boundary_captured_at: string | null;
     verified_by: string | null;
     remarks: string | null;
 };
@@ -32,6 +34,8 @@ export function FarmVerificationHistory({
                 'Measured Area',
                 'Difference',
                 'Variance',
+                'Boundary Saved By',
+                'Boundary Saved At',
                 'Verified By',
                 'Remarks',
             ]}
@@ -57,6 +61,8 @@ export function FarmVerificationHistory({
                     row.measured_area,
                     row.difference,
                     row.variance,
+                    row.boundary_captured_by ?? '—',
+                    row.boundary_captured_at ?? '—',
                     row.verified_by ?? '—',
                     row.remarks ?? '—',
                 ],

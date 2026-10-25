@@ -8,6 +8,7 @@ use App\ActivityStatus;
 use App\Contracts\FarmIdGenerator;
 use App\CropType;
 use App\FarmStatus;
+use App\FarmVerificationResult;
 use App\FarmVerificationStatus;
 use App\HarvestStatus;
 use App\Http\Requests\StoreFarmRequest;
@@ -31,6 +32,7 @@ use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -54,7 +56,7 @@ class FarmController extends Controller
 
         $farms = Farm::query()
             ->visibleTo($viewer)
-            ->with('farmer')
+            ->with(['farmer', 'boundary'])
             ->when($search !== '', function ($query) use ($search): void {
                 $like = '%'.addcslashes($search, '%_\\').'%';
                 $crops = $this->matchingCrops($search);
@@ -95,13 +97,14 @@ class FarmController extends Controller
             ->through(fn (Farm $farm): array => [
                 'id' => $farm->id,
                 'farm_id' => $farm->farm_id,
-                'assigned_verifier_id' => $farm->assigned_verifier_id === null ? '' : (string) $farm->assigned_verifier_id,
                 'farm_name' => $farm->displayName(),
                 'farmer_name' => $farm->farmer->fullName(),
                 'crop_label' => $farm->crop_type->label(),
                 'declared_area_hectares' => (float) $farm->declared_area_hectares,
                 'location' => $farm->locationLabel(),
                 'verification_status' => $farm->verification_status->value,
+                'geofence_status' => $farm->geofenceStatus(),
+                'geofence_status_label' => $farm->geofenceStatusLabel(),
                 'status' => $farm->status->value,
             ]);
 
@@ -190,6 +193,7 @@ class FarmController extends Controller
                 $farmer,
                 $request->safe()->except(['drone_image']),
                 $request->file('drone_image'),
+                $actor,
             );
         } catch (Throwable $exception) {
             report($exception);
@@ -225,9 +229,6 @@ class FarmController extends Controller
                 'latitude' => $farm->latitude ?? '',
                 'longitude' => $farm->longitude ?? '',
                 'status' => $farm->status->value,
-                'assigned_verifier_id' => $farm->assigned_verifier_id === null
-                    ? ''
-                    : (string) $farm->assigned_verifier_id,
                 'current_stage' => $farm->current_stage?->value ?? '',
                 'number_of_hills' => $farm->number_of_hills === null ? '' : (string) $farm->number_of_hills,
                 'data_validated' => match ($farm->data_validated) {
@@ -249,18 +250,6 @@ class FarmController extends Controller
                 ],
             ],
             ...$this->portfolio->filterOptions(),
-            'verifiers' => array_merge(
-                [['value' => '', 'label' => 'Unassigned']],
-                User::query()
-                    ->where('role', UserRole::FieldVerifier)
-                    ->orderBy('name')
-                    ->get(['id', 'name', 'email'])
-                    ->map(fn (User $verifier): array => [
-                        'value' => (string) $verifier->id,
-                        'label' => $verifier->name.' · '.$verifier->email,
-                    ])
-                    ->all(),
-            ),
         ]);
     }
 
@@ -269,12 +258,17 @@ class FarmController extends Controller
         Farm $farm,
         UpdateFarmDetails $update,
     ): RedirectResponse {
+        $previousVerificationStatus = $farm->verification_status;
+
         try {
-            $update->handle(
+            $updatedFarm = $update->handle(
                 $farm,
                 $request->safe()->except(['drone_image']),
                 $request->file('drone_image'),
+                $request->user() instanceof User ? $request->user() : null,
             );
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             report($exception);
 
@@ -285,7 +279,10 @@ class FarmController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Farm details saved.',
+            'message' => $previousVerificationStatus !== FarmVerificationStatus::NeedsReview
+                && $updatedFarm->verification_status === FarmVerificationStatus::NeedsReview
+                    ? 'Farm details saved. The previous verification is marked needs review; its verified area remains in the history.'
+                    : 'Farm details saved.',
         ]);
 
         return to_route('farms.show', $farm);
@@ -297,7 +294,10 @@ class FarmController extends Controller
             'farmer',
             'boundary.creator:id,name',
             'boundary.editor:id,name',
+            'areaDeclarations.recorder:id,name',
             'verifications.verifier:id,name',
+            'verifications.starter:id,name',
+            'verifications.boundaryCapturer:id,name',
             'verifications.photos.uploader:id,name',
             'insurances' => fn ($query) => $query->latest('id'),
             'financings' => fn ($query) => $query->orderByDesc('date_granted')->orderByDesc('id'),
@@ -332,20 +332,39 @@ class FarmController extends Controller
                     ->map(fn (FarmVerification $verification): array => $verification->present())
                     ->values()
                     ->all(),
+                'area_declarations' => $farm->areaDeclarations
+                    ->map(fn ($declaration): array => $declaration->present())
+                    ->values()
+                    ->all(),
                 'documents' => $this->documents($farm),
                 'difference' => $comparison['difference'],
                 'variance' => $comparison['variance'],
                 'boundary' => $farm->boundary === null ? null : [
                     'geojson' => $farm->boundary->boundary_geojson,
                     'gps_point_accuracies' => $farm->boundary->gps_point_accuracies,
+                    'gps_point_captured_at' => $farm->boundary->gps_point_captured_at,
+                    'capture_method' => $farm->boundary->capture_method,
                     'gps_measured_area_hectares' => (float) $farm->boundary->gps_measured_area_hectares,
                     'captured_by' => $farm->boundary->creator?->name,
-                    'captured_at' => $farm->boundary->captured_at?->format('M j, Y'),
+                    'captured_at' => $farm->boundary->captured_at?->format('M j, Y g:i A'),
                     'updated_by' => $farm->boundary->editor?->name,
                     'updated_at' => $farm->boundary->updated_at?->format('M j, Y'),
                 ],
-                'can_manage_boundary' => $user instanceof User && $user->canAccess(UserRole::Operations),
-                'can_remove_boundary' => $user instanceof User && $user->role === UserRole::Admin,
+                'can_manage_boundary' => $user instanceof User
+                    && ! $user->isSuspended()
+                    && (
+                        ($user->canAccess(UserRole::Operations)
+                            && $farm->verification_status !== FarmVerificationStatus::InProgress
+                            && ! $this->hasVerifiedBoundary($farm))
+                        || ($user->hasRole(UserRole::FieldVerifier, UserRole::Admin)
+                            && $request->is('api/mobile/*')
+                            && $farm->verification_status === FarmVerificationStatus::InProgress
+                            && app(\App\Services\RegistryScope::class)->canViewFarm($user, $farm))
+                    ),
+                'can_remove_boundary' => $user instanceof User
+                    && $user->role === UserRole::Admin
+                    && $farm->verification_status !== FarmVerificationStatus::InProgress
+                    && ! $this->hasVerifiedBoundary($farm),
                 'purok_sitio' => $farm->purok_sitio,
                 'barangay' => $farm->barangay,
                 'municipality' => $farm->municipality,
@@ -353,6 +372,8 @@ class FarmController extends Controller
                 'latitude' => $farm->latitude,
                 'longitude' => $farm->longitude,
                 'verification_status' => $farm->verification_status->value,
+                'geofence_status' => $farm->geofenceStatus(),
+                'geofence_status_label' => $farm->geofenceStatusLabel(),
                 'status' => $farm->status->value,
                 'notes' => $farm->notes,
                 'registered_at' => $farm->created_at?->format('F j, Y'),
@@ -443,6 +464,17 @@ class FarmController extends Controller
             'difference' => $this->areas->hectares($comparison['difference']),
             'variance' => $this->areas->percent($comparison['variance']),
         ];
+    }
+
+    private function hasVerifiedBoundary(Farm $farm): bool
+    {
+        if ($farm->verified_area_hectares !== null || $farm->verification_status === FarmVerificationStatus::Verified) {
+            return true;
+        }
+
+        return $farm->verifications->contains(
+            fn (FarmVerification $verification): bool => $verification->result === FarmVerificationResult::Verified,
+        );
     }
 
     /**

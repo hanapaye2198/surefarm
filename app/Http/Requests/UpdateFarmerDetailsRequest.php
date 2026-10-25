@@ -27,7 +27,7 @@ class UpdateFarmerDetailsRequest extends FormRequest
         $recordingBankAccount = $this->boolean('has_bank_account');
         $keepsStoredNumber = $this->keepsStoredAccountNumber();
         $farmerRoute = $this->route('farmer');
-        $farmerId = $farmerRoute instanceof Farmer ? $farmerRoute->getKey() : $farmerRoute;
+        $linkedUserId = $farmerRoute instanceof Farmer ? $farmerRoute->user_id : null;
 
         return [
             'date_of_birth' => ['nullable', 'date', 'before:today', 'after:1900-01-01'],
@@ -37,11 +37,13 @@ class UpdateFarmerDetailsRequest extends FormRequest
             'barangay_code' => ['nullable', 'regex:/^\d{3}$/'],
             'lgu_code' => ['nullable', 'regex:/^\d{3}$/'],
             'security_control_code' => ['nullable', 'regex:/^\d{3}$/'],
+            // Keep older mobile clients compatible when they resubmit the
+            // existing link, while preventing operations staff from changing it.
             'user_id' => [
-                'nullable',
+                'sometimes',
+                $linkedUserId === null ? 'nullable' : 'required',
                 'integer',
-                Rule::exists('users', 'id')->where('role', UserRole::Farmer->value),
-                Rule::unique('farmers', 'user_id')->ignore($farmerId),
+                Rule::in($linkedUserId === null ? [] : [$linkedUserId]),
             ],
             'has_bank_account' => ['boolean'],
             'bank_name' => [
@@ -86,6 +88,8 @@ class UpdateFarmerDetailsRequest extends FormRequest
             'account_number.regex' => 'Account number can only contain digits, spaces, and dashes.',
             'account_name.required' => 'Account name is required.',
             'bank_account_status.enum' => 'Choose a bank account status.',
+            'user_id.in' => 'Mobile account links can only be changed by an administrator.',
+            'user_id.required' => 'Mobile account links can only be changed by an administrator.',
         ];
     }
 
@@ -108,10 +112,6 @@ class UpdateFarmerDetailsRequest extends FormRequest
                 ? $this->string('bank_account_status')->trim()->toString()
                 : BankAccountStatus::Unverified->value,
         ];
-
-        if ($this->exists('user_id')) {
-            $values['user_id'] = $this->filled('user_id') ? $this->input('user_id') : null;
-        }
 
         foreach (['suffix', 'sitio_purok_code', 'barangay_code', 'lgu_code', 'security_control_code'] as $field) {
             if ($this->exists($field)) {

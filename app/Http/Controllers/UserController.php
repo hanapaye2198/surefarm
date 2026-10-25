@@ -140,6 +140,7 @@ class UserController extends Controller
                     'open' => $assignment->isOpen(),
                     'assigned_by' => $assignment->assigner?->name,
                     'assigned_at' => $assignment->assigned_at->timezone(config('app.timezone'))->format('M j, Y'),
+                    'scheduled_for' => $assignment->scheduled_for?->format('Y-m-d'),
                     'revoked_at' => $assignment->revoked_at?->timezone(config('app.timezone'))->format('M j, Y'),
                 ])
                 ->all(),

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An actual harvest for one farm. Several harvests may belong to the
@@ -22,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'farm_id',
     'crop_type',
+    'coffee_variety',
+    'estimated_green_bean_quantity_kg',
     'production_id',
     'harvest_date',
     'quantity',
@@ -45,6 +48,7 @@ class FarmHarvest extends Model
             'crop_type' => CropType::class,
             'harvest_date' => 'date',
             'quantity' => 'decimal:2',
+            'estimated_green_bean_quantity_kg' => 'decimal:2',
             'status' => HarvestStatus::class,
         ];
     }
@@ -73,6 +77,12 @@ class FarmHarvest extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** @return HasMany<FarmHarvestPhoto, $this> */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(FarmHarvestPhoto::class, 'farm_harvest_id');
+    }
+
     public function cropLabel(): string
     {
         return $this->crop_type?->label() ?? 'Farm-wide';
@@ -95,6 +105,10 @@ class FarmHarvest extends Model
             'farmer_name' => $this->farm?->farmer?->fullName() ?? '—',
             'crop_label' => $this->cropLabel(),
             'quantity_label' => $this->quantityLabel(),
+            'coffee_variety' => $this->coffee_variety,
+            'estimated_green_bean_quantity_kg' => $this->estimated_green_bean_quantity_kg === null
+                ? null
+                : (float) $this->estimated_green_bean_quantity_kg,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
         ];
@@ -113,6 +127,10 @@ class FarmHarvest extends Model
             'quantity' => (float) $this->quantity,
             'quantity_input' => number_format((float) $this->quantity, 2, '.', ''),
             'quantity_label' => $this->quantityLabel(),
+            'coffee_variety' => $this->coffee_variety,
+            'estimated_green_bean_quantity_kg' => $this->estimated_green_bean_quantity_kg === null
+                ? null
+                : (float) $this->estimated_green_bean_quantity_kg,
             'unit' => $this->unit,
             'quality_grade' => $this->quality_grade,
             'status' => $this->status->value,
@@ -135,6 +153,9 @@ class FarmHarvest extends Model
             ],
             'created_by' => $this->creator?->name,
             'created_at' => $this->created_at?->format('F j, Y'),
+            'photos' => $this->relationLoaded('photos')
+                ? $this->photos->map(fn (FarmHarvestPhoto $photo): array => $photo->present())->values()->all()
+                : [],
         ];
     }
 }

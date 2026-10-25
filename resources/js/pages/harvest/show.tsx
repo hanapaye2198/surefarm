@@ -17,6 +17,8 @@ type HarvestRecord = {
     quantity_label: string;
     unit: string;
     quality_grade: string | null;
+    coffee_variety: string | null;
+    estimated_green_bean_quantity_kg: number | null;
     status: HarvestRecordStatus;
     notes: string | null;
     crop_label: string;
@@ -26,6 +28,14 @@ type HarvestRecord = {
     farmer: { id: number; name: string } | null;
     created_by: string | null;
     created_at: string | null;
+    photos: {
+        id: number;
+        name: string;
+        url: string;
+        captured_at: string | null;
+        latitude: number | null;
+        longitude: number | null;
+    }[];
 };
 
 function display(value: string | null | undefined): string {
@@ -106,6 +116,18 @@ export default function HarvestShow({
                             <Detail label="Crop" value={harvest.crop_label} />
                             <Detail label="Unit" value={harvest.unit} />
                             <Detail
+                                label="Coffee variety"
+                                value={display(harvest.coffee_variety)}
+                            />
+                            <Detail
+                                label="Estimated green bean quantity"
+                                value={
+                                    harvest.estimated_green_bean_quantity_kg === null
+                                        ? '—'
+                                        : `${harvest.estimated_green_bean_quantity_kg} kg`
+                                }
+                            />
+                            <Detail
                                 label="Quality"
                                 value={display(harvest.quality_grade)}
                             />
@@ -137,6 +159,41 @@ export default function HarvestShow({
                                 value={display(harvest.created_at)}
                             />
                         </dl>
+                        {harvest.photos.length > 0 && (
+                            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {harvest.photos.map((photo) => (
+                                    <a
+                                        key={photo.id}
+                                        href={photo.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="overflow-hidden rounded-lg border bg-muted"
+                                    >
+                                        <img
+                                            src={photo.url}
+                                            alt={photo.name}
+                                            className="aspect-video w-full object-cover"
+                                        />
+                                        <div className="grid gap-1 p-3 text-xs text-muted-foreground">
+                                            <span className="truncate font-medium text-foreground">
+                                                {photo.name}
+                                            </span>
+                                            {photo.captured_at && (
+                                                <span>
+                                                    Captured {photo.captured_at}
+                                                </span>
+                                            )}
+                                            {photo.latitude !== null &&
+                                                photo.longitude !== null && (
+                                                    <span>
+                                                        {photo.latitude.toFixed(6)}, {photo.longitude.toFixed(6)}
+                                                    </span>
+                                                )}
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

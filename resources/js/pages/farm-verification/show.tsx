@@ -1,5 +1,5 @@
 import { Head, Link, setLayoutProps, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FarmBoundaryMap } from '@/components/farm-boundary-map';
 import type { BoundaryGeoJson } from '@/components/farm-boundary-map';
 import { FarmVerificationHistory } from '@/components/farm-verification-history';
@@ -19,8 +19,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { index, show, store, update } from '@/routes/farm-verification';
-import { show as showFarm } from '@/routes/farms';
+import {
+    index,
+    inspection as inspectionRoute,
+    show,
+    store,
+    update,
+} from '@/routes/farm-verification';
 
 type VerificationFarm = {
     id: number;
@@ -39,6 +44,38 @@ type VerificationFarm = {
 };
 
 type Decision = 'verified' | 'failed' | 'needs_review';
+type InspectionCheck =
+    | 'farm_exists'
+    | 'location_matches'
+    | 'crop_observed'
+    | 'boundary_captured'
+    | 'area_checked'
+    | 'farmer_or_representative_met';
+
+const inspectionChecks: { key: InspectionCheck; label: string }[] = [
+    { key: 'farm_exists', label: 'Farm physically exists' },
+    { key: 'location_matches', label: 'Location matches registration' },
+    { key: 'crop_observed', label: 'Registered crop observed' },
+    { key: 'boundary_captured', label: 'GPS boundary captured' },
+    { key: 'area_checked', label: 'Declared and measured area checked' },
+    {
+        key: 'farmer_or_representative_met',
+        label: 'Farmer or representative met',
+    },
+];
+
+type InspectionPhoto = {
+    id: number;
+    type: string;
+    name: string;
+    url: string;
+    captured_at: string | null;
+    uploaded_at: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    uploaded_by: string | null;
+    boundary_revision: number;
+};
 
 const decisionCopy: Record<
     Decision,
@@ -88,6 +125,7 @@ export default function FarmVerificationShow({
     comparison,
     boundary,
     history,
+    inspection,
 }: {
     farm: VerificationFarm;
     comparison: {
@@ -100,21 +138,87 @@ export default function FarmVerificationShow({
     boundary: {
         geojson: BoundaryGeoJson;
         gps_measured_area_hectares: number;
+        capture_method: string | null;
         captured_by: string | null;
         captured_at: string | null;
         updated_by: string | null;
         updated_at: string | null;
+        can_manage_boundary: boolean;
     } | null;
     history: VerificationHistoryRow[];
+    inspection: {
+        checklist: Record<string, unknown>;
+        boundary_revision: number;
+        boundary_captured_for_attempt: boolean;
+        photos: InspectionPhoto[];
+    } | null;
 }) {
     const [decision, setDecision] = useState<Decision | null>(null);
+    const [photoInputKey, setPhotoInputKey] = useState(0);
     const startForm = useForm({ verification: '' });
+    const inspectionForm = useForm({
+        boundary_revision: inspection?.boundary_revision ?? 0,
+        farm_exists: inspection?.checklist.farm_exists === true,
+        location_matches: inspection?.checklist.location_matches === true,
+        crop_observed:
+            inspection?.checklist.crop_observed === true ||
+            (farm.crop_label === 'Coffee' &&
+                inspection?.checklist.coffee_crop_observed === true),
+        boundary_captured: inspection?.checklist.boundary_captured === true,
+        area_checked: inspection?.checklist.area_checked === true,
+        farmer_or_representative_met:
+            inspection?.checklist.farmer_or_representative_met === true,
+        evidence_type: 'general_farm_view',
+        evidence_photo: null as File | null,
+        latitude: '',
+        longitude: '',
+        remarks:
+            typeof inspection?.checklist.observations === 'string'
+                ? inspection.checklist.observations
+                : '',
+    });
     const reviewForm = useForm({
         result: '' as Decision | '',
         remarks: '',
         verification: '',
     });
+    const previousBoundaryRevision = useRef(inspection?.boundary_revision ?? 0);
+    useEffect(() => {
+        const currentRevision = inspection?.boundary_revision ?? 0;
+
+        if (previousBoundaryRevision.current === currentRevision) {
+            return;
+        }
+
+        previousBoundaryRevision.current = currentRevision;
+        inspectionForm.setData((data) => ({
+            ...data,
+            boundary_revision: currentRevision,
+            farm_exists: false,
+            location_matches: false,
+            crop_observed: false,
+            boundary_captured: false,
+            area_checked: false,
+            farmer_or_representative_met: false,
+            evidence_photo: null,
+        }));
+        setPhotoInputKey((key) => key + 1);
+    }, [inspection?.boundary_revision]);
     const inProgress = farm.verification_status === 'in_progress';
+    const hasFreshBoundary =
+        inspection?.boundary_captured_for_attempt === true;
+    const activeChecklist = inspection?.checklist ?? {};
+    const inspectionReady = Boolean(
+        hasFreshBoundary &&
+            Object.keys(activeChecklist).length > 0 &&
+            inspectionChecks.every(({ key }) =>
+                typeof activeChecklist[key] === 'boolean' ||
+                (key === 'crop_observed' &&
+                    farm.crop_label === 'Coffee' &&
+                    typeof activeChecklist.coffee_crop_observed === 'boolean'),
+            ) &&
+            (inspection?.photos.length ?? 0) > 0,
+    );
     const pendingDecision = decision === null ? null : decisionCopy[decision];
 
     setLayoutProps({
@@ -132,6 +236,32 @@ export default function FarmVerificationShow({
 
     function startVerification() {
         startForm.post(store.url(farm.id), { preserveScroll: true });
+    }
+
+    function saveInspection() {
+        inspectionForm.post(inspectionRoute.url(farm.id), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                inspectionForm.setData('evidence_photo', null);
+                setPhotoInputKey((key) => key + 1);
+            },
+        });
+    }
+
+    function captureLocation() {
+        if (!navigator.geolocation) {
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                inspectionForm.setData('latitude', String(coords.latitude));
+                inspectionForm.setData('longitude', String(coords.longitude));
+            },
+            () => undefined,
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
     }
 
     function saveDecision() {
@@ -203,21 +333,19 @@ export default function FarmVerificationShow({
                 {!comparison.has_boundary && (
                     <Card className="shadow-none">
                         <CardHeader>
-                            <CardTitle>Boundary required</CardTitle>
+                            <CardTitle>Boundary not yet captured</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground">
-                                Farm boundary is required before verification.
+                                Start the verification session, then capture and save the GPS boundary during the field visit.
                             </p>
-                            <Button className="w-fit" asChild>
-                                <Link
-                                    href={showFarm.url(farm.id, {
-                                        query: { tab: 'map' },
-                                    })}
-                                >
-                                    View Farm Map
-                                </Link>
-                            </Button>
+                            {inProgress && (
+                                <p className="text-sm text-muted-foreground">
+                                    Capture the perimeter with device GPS in the
+                                    SureFarm Field Verifier mobile app. The web
+                                    map is read-only during an active field visit.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -241,7 +369,8 @@ export default function FarmVerificationShow({
                                     latitude: farm.latitude,
                                     longitude: farm.longitude,
                                     farmer_name: farm.farmer_name,
-                                    can_manage_boundary: false,
+                                    can_manage_boundary:
+                                        boundary.can_manage_boundary,
                                     can_remove_boundary: false,
                                 }}
                                 boundary={boundary}
@@ -250,7 +379,7 @@ export default function FarmVerificationShow({
                     </Card>
                 )}
 
-                {comparison.has_boundary && !inProgress && (
+                {!inProgress && (
                     <Card className="shadow-none">
                         <CardHeader>
                             <CardTitle>
@@ -261,9 +390,10 @@ export default function FarmVerificationShow({
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground">
-                                Starting copies the current declared area and
-                                the measured area from the saved boundary. It
-                                does not change the declared area.
+                                Starting records the declared area. A fresh
+                                GPS boundary must be captured and saved during
+                                this field visit before the result can be
+                                submitted.
                             </p>
                             {startForm.errors.verification && (
                                 <p className="text-sm text-destructive">
@@ -283,7 +413,244 @@ export default function FarmVerificationShow({
                     </Card>
                 )}
 
-                {comparison.has_boundary && inProgress && (
+                {comparison.has_boundary && inProgress && !hasFreshBoundary && (
+                    <Card className="shadow-none">
+                        <CardHeader>
+                            <CardTitle>Fresh GPS boundary required</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                The previous boundary remains available for
+                                reference. Capture and save the farm perimeter
+                                now to continue this verification.
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Capture and save a new boundary with device GPS
+                                in the SureFarm Field Verifier mobile app. This
+                                web map remains read-only during the visit.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {comparison.has_boundary && inProgress && hasFreshBoundary && (
+                    <Card className="shadow-none">
+                        <CardHeader>
+                            <CardTitle>Field inspection and evidence</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid gap-5">
+                            <p className="text-sm text-muted-foreground">
+                                Record each field check and attach evidence to
+                                the current saved boundary before deciding the
+                                result. You can submit additional photos with
+                                the same checklist.
+                            </p>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {inspectionChecks.map(({ key, label }) => (
+                                    <label
+                                        key={key}
+                                        className="flex min-h-11 items-center gap-3 rounded-md border p-3 text-sm"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={inspectionForm.data[key]}
+                                            onChange={(event) =>
+                                                inspectionForm.setData(
+                                                    key,
+                                                    event.target.checked,
+                                                )
+                                            }
+                                            className="size-4 accent-primary"
+                                        />
+                                        <span>
+                                            {key === 'crop_observed'
+                                                ? `${farm.crop_label} observed`
+                                                : label}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                            <label className="grid max-w-xl gap-2 text-sm">
+                                <span className="font-medium">
+                                    Evidence photo category
+                                </span>
+                                <select
+                                    value={inspectionForm.data.evidence_type}
+                                    onChange={(event) =>
+                                        inspectionForm.setData(
+                                            'evidence_type',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="h-10 rounded-md border border-input bg-background px-3"
+                                >
+                                    <option value="farm_entrance">
+                                        Farm entrance
+                                    </option>
+                                    <option value="crop_plants">
+                                        Crop plants
+                                    </option>
+                                    <option value="coffee_plants">
+                                        Coffee plants
+                                    </option>
+                                    <option value="farm_boundary">
+                                        Farm boundary
+                                    </option>
+                                    <option value="general_farm_view">
+                                        General farm view
+                                    </option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </label>
+                            <label className="grid max-w-xl gap-2 text-sm">
+                                <span className="font-medium">
+                                    Evidence photo
+                                </span>
+                                <input
+                                    key={photoInputKey}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(event) =>
+                                        inspectionForm.setData(
+                                            'evidence_photo',
+                                            event.target.files?.[0] ?? null,
+                                        )
+                                    }
+                                    className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                                {inspectionForm.errors.evidence_photo && (
+                                    <span className="text-sm text-destructive">
+                                        {inspectionForm.errors.evidence_photo}
+                                    </span>
+                                )}
+                            </label>
+                            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                                <label className="grid gap-2 text-sm">
+                                    <span className="font-medium">
+                                        Photo latitude (optional)
+                                    </span>
+                                    <input
+                                        inputMode="decimal"
+                                        value={inspectionForm.data.latitude}
+                                        onChange={(event) =>
+                                            inspectionForm.setData(
+                                                'latitude',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="h-10 rounded-md border border-input bg-background px-3"
+                                    />
+                                </label>
+                                <label className="grid gap-2 text-sm">
+                                    <span className="font-medium">
+                                        Photo longitude (optional)
+                                    </span>
+                                    <input
+                                        inputMode="decimal"
+                                        value={inspectionForm.data.longitude}
+                                        onChange={(event) =>
+                                            inspectionForm.setData(
+                                                'longitude',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="h-10 rounded-md border border-input bg-background px-3"
+                                    />
+                                </label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={captureLocation}
+                                >
+                                    Use current location
+                                </Button>
+                            </div>
+                            <label className="grid max-w-2xl gap-2 text-sm">
+                                <span className="font-medium">
+                                    Field observations
+                                </span>
+                                <textarea
+                                    value={inspectionForm.data.remarks}
+                                    onChange={(event) =>
+                                        inspectionForm.setData(
+                                            'remarks',
+                                            event.target.value,
+                                        )
+                                    }
+                                    rows={3}
+                                    maxLength={2000}
+                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                                    placeholder="Record observations from the visit"
+                                />
+                            </label>
+                            {inspectionForm.errors.verification && (
+                                <p className="text-sm text-destructive">
+                                    {inspectionForm.errors.verification}
+                                </p>
+                            )}
+                            <Button
+                                type="button"
+                                className="w-fit"
+                                disabled={
+                                    inspectionForm.processing ||
+                                    inspectionForm.data.evidence_photo === null
+                                }
+                                onClick={saveInspection}
+                            >
+                                {inspectionForm.processing
+                                    ? 'Saving inspection...'
+                                    : 'Save checklist and photo'}
+                            </Button>
+                            {inspection?.photos.length ? (
+                                <div className="grid gap-2">
+                                    <h3 className="text-sm font-medium">
+                                        Uploaded evidence
+                                    </h3>
+                                    <ul className="grid gap-2 sm:grid-cols-2">
+                                        {inspection.photos.map((photo) => (
+                                            <li
+                                                key={photo.id}
+                                                className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm"
+                                            >
+                                                <a
+                                                    href={photo.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="min-w-0 truncate font-medium text-primary underline-offset-4 hover:underline"
+                                                >
+                                                    {photo.name}
+                                                </a>
+                                                <div className="shrink-0 text-right text-xs text-muted-foreground">
+                                                    <p>
+                                                        {photo.type.replace(
+                                                            /_/g,
+                                                            ' ',
+                                                        )}
+                                                    </p>
+                                                    <p>
+                                                        {photo.captured_at
+                                                            ? `Captured ${new Date(photo.captured_at).toLocaleString()}`
+                                                            : 'Capture time unavailable'}
+                                                    </p>
+                                                    {photo.uploaded_at && (
+                                                        <p>
+                                                            Uploaded{' '}
+                                                            {new Date(
+                                                                photo.uploaded_at,
+                                                            ).toLocaleString()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : null}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {inProgress && inspectionReady && (
                     <Card className="shadow-none">
                         <CardHeader>
                             <CardTitle>Verification review</CardTitle>

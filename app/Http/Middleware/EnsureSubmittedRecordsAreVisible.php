@@ -3,11 +3,21 @@
 namespace App\Http\Middleware;
 
 use App\Models\Farm;
+use App\Models\FarmActivity;
+use App\Models\FarmFinancing;
+use App\Models\FarmHarvest;
+use App\Models\FarmInsurance;
+use App\Models\FarmProduction;
+use App\Models\FarmVerification;
+use App\Models\FarmVerificationPhoto;
 use App\Models\Farmer;
 use App\Models\Inventory;
+use App\Models\InventoryMovement;
+use App\Models\TraceabilityLot;
 use App\Models\User;
 use App\Services\RegistryScope;
 use Closure;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,9 +26,9 @@ class EnsureSubmittedRecordsAreVisible
     public function __construct(private RegistryScope $scope) {}
 
     /**
-     * A crafted farm, farmer, or inventory id cannot pull another
-     * account's record into a create or update request. Missing ids
-     * are left for validation.
+     * Scope both submitted foreign keys and route-bound records. Lists
+     * use visibleTo(); this middleware protects direct detail, edit,
+     * mutation, and media endpoints that receive a model in the URL.
      *
      * @param  Closure(Request): (Response)  $next
      */
@@ -34,6 +44,12 @@ class EnsureSubmittedRecordsAreVisible
         $this->rejectHidden($request, 'farmer_id', Farmer::query()->find($request->integer('farmer_id')), $user);
         $this->rejectHidden($request, 'inventory_id', Inventory::query()->find($request->integer('inventory_id')), $user);
 
+        foreach ($request->route()?->parameters() ?? [] as $parameter) {
+            if ($parameter instanceof Model) {
+                $this->rejectHiddenRecord($parameter, $user);
+            }
+        }
+
         return $next($request);
     }
 
@@ -43,14 +59,37 @@ class EnsureSubmittedRecordsAreVisible
             return;
         }
 
+        $this->rejectHiddenRecord($record, $user);
+    }
+
+    private function rejectHiddenRecord(Model $record, User $user): void
+    {
         $visible = match (true) {
             $record instanceof Farm => $this->scope->canViewFarm($user, $record),
             $record instanceof Farmer => $this->scope->canViewFarmer($user, $record),
+            $record instanceof FarmVerification => Farm::query()
+                ->whereKey($record->farm_id)
+                ->visibleTo($user)
+                ->exists(),
+            $record instanceof FarmActivity,
+            $record instanceof FarmFinancing,
+            $record instanceof FarmHarvest,
+            $record instanceof FarmInsurance,
+            $record instanceof FarmProduction => Farm::query()
+                ->whereKey($record->farm_id)
+                ->visibleTo($user)
+                ->exists(),
+            $record instanceof FarmVerificationPhoto => FarmVerification::query()
+                ->whereKey($record->farm_verification_id)
+                ->whereHas('farm', fn ($farm) => $farm->visibleTo($user))
+                ->exists(),
             $record instanceof Inventory => Inventory::query()->whereKey($record->id)->visibleTo($user)->exists(),
-            default => false,
+            $record instanceof InventoryMovement => InventoryMovement::query()->whereKey($record->id)->visibleTo($user)->exists(),
+            $record instanceof TraceabilityLot => TraceabilityLot::query()->whereKey($record->id)->visibleTo($user)->exists(),
+            default => null,
         };
 
-        if (! $visible) {
+        if ($visible === false) {
             abort(404);
         }
     }

@@ -12,6 +12,7 @@ enum AccessEventAction: string
     case GrantCreated = 'grant.created';
     case GrantRevoked = 'grant.revoked';
     case AssignmentCreated = 'assignment.created';
+    case AssignmentScheduled = 'assignment.scheduled';
     case AssignmentRevoked = 'assignment.revoked';
     case HarvestCorrected = 'harvest.corrected';
     case InventoryReceived = 'inventory.received';

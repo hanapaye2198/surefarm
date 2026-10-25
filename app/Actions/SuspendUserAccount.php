@@ -42,6 +42,8 @@ class SuspendUserAccount
                 'remember_token' => Str::random(60),
             ])->save();
 
+            $subject->tokens()->delete();
+
             if (Schema::hasTable('sessions')) {
                 DB::table('sessions')->where('user_id', $subject->id)->delete();
             }

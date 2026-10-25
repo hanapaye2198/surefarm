@@ -31,11 +31,26 @@ class MobileAuthController extends Controller
             ]);
         }
 
+        if ($user->isSuspended()) {
+            return $this->accessDenied('This account is suspended.', 'account_suspended');
+        }
+
         if (! $user->hasVerifiedEmail()) {
             return response()->json([
                 'message' => 'Verify your email address before signing in.',
                 'verification_required' => true,
             ], 403);
+        }
+
+        if (
+            config('auth.require_two_factor')
+            && $user->requiresConfirmedTwoFactor()
+            && ! $user->hasConfirmedTwoFactor()
+        ) {
+            return $this->accessDenied(
+                'Confirm two-factor authentication on the SureFarm website before using the mobile app.',
+                'two_factor_setup_required',
+            );
         }
 
         if ($user->hasEnabledTwoFactorAuthentication()) {
@@ -76,6 +91,25 @@ class MobileAuthController extends Controller
             throw ValidationException::withMessages([
                 'challenge_token' => ['This sign-in challenge has expired. Sign in again.'],
             ]);
+        }
+
+        if ($user->isSuspended()) {
+            Cache::forget($cacheKey);
+
+            return $this->accessDenied('This account is suspended.', 'account_suspended');
+        }
+
+        if (
+            config('auth.require_two_factor')
+            && $user->requiresConfirmedTwoFactor()
+            && ! $user->hasConfirmedTwoFactor()
+        ) {
+            Cache::forget($cacheKey);
+
+            return $this->accessDenied(
+                'Confirm two-factor authentication on the SureFarm website before using the mobile app.',
+                'two_factor_setup_required',
+            );
         }
 
         $valid = false;
@@ -119,6 +153,21 @@ class MobileAuthController extends Controller
 
     private function issueToken(User $user, string $deviceName): JsonResponse
     {
+        if ($user->isSuspended()) {
+            return $this->accessDenied('This account is suspended.', 'account_suspended');
+        }
+
+        if (
+            config('auth.require_two_factor')
+            && $user->requiresConfirmedTwoFactor()
+            && ! $user->hasConfirmedTwoFactor()
+        ) {
+            return $this->accessDenied(
+                'Confirm two-factor authentication on the SureFarm website before using the mobile app.',
+                'two_factor_setup_required',
+            );
+        }
+
         $token = $user->createToken($deviceName, ['mobile'])->plainTextToken;
 
         return response()->json([
@@ -126,6 +175,14 @@ class MobileAuthController extends Controller
             'access_token' => $token,
             'user' => $this->presentUser($user),
         ]);
+    }
+
+    private function accessDenied(string $message, string $code): JsonResponse
+    {
+        return response()->json([
+            'message' => $message,
+            'code' => $code,
+        ], 403);
     }
 
     /** @return array{id: int, name: string, email: string, role: string, farmer_profile_linked: bool} */

@@ -7,6 +7,7 @@ use App\FarmStatus;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\Farmer;
+use App\Models\User;
 use App\Notifications\FarmRegistrationReceivedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -21,12 +22,17 @@ class RegisterFarm
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(Farmer $farmer, array $data, ?UploadedFile $droneImage = null): Farm
+    public function handle(
+        Farmer $farmer,
+        array $data,
+        ?UploadedFile $droneImage = null,
+        ?User $actor = null,
+    ): Farm
     {
         $storedPath = null;
 
         try {
-            $farm = DB::transaction(function () use ($farmer, $data, $droneImage, &$storedPath): Farm {
+            $farm = DB::transaction(function () use ($farmer, $data, $droneImage, $actor, &$storedPath): Farm {
                 if ($droneImage !== null) {
                     $storedPath = $droneImage->store('farms/drone-images', 'local');
 
@@ -61,6 +67,14 @@ class RegisterFarm
 
                 $farm->update([
                     'farm_id' => $this->farmIds->fromSequence($farm->id),
+                ]);
+
+                $farm->areaDeclarations()->create([
+                    'previous_area_hectares' => null,
+                    'declared_area_hectares' => $data['declared_area_hectares'],
+                    'event_type' => 'initial',
+                    'recorded_by' => $actor?->id,
+                    'recorded_at' => now(),
                 ]);
 
                 return $farm->load('farmer');

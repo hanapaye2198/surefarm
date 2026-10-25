@@ -41,6 +41,7 @@ type MapPoint = {
 type SavedBoundary = {
     geojson: BoundaryGeoJson;
     gps_measured_area_hectares: number;
+    capture_method: string | null;
     captured_by: string | null;
     captured_at: string | null;
     updated_by: string | null;
@@ -207,8 +208,12 @@ export function FarmBoundaryMap({
     const googleApiKey = useGoogleMapsApiKey();
     const markGoogleReady = useCallback(() => setGoogleReady(true), []);
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
-    const form = useForm<{ boundary_geojson: BoundaryGeoJson | null }>({
+    const form = useForm<{
+        boundary_geojson: BoundaryGeoJson | null;
+        capture_method: 'map_manual' | 'device_gps';
+    }>({
         boundary_geojson: null,
+        capture_method: 'map_manual',
     });
 
     const hasLocation =
@@ -286,7 +291,10 @@ export function FarmBoundaryMap({
             coordinates: [closedRing(points)],
         };
 
-        form.transform(() => ({ boundary_geojson: geojson }));
+        form.transform(() => ({
+            boundary_geojson: geojson,
+            capture_method: 'map_manual',
+        }));
 
         const options = {
             preserveScroll: true,
@@ -419,7 +427,17 @@ export function FarmBoundaryMap({
                                 </p>
                                 <p>{boundary.captured_by ?? '—'}</p>
                                 <p className="mt-2 text-xs text-muted-foreground">
-                                    Captured At
+                                    Reported Capture Method
+                                </p>
+                                <p>
+                                    {boundary.capture_method === 'device_gps'
+                                        ? 'Device GPS'
+                                        : boundary.capture_method === 'map_manual'
+                                          ? 'Map drawn manually'
+                                          : 'Not recorded'}
+                                </p>
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    Saved to Server At
                                 </p>
                                 <p>{boundary.captured_at ?? '—'}</p>
                                 {boundary.updated_by && (
@@ -433,6 +451,13 @@ export function FarmBoundaryMap({
                             </>
                         )}
                     </div>
+                    {boundary && mode === 'view' && (
+                        <p className="text-xs text-muted-foreground">
+                            GPS readings and capture details are supplied by
+                            the device and are not independently attested.
+                            Server time records when this boundary was saved.
+                        </p>
+                    )}
                     {mode === 'view' && boundary === null && (
                         <p className="text-sm text-muted-foreground">
                             Use the map to draw and save the farm boundary.

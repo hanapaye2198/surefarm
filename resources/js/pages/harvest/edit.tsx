@@ -11,6 +11,8 @@ type HarvestRecord = {
     quantity_input: string;
     unit: string;
     quality_grade: string | null;
+    coffee_variety: string | null;
+    estimated_green_bean_quantity_kg: number | null;
     status: string;
     notes: string | null;
     crop_label: string;
@@ -79,6 +81,12 @@ export default function EditHarvest({
                         quality_grade: harvest.quality_grade ?? '',
                         status: harvest.status,
                         notes: harvest.notes ?? '',
+                        coffee_variety: harvest.coffee_variety ?? '',
+                        estimated_green_bean_quantity_kg:
+                            harvest.estimated_green_bean_quantity_kg === null
+                                ? ''
+                                : String(harvest.estimated_green_bean_quantity_kg),
+                        photos: [],
                     }}
                 />
             </div>

@@ -6,6 +6,7 @@ use App\FarmVerificationResult;
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\User;
+use App\Services\RegistryScope;
 use App\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,9 +19,9 @@ class DecideFarmVerificationRequest extends FormRequest
         $farm = $this->route('farm');
 
         return $user instanceof User
-            && $user->role === UserRole::FieldVerifier
+            && $user->hasRole(UserRole::FieldVerifier, UserRole::Admin)
             && $farm instanceof Farm
-            && $farm->assigned_verifier_id === $user->id
+            && app(RegistryScope::class)->canViewFarm($user, $farm)
             && $farm->verification_status === FarmVerificationStatus::InProgress;
     }
 

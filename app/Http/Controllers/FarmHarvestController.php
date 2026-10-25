@@ -11,6 +11,7 @@ use App\Http\Requests\UpdateFarmHarvestRequest;
 use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmHarvest;
+use App\Models\FarmHarvestPhoto;
 use App\Models\FarmProduction;
 use App\Models\User;
 use App\Services\ProductionLedger;
@@ -18,8 +19,10 @@ use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FarmHarvestController extends Controller
 {
@@ -38,7 +41,7 @@ class FarmHarvestController extends Controller
 
         $harvests = FarmHarvest::query()
             ->visibleTo($this->registryViewer())
-            ->with(['farm.farmer', 'production'])
+            ->with(['farm.farmer', 'production', 'photos.uploader'])
             ->when($farmId !== null, fn ($query) => $query->where('farm_id', $farmId))
             ->when($farmerId !== null, function ($query) use ($farmerId): void {
                 $query->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmerId));
@@ -118,7 +121,7 @@ class FarmHarvestController extends Controller
 
     public function show(FarmHarvest $harvest): Response
     {
-        $harvest->load(['farm.farmer', 'production', 'creator']);
+        $harvest->load(['farm.farmer', 'production', 'creator', 'photos.uploader']);
         $user = request()->user();
 
         return Inertia::render('harvest/show', [
@@ -129,6 +132,13 @@ class FarmHarvestController extends Controller
                 && $harvest->status === HarvestStatus::Completed
                 && ($harvest->crop_type ?? $harvest->farm->crop_type) === CropType::Coffee,
         ]);
+    }
+
+    public function signedPhoto(FarmHarvestPhoto $photo): StreamedResponse
+    {
+        abort_unless(Storage::disk('local')->exists($photo->storage_path), 404);
+
+        return Storage::disk('local')->response($photo->storage_path);
     }
 
     public function edit(FarmHarvest $harvest): Response

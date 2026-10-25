@@ -73,7 +73,7 @@ export default function RegisterFarm({
         | undefined;
     const form = useForm({
         farm_name: '',
-        crop_type: '',
+        crop_type: 'coffee',
         declared_area_hectares: '',
         purok_sitio: farmer.purok_sitio ?? '',
         barangay: farmer.barangay ?? '',
@@ -115,6 +115,8 @@ export default function RegisterFarm({
         const clientErrors = validateFarmForm({
             crop_type: form.data.crop_type,
             declared_area_hectares: form.data.declared_area_hectares,
+            municipality: form.data.municipality,
+            province: form.data.province,
             latitude: form.data.latitude,
             longitude: form.data.longitude,
             number_of_hills: form.data.number_of_hills,
@@ -308,6 +310,7 @@ export default function RegisterFarm({
                             <Field
                                 label="Municipality / City"
                                 htmlFor="municipality"
+                                required
                                 error={form.errors.municipality}
                             >
                                 <Input
@@ -324,6 +327,7 @@ export default function RegisterFarm({
                             <Field
                                 label="Province"
                                 htmlFor="province"
+                                required
                                 error={form.errors.province}
                             >
                                 <Input

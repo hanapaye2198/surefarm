@@ -10,6 +10,7 @@ use App\Models\Farm;
 use App\Models\FarmInsurance;
 use App\Models\User;
 use App\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +20,11 @@ class FarmInsuranceController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
         $records = FarmInsurance::query()
+            ->whereHas('farm', fn (Builder $farm) => $farm->visibleTo($user))
             ->with(['farm.farmer'])
             ->latest('id')
             ->paginate(10)
@@ -39,8 +44,6 @@ class FarmInsuranceController extends Controller
                     'detail' => $presented['term_label'],
                 ];
             });
-
-        $user = $request->user();
 
         return Inertia::render('coverage/index', [
             'kind' => 'insurance',

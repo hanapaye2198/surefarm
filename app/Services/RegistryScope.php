@@ -23,9 +23,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Record scope is separate from role permissions.
  *
- * An administrator or operations account sees the national registry only
- * when an open platform grant exists. A province grant limits both roles
- * to that province. A field verifier sees assigned farms only, even if a
+ * An administrator sees the full registry. Operations accounts see the
+ * registry only when an open platform grant exists; a province grant limits
+ * operations to that province. A field verifier sees assigned farms only, even if a
  * platform grant was recorded by mistake. A cooperative officer sees
  * farmers whose current cooperative is one they are assigned to. A farmer
  * sees the farmer record linked to the account, and nothing matched by
@@ -89,7 +89,15 @@ class RegistryScope
 
     public function seesEntireRegistry(User $user): bool
     {
-        if ($user->isSuspended() || ! $user->hasRole(UserRole::Admin, UserRole::Operations)) {
+        if ($user->isSuspended()) {
+            return false;
+        }
+
+        if ($user->role === UserRole::Admin) {
+            return true;
+        }
+
+        if ($user->role !== UserRole::Operations) {
             return false;
         }
 
@@ -107,10 +115,6 @@ class RegistryScope
     {
         if ($user->isSuspended()) {
             return false;
-        }
-
-        if ($user->role === UserRole::FieldVerifier && $farm->assigned_verifier_id === $user->id) {
-            return true;
         }
 
         return Farm::query()->whereKey($farm->id)->visibleTo($user)->exists();

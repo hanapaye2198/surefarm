@@ -65,6 +65,24 @@ final class FarmBoundaryGeometry
             return $this->invalid('Close the boundary by repeating the first point at the end.');
         }
 
+        $vertices = array_slice($normalized, 0, -1);
+
+        if (count(array_unique(array_map('serialize', $vertices))) < 3) {
+            return $this->invalid('The boundary needs at least three distinct points.');
+        }
+
+        for ($index = 0, $count = count($vertices); $index < $count; $index++) {
+            $next = ($index + 1) % $count;
+
+            if ($vertices[$index] === $vertices[$next]) {
+                return $this->invalid('The boundary cannot repeat adjacent points.');
+            }
+        }
+
+        if ($this->hasSelfIntersection($vertices)) {
+            return $this->invalid('The boundary crosses itself. Recheck the GPS point order and try again.');
+        }
+
         $hectares = $this->area->hectares($normalized);
 
         if ($hectares <= 0) {
@@ -110,6 +128,76 @@ final class FarmBoundaryGeometry
         }
 
         return [$longitude, $latitude];
+    }
+
+    /**
+     * @param  list<array{0: float, 1: float}>  $vertices  An open ring without its repeated closing point.
+     */
+    private function hasSelfIntersection(array $vertices): bool
+    {
+        $count = count($vertices);
+
+        for ($firstIndex = 0; $firstIndex < $count; $firstIndex++) {
+            $firstStart = $vertices[$firstIndex];
+            $firstEnd = $vertices[($firstIndex + 1) % $count];
+
+            for ($secondIndex = $firstIndex + 1; $secondIndex < $count; $secondIndex++) {
+                // Neighboring edges meet at a normal polygon vertex.
+                if ($secondIndex === $firstIndex + 1 || ($firstIndex === 0 && $secondIndex === $count - 1)) {
+                    continue;
+                }
+
+                $secondStart = $vertices[$secondIndex];
+                $secondEnd = $vertices[($secondIndex + 1) % $count];
+
+                if ($this->segmentsIntersect($firstStart, $firstEnd, $secondStart, $secondEnd)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array{0: float, 1: float}  $a
+     * @param  array{0: float, 1: float}  $b
+     * @param  array{0: float, 1: float}  $c
+     * @param  array{0: float, 1: float}  $d
+     */
+    private function segmentsIntersect(array $a, array $b, array $c, array $d): bool
+    {
+        $epsilon = 1.0e-12;
+        $abC = $this->orientation($a, $b, $c);
+        $abD = $this->orientation($a, $b, $d);
+        $cdA = $this->orientation($c, $d, $a);
+        $cdB = $this->orientation($c, $d, $b);
+
+        if (($abC > $epsilon && $abD < -$epsilon || $abC < -$epsilon && $abD > $epsilon)
+            && ($cdA > $epsilon && $cdB < -$epsilon || $cdA < -$epsilon && $cdB > $epsilon)) {
+            return true;
+        }
+
+        return (abs($abC) <= $epsilon && $this->onSegment($a, $b, $c, $epsilon))
+            || (abs($abD) <= $epsilon && $this->onSegment($a, $b, $d, $epsilon))
+            || (abs($cdA) <= $epsilon && $this->onSegment($c, $d, $a, $epsilon))
+            || (abs($cdB) <= $epsilon && $this->onSegment($c, $d, $b, $epsilon));
+    }
+
+    /** @param array{0: float, 1: float} $a @param array{0: float, 1: float} $b @param array{0: float, 1: float} $point */
+    private function orientation(array $a, array $b, array $point): float
+    {
+        return ($b[0] - $a[0]) * ($point[1] - $a[1])
+            - ($b[1] - $a[1]) * ($point[0] - $a[0]);
+    }
+
+    /** @param array{0: float, 1: float} $a @param array{0: float, 1: float} $b @param array{0: float, 1: float} $point */
+    private function onSegment(array $a, array $b, array $point, float $epsilon): bool
+    {
+        return $point[0] >= min($a[0], $b[0]) - $epsilon
+            && $point[0] <= max($a[0], $b[0]) + $epsilon
+            && $point[1] >= min($a[1], $b[1]) - $epsilon
+            && $point[1] <= max($a[1], $b[1]) + $epsilon;
     }
 
     /**

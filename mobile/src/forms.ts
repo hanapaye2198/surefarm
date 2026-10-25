@@ -12,6 +12,7 @@ export type FieldSpec = {
         | 'select'
         | 'toggle'
         | 'image'
+        | 'hidden'
         | 'geojson';
     required?: boolean;
     multiline?: boolean;
@@ -19,6 +20,7 @@ export type FieldSpec = {
     optional?: boolean;
     hint?: string;
     cameraOnly?: boolean;
+    multiple?: boolean;
 };
 
 export type FormSpec = {
@@ -145,7 +147,14 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         options: 'cooperatives',
                         optional: true,
                     },
-                    { key: 'photo', label: 'Farmer photo', kind: 'image' },
+                    {
+                        key: 'photo',
+                        label: 'Farmer photo (face capture)',
+                        kind: 'image',
+                        required: true,
+                        cameraOnly: true,
+                        hint: 'Capture a clear face photo with the front camera.',
+                    },
                     {
                         key: 'has_spouse',
                         label: 'Record spouse details',
@@ -181,12 +190,6 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'PUT',
                 path: `/farmers/${itemId}`,
                 fields: [
-                    {
-                        key: 'user_id',
-                        label: 'Farmer app login',
-                        kind: 'select',
-                        options: 'farmerAccounts',
-                    },
                     text('date_of_birth', 'Date of birth', { kind: 'date' }),
                     text('government_id', 'Government ID'),
                     text('suffix', 'Suffix'),
@@ -301,12 +304,6 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'PUT',
                 path: `/farms/${itemId}`,
                 fields: [
-                    {
-                        key: 'assigned_verifier_id',
-                        label: 'Assigned field verifier',
-                        kind: 'select',
-                        options: 'verifiers',
-                    },
                     text('farm_name', 'Farm name'),
                     {
                         key: 'crop_type',
@@ -571,7 +568,7 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         kind: 'date',
                         required: true,
                     }),
-                    text('quantity', 'Quantity', {
+                    text('quantity', 'Coffee cherry quantity', {
                         kind: 'number',
                         required: true,
                     }),
@@ -581,6 +578,19 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         kind: 'select',
                         options: 'units',
                         required: true,
+                    },
+                    text('coffee_variety', 'Coffee variety'),
+                    text(
+                        'estimated_green_bean_quantity_kg',
+                        'Estimated green bean quantity (kg)',
+                        { kind: 'number' },
+                    ),
+                    {
+                        key: 'photos',
+                        label: 'Harvest photos',
+                        kind: 'image',
+                        multiple: true,
+                        hint: 'Add up to six photos. Capture time and GPS metadata are saved when available.',
                     },
                     text('quality_grade', 'Quality grade'),
                     {
@@ -614,6 +624,12 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         options: 'units',
                         required: true,
                     },
+                    text('coffee_variety', 'Coffee variety'),
+                    text(
+                        'estimated_green_bean_quantity_kg',
+                        'Estimated green bean quantity (kg)',
+                        { kind: 'number' },
+                    ),
                     text('quality_grade', 'Quality grade'),
                     {
                         key: 'status',
@@ -883,15 +899,12 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'POST',
                 path: `/farm-verification/${data.farmId}/inspection`,
                 fields: [
+                    { key: 'boundary_revision', label: '', kind: 'hidden', required: true },
                     yesNo('farm_exists', 'Farm physically exists'),
                     yesNo('location_matches', 'Location matches registration'),
-                    yesNo('coffee_crop_observed', 'Coffee crop observed'),
+                    yesNo('crop_observed', `${data.cropLabel ?? 'Registered crop'} observed`),
                     yesNo('boundary_captured', 'GPS boundary captured'),
                     yesNo('area_checked', 'Farm area checked'),
-                    yesNo(
-                        'required_photos_captured',
-                        'Required photos captured',
-                    ),
                     yesNo(
                         'farmer_or_representative_met',
                         'Farmer or representative met',
@@ -904,6 +917,7 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                         options: [
                             { value: '', label: 'Choose a category' },
                             { value: 'farm_entrance', label: 'Farm entrance' },
+                            { value: 'crop_plants', label: 'Crop plants' },
                             { value: 'coffee_plants', label: 'Coffee plants' },
                             { value: 'farm_boundary', label: 'Farm boundary' },
                             {
@@ -913,8 +927,14 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                             { value: 'other', label: 'Other' },
                         ],
                     },
-                    text('latitude', 'Evidence latitude', { kind: 'number' }),
-                    text('longitude', 'Evidence longitude', { kind: 'number' }),
+                    text('latitude', 'Evidence latitude', {
+                        kind: 'number',
+                        hint: 'Filled from photo GPS metadata or your current location when available.',
+                    }),
+                    text('longitude', 'Evidence longitude', {
+                        kind: 'number',
+                        hint: 'Filled from photo GPS metadata or your current location when available.',
+                    }),
                     text('remarks', 'Observations', {
                         multiline: true,
                         hint: 'Record field notes or issues for this inspection.',
@@ -926,17 +946,116 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     }),
                 ],
             };
+        case 'farmer/activity':
+            return {
+                title: 'Record farm activity',
+                method: 'POST',
+                path: '/farmer/activities',
+                fields: [
+                    {
+                        key: 'farm_id',
+                        label: 'Farm',
+                        kind: 'select',
+                        options: 'farms',
+                        required: true,
+                    },
+                    {
+                        key: 'activity_type_id',
+                        label: 'Activity',
+                        kind: 'select',
+                        options: 'activityTypes',
+                        required: true,
+                    },
+                    text('activity_date', 'Activity date', {
+                        kind: 'date',
+                        required: true,
+                    }),
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        kind: 'select',
+                        options: 'activityStatuses',
+                        required: true,
+                    },
+                    text('description', 'Description', { multiline: true }),
+                    text('quantity', 'Quantity', { kind: 'number' }),
+                    {
+                        key: 'unit',
+                        label: 'Unit',
+                        kind: 'select',
+                        options: 'units',
+                        optional: true,
+                    },
+                    text('remarks', 'Notes', { multiline: true }),
+                ],
+            };
+        case 'farmer/harvest':
+            return {
+                title: 'Record harvest',
+                method: 'POST',
+                path: '/farmer/harvests',
+                fields: [
+                    {
+                        key: 'farm_id',
+                        label: 'Farm',
+                        kind: 'select',
+                        options: 'farms',
+                        required: true,
+                    },
+                    text('harvest_date', 'Harvest date', {
+                        kind: 'date',
+                        required: true,
+                    }),
+                    text('quantity', 'Harvest quantity', {
+                        kind: 'number',
+                        required: true,
+                        hint: 'Enter the harvested amount in the selected unit.',
+                    }),
+                    {
+                        key: 'unit',
+                        label: 'Unit',
+                        kind: 'select',
+                        options: 'units',
+                        required: true,
+                    },
+                    text('coffee_variety', 'Coffee variety'),
+                    text(
+                        'estimated_green_bean_quantity_kg',
+                        'Estimated green bean quantity (kg)',
+                        { kind: 'number' },
+                    ),
+                    {
+                        key: 'photos',
+                        label: 'Harvest photos',
+                        kind: 'image',
+                        multiple: true,
+                        hint: 'Add up to six photos. Capture time and GPS metadata are saved when available.',
+                    },
+                    text('quality_grade', 'Quality grade'),
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        kind: 'select',
+                        options: 'harvestStatuses',
+                        required: true,
+                    },
+                    text('notes', 'Notes', { multiline: true }),
+                ],
+            };
         case 'farm-boundary/edit':
             return {
                 title: 'Save farm boundary',
                 method: data.hasBoundary ? 'PUT' : 'POST',
                 path: `/farms/${data.farmId}/boundary`,
                 fields: [
+                    text('capture_method', '', { kind: 'hidden' }),
+                    text('gps_point_accuracies', '', { kind: 'hidden' }),
+                    text('gps_point_captured_at', '', { kind: 'hidden' }),
                     text('boundary_geojson', 'Boundary GeoJSON', {
                         kind: 'geojson',
                         required: true,
                         multiline: true,
-                        hint: 'Paste the farm polygon as GeoJSON. The server checks the boundary before saving it.',
+                        hint: 'Walk the perimeter and capture each corner with the device GPS controls below.',
                     }),
                 ],
             };
@@ -1101,8 +1220,44 @@ export function initialFieldValues(
             const key = field.key.endsWith('_input') ? alternate : field.key;
             let value = model?.[field.key] ?? model?.[key] ?? '';
 
+            if (field.key === 'boundary_revision')
+                value = data.boundary_revision ?? value;
+            const freshBoundaryCapture = Boolean(
+                data.freshBoundaryCapture || data.verificationCapture,
+            );
+            if (field.key === 'capture_method') value = 'device_gps';
+            if (field.key === 'gps_point_accuracies')
+                value = freshBoundaryCapture
+                    ? []
+                    : (data.boundary?.gps_point_accuracies ?? []);
+            if (field.key === 'gps_point_captured_at')
+                value = freshBoundaryCapture
+                    ? []
+                    : (data.boundary?.gps_point_captured_at ?? []);
+            if (field.key === 'crop_observed')
+                value = data.crop_observed ?? value;
+
             if (field.key === 'farm_id' && data.selectedFarmId)
                 value = data.selectedFarmId;
+            if (
+                field.key === 'farm_id' &&
+                !value &&
+                Array.isArray(data.farms) &&
+                data.farms.length === 1
+            )
+                value = data.farms[0].id;
+            if (
+                field.key === 'status' &&
+                !value &&
+                component === 'farmer/activity'
+            )
+                value = 'completed';
+            if (
+                field.key === 'status' &&
+                !value &&
+                component === 'farmer/harvest'
+            )
+                value = 'completed';
             if (field.key === 'production_id' && data.selectedProductionId)
                 value = data.selectedProductionId;
             if (
@@ -1125,7 +1280,11 @@ export function initialFieldValues(
                 ].includes(field.key)
             )
                 value = data.farmer[field.key] ?? '';
-            if (field.key === 'boundary_geojson' && data.boundary?.geojson)
+            if (
+                field.key === 'boundary_geojson' &&
+                data.boundary?.geojson &&
+                !freshBoundaryCapture
+            )
                 value = JSON.stringify(data.boundary.geojson, null, 2);
             if (field.kind === 'toggle') value = Boolean(value);
             if (

@@ -25,6 +25,7 @@ class StoreFarmVerifierAssignmentRequest extends FormRequest
     {
         return [
             'farm_code' => ['required', 'string', 'max:64'],
+            'scheduled_for' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today'],
         ];
     }
 
@@ -35,6 +36,7 @@ class StoreFarmVerifierAssignmentRequest extends FormRequest
     {
         return [
             'farm_code.required' => 'Enter the farm ID to assign.',
+            'scheduled_for.after_or_equal' => 'The scheduled date cannot be in the past.',
         ];
     }
 }

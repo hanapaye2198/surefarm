@@ -181,11 +181,15 @@ export default function CreateFarmer({
                             )}
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="photo">Farmer Photo</Label>
+                            <Label htmlFor="photo">
+                                Farmer Photo <span className="text-destructive" aria-hidden="true">*</span>
+                            </Label>
                             <Input
                                 id="photo"
                                 type="file"
                                 accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                                capture="user"
+                                required
                                 onChange={(event) => {
                                     choosePhoto(
                                         event.target.files?.[0] ?? null,

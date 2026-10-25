@@ -6,6 +6,7 @@ use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\User;
 use App\Services\FarmBoundaryGeometry;
+use App\Services\RegistryScope;
 use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -22,13 +23,22 @@ class SaveFarmBoundaryRequest extends FormRequest
             return false;
         }
 
-        if ($user->canAccess(UserRole::Operations)) {
+        $isBoundaryPreview = $this->is('api/mobile/farms/*/boundary-preview');
+        $inProgress = $farm->verification_status === FarmVerificationStatus::InProgress;
+
+        if ($isBoundaryPreview) {
+            return $user->canAccess(UserRole::Operations, UserRole::FieldVerifier, UserRole::Admin)
+                && app(RegistryScope::class)->canViewFarm($user, $farm);
+        }
+
+        if (! $inProgress && $user->canAccess(UserRole::Operations, UserRole::Admin)) {
             return true;
         }
 
-        return $user->role === UserRole::FieldVerifier
-            && $farm->assigned_verifier_id === $user->id
-            && $farm->verification_status === FarmVerificationStatus::InProgress;
+        return $this->is('api/mobile/*')
+            && $inProgress
+            && $user->hasRole(UserRole::FieldVerifier, UserRole::Admin)
+            && app(RegistryScope::class)->canViewFarm($user, $farm);
     }
 
     /**
@@ -40,6 +50,9 @@ class SaveFarmBoundaryRequest extends FormRequest
             'boundary_geojson' => ['required', 'array'],
             'gps_point_accuracies' => ['sometimes', 'array', 'max:1000'],
             'gps_point_accuracies.*' => ['nullable', 'numeric', 'between:0,1000'],
+            'capture_method' => ['sometimes', 'string', 'in:device_gps,map_manual'],
+            'gps_point_captured_at' => ['sometimes', 'array', 'max:1000'],
+            'gps_point_captured_at.*' => ['required', 'date'],
         ];
     }
 
@@ -62,21 +75,68 @@ class SaveFarmBoundaryRequest extends FormRequest
                     return;
                 }
 
-                $accuracies = $this->input('gps_point_accuracies');
-
-                if (! is_array($accuracies)) {
-                    return;
-                }
-
                 $geometry = app(FarmBoundaryGeometry::class)->inspect($this->input('boundary_geojson'));
                 $positions = $geometry['polygon']['coordinates'][0] ?? [];
                 $expectedCount = max(0, count($positions) - 1);
+                $accuracies = $this->input('gps_point_accuracies');
+                $timestamps = $this->input('gps_point_captured_at');
 
-                if (count($accuracies) !== $expectedCount) {
+                if (is_array($accuracies) && count($accuracies) !== $expectedCount) {
                     $validator->errors()->add(
                         'gps_point_accuracies',
                         'GPS accuracy readings must match the boundary points.',
                     );
+                }
+
+                if (is_array($timestamps) && count($timestamps) !== $expectedCount) {
+                    $validator->errors()->add(
+                        'gps_point_captured_at',
+                        'GPS capture times must match the boundary points.',
+                    );
+                }
+
+                $farm = $this->route('farm');
+                $isPreview = $this->is('api/mobile/farms/*/boundary-preview');
+                $isActiveVerification = $farm instanceof Farm
+                    && $farm->verification_status === FarmVerificationStatus::InProgress
+                    && ! $isPreview;
+
+                if ($isActiveVerification && $this->input('capture_method') !== 'device_gps') {
+                    $validator->errors()->add(
+                        'capture_method',
+                        'Capture and save the boundary with the field verifier mobile GPS tool.',
+                    );
+                }
+
+                $deviceGpsCapture = $this->input('capture_method') === 'device_gps';
+                $manualMapCapture = $this->input('capture_method') === 'map_manual';
+
+                if (($isActiveVerification || $deviceGpsCapture)
+                    && (! is_array($timestamps) || count($timestamps) !== $expectedCount)) {
+                    $validator->errors()->add(
+                        'gps_point_captured_at',
+                        'A capture time is required for every GPS boundary point.',
+                    );
+                }
+
+                if ($manualMapCapture && (is_array($timestamps) || is_array($accuracies))) {
+                    $validator->errors()->add(
+                        'capture_method',
+                        'A manually drawn map boundary cannot include device GPS readings.',
+                    );
+                }
+
+                if (is_array($timestamps)) {
+                    foreach ($timestamps as $timestamp) {
+                        try {
+                            // The timestamp is supplied by the field device.
+                            // Keep it as metadata, but do not compare its clock
+                            // to the server when accepting the boundary.
+                            \Illuminate\Support\Carbon::parse($timestamp);
+                        } catch (\Throwable) {
+                            continue; // The date rule reports malformed values.
+                        }
+                    }
                 }
             },
         ];

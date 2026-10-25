@@ -31,13 +31,14 @@ class FarmPortfolio
     public function summary(Collection $farms): array
     {
         $verifiedFarms = $farms->where('verification_status', FarmVerificationStatus::Verified);
+        $acceptedAreaFarms = $farms->filter(fn (Farm $farm): bool => $farm->verified_area_hectares !== null);
 
         return [
             'registered_farms' => $farms->count(),
             'declared_area_hectares' => round((float) $farms->sum(
                 fn (Farm $farm): float => (float) $farm->declared_area_hectares,
             ), 2),
-            'total_verified_hectares' => round((float) $verifiedFarms->sum(
+            'total_verified_hectares' => round((float) $acceptedAreaFarms->sum(
                 fn (Farm $farm): float => (float) ($farm->verified_area_hectares ?? 0),
             ), 2),
             'verified_farms' => $verifiedFarms->count(),
@@ -74,6 +75,8 @@ class FarmPortfolio
             'status' => $farm->status->value,
             'status_label' => $farm->status->label(),
             'verification_status' => $farm->verification_status->value,
+            'geofence_status' => $farm->geofenceStatus(),
+            'geofence_status_label' => $farm->geofenceStatusLabel(),
             'current_stage' => $farm->current_stage?->value,
             'current_stage_label' => $farm->current_stage?->label() ?? 'Not provided',
             'property_ownership' => $farm->property_ownership?->value,

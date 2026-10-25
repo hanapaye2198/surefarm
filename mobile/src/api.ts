@@ -7,16 +7,19 @@ export type ApiPage<T = Record<string, unknown>> = {
 export class ApiError extends Error {
     status: number;
     fields: Record<string, string[]>;
+    code?: string;
 
     constructor(
         message: string,
         status: number,
         fields: Record<string, string[]> = {},
+        code?: string,
     ) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
         this.fields = fields;
+        this.code = code;
     }
 }
 
@@ -81,7 +84,7 @@ export async function apiRequest<T>(
             firstFieldError ??
             payload?.message ??
             'The request could not be completed.';
-        throw new ApiError(message, response.status, fields);
+        throw new ApiError(message, response.status, fields, payload?.code);
     }
 
     return payload as T;

@@ -66,12 +66,18 @@ class UpdateFarmHarvest
                 'quantity' => DecimalQuantity::fromCents(DecimalQuantity::cents($harvest->quantity)),
                 'unit' => $harvest->unit,
                 'status' => $harvest->status->value,
+                'coffee_variety' => $harvest->coffee_variety,
+                'estimated_green_bean_quantity_kg' => $harvest->estimated_green_bean_quantity_kg === null
+                    ? null
+                    : (string) $harvest->estimated_green_bean_quantity_kg,
             ];
 
             $harvest->update([
                 'harvest_date' => $data['harvest_date'],
                 'quantity' => $data['quantity'],
                 'unit' => $data['unit'],
+                'coffee_variety' => $data['coffee_variety'] ?? null,
+                'estimated_green_bean_quantity_kg' => $data['estimated_green_bean_quantity_kg'] ?? null,
                 'quality_grade' => $data['quality_grade'] ?? null,
                 'status' => $data['status'],
                 'notes' => $data['notes'] ?? null,
@@ -84,6 +90,10 @@ class UpdateFarmHarvest
                     'quantity' => DecimalQuantity::fromCents(DecimalQuantity::cents($harvest->quantity)),
                     'unit' => $harvest->unit,
                     'status' => $harvest->status->value,
+                    'coffee_variety' => $harvest->coffee_variety,
+                    'estimated_green_bean_quantity_kg' => $harvest->estimated_green_bean_quantity_kg === null
+                        ? null
+                        : (string) $harvest->estimated_green_bean_quantity_kg,
                 ];
 
                 if ($before !== $after) {
@@ -94,11 +104,15 @@ class UpdateFarmHarvest
                         'unit_to' => $after['unit'],
                         'status_from' => $before['status'],
                         'status_to' => $after['status'],
+                        'variety_from' => $before['coffee_variety'],
+                        'variety_to' => $after['coffee_variety'],
+                        'green_bean_kg_from' => $before['estimated_green_bean_quantity_kg'],
+                        'green_bean_kg_to' => $after['estimated_green_bean_quantity_kg'],
                     ]);
                 }
             }
 
-            return $harvest->load(['farm.farmer', 'production', 'creator']);
+            return $harvest->load(['farm.farmer', 'production', 'creator', 'photos.uploader']);
         });
     }
 }

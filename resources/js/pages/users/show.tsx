@@ -72,6 +72,7 @@ type AssignmentRow = {
     open: boolean;
     assigned_by: string | null;
     assigned_at: string | null;
+    scheduled_for: string | null;
     revoked_at: string | null;
 };
 
@@ -489,7 +490,7 @@ function AssignmentCard({
     accountId: number;
     assignments: AssignmentRow[];
 }) {
-    const form = useForm({ farm_code: '' });
+    const form = useForm({ farm_code: '', scheduled_for: '' });
 
     function save(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -509,7 +510,7 @@ function AssignmentCard({
                     Assignment allows inspection and verification of that farm.
                     It does not allow financial, identity, or inventory changes.
                 </p>
-                <form onSubmit={save} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <form onSubmit={save} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                     <div className="grid gap-2">
                         <Label htmlFor="farm_code">Farm ID</Label>
                         <Input
@@ -522,9 +523,21 @@ function AssignmentCard({
                         />
                         <InputError message={form.errors.farm_code} />
                     </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="scheduled_for">Visit date (optional)</Label>
+                        <Input
+                            id="scheduled_for"
+                            type="date"
+                            value={form.data.scheduled_for}
+                            onChange={(event) =>
+                                form.setData('scheduled_for', event.target.value)
+                            }
+                        />
+                        <InputError message={form.errors.scheduled_for} />
+                    </div>
                     <div className="flex items-end">
                         <Button type="submit" disabled={form.processing}>
-                            Assign farm
+                            Assign or schedule
                         </Button>
                     </div>
                 </form>
@@ -552,35 +565,70 @@ function AssignmentItem({
     accountId: number;
     assignment: AssignmentRow;
 }) {
-    const form = useForm({ assignment: '' });
+    const scheduleForm = useForm({
+        farm_code: assignment.farm_code ?? '',
+        scheduled_for: assignment.scheduled_for ?? '',
+    });
+    const revokeForm = useForm({ assignment: '' });
+
+    function saveSchedule(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        scheduleForm.post(storeAssignment.url(accountId), { preserveScroll: true });
+    }
 
     return (
-        <li className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-                {assignment.farm_code} · {assignment.farm_name} ·{' '}
-                {assignment.open ? 'Open' : `Revoked ${assignment.revoked_at ?? ''}`}
-            </span>
+        <li className="space-y-2 rounded-md border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                    {assignment.farm_code} · {assignment.farm_name} ·{' '}
+                    {assignment.open ? 'Open' : `Revoked ${assignment.revoked_at ?? ''}`}
+                    {assignment.open && assignment.scheduled_for
+                        ? ` · Scheduled ${assignment.scheduled_for}`
+                        : ''}
+                </span>
+                {assignment.open && (
+                    <ConfirmAction
+                        title="Revoke this farm assignment?"
+                        description="The verifier will no longer open this farm or its verification."
+                        label="Revoke"
+                        processing={revokeForm.processing}
+                        onConfirm={() =>
+                            revokeForm.delete(
+                                revokeAssignment.url({
+                                    user: accountId,
+                                    assignment: assignment.id,
+                                }),
+                            )
+                        }
+                        error={revokeForm.errors.assignment}
+                    />
+                )}
+            </div>
             {assignment.open && (
-                <ConfirmAction
-                    title="Revoke this farm assignment?"
-                    description="The verifier will no longer open this farm or its verification."
-                    label="Revoke"
-                    processing={form.processing}
-                    onConfirm={() =>
-                        form.delete(
-                            revokeAssignment.url({
-                                user: accountId,
-                                assignment: assignment.id,
-                            }),
-                        )
-                    }
-                    error={form.errors.assignment}
-                />
+                <form onSubmit={saveSchedule} className="flex flex-wrap items-end gap-2">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor={`schedule-${assignment.id}`}>Visit date</Label>
+                        <Input
+                            id={`schedule-${assignment.id}`}
+                            type="date"
+                            value={scheduleForm.data.scheduled_for}
+                            onChange={(event) =>
+                                scheduleForm.setData('scheduled_for', event.target.value)
+                            }
+                        />
+                        <InputError message={scheduleForm.errors.scheduled_for} />
+                    </div>
+                    <Button type="submit" variant="outline" disabled={scheduleForm.processing}>
+                        Save schedule
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                        Clear the date and save to remove the schedule.
+                    </span>
+                </form>
             )}
         </li>
     );
 }
-
 function ConfirmAction({
     title,
     description,

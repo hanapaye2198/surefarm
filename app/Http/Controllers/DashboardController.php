@@ -12,6 +12,7 @@ use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
+use App\Models\FarmVerifierAssignment;
 use App\Models\User;
 use App\Services\AdminLandAnalytics;
 use App\Services\InventoryStock;
@@ -35,16 +36,7 @@ class DashboardController extends Controller
         }
 
         if ($user instanceof User && $user->role === UserRole::FieldVerifier) {
-            $assignedFarms = Farm::query()->where(function (Builder $query) use ($user): void {
-                if ($user->isSuspended()) {
-                    $query->whereRaw('0 = 1');
-
-                    return;
-                }
-
-                $query->visibleTo($user)
-                    ->orWhere($query->qualifyColumn('assigned_verifier_id'), $user->id);
-            });
+            $assignedFarms = Farm::query()->visibleTo($user);
             $assignedPreview = (clone $assignedFarms)->with('farmer')->latest('id')->limit(4)->get()
                 ->map(fn (Farm $farm): array => [
                     'id' => $farm->id,
@@ -78,7 +70,7 @@ class DashboardController extends Controller
                 ->where('crop_type', CropType::Coffee)
                 ->sum('declared_area_hectares');
             $verified = (float) (clone $assignedFarms)
-                ->where('verification_status', FarmVerificationStatus::Verified)
+                ->whereNotNull('verified_area_hectares')
                 ->sum('verified_area_hectares');
             $verifiedToday = FarmVerification::query()
                 ->whereIn('farm_id', (clone $assignedFarms)->select('id'))
@@ -86,19 +78,45 @@ class DashboardController extends Controller
                 ->where('result', 'verified')
                 ->whereDate('verified_at', today())
                 ->count();
-            $assignedToday = (clone $assignedFarms)
-                ->whereDate('assigned_at', today())
-                ->count();
+            $todayAssignments = FarmVerifierAssignment::query()
+                ->with(['farm.farmer'])
+                ->where('user_id', $user->id)
+                ->whereNull('revoked_at')
+                ->where('scheduled_for', today()->toDateString())
+                ->whereHas('farm', fn (Builder $query) => $query
+                    ->visibleTo($user)
+                    ->whereIn('verification_status', [
+                        FarmVerificationStatus::Pending,
+                        FarmVerificationStatus::InProgress,
+                        FarmVerificationStatus::NeedsReview,
+                    ]))
+                ->orderBy('scheduled_for')
+                ->get()
+                ->map(fn (FarmVerifierAssignment $assignment): array => [
+                    'id' => $assignment->farm->id,
+                    'farm_id' => $assignment->farm->farm_id,
+                    'farm_name' => $assignment->farm->displayName(),
+                    'farmer_name' => $assignment->farm->farmer?->fullName(),
+                    'location' => $assignment->farm->locationLabel(),
+                    'verification_status' => $assignment->farm->verification_status->value,
+                    'scheduled_for' => $assignment->scheduled_for?->format('Y-m-d'),
+                ])->values()->all();
+            $scheduledToday = count($todayAssignments);
 
             return Inertia::render('dashboard', [
                 'mobile_dashboard_mode' => 'verifier_dashboard',
                 'summary' => [
                     'assigned_farms' => (clone $assignedFarms)->count(),
-                    'assigned_today' => $assignedToday,
+                    'assigned_today' => $scheduledToday,
+                    'scheduled_today' => $scheduledToday,
                     'registered_farms' => (clone $assignedFarms)->count(),
                     'pending_verification' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
                     'in_progress' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
-                    'completed_farms' => (clone $assignedFarms)->whereIn('verification_status', [FarmVerificationStatus::Verified, FarmVerificationStatus::Failed])->count(),
+                    'completed_farms' => (clone $assignedFarms)->whereIn('verification_status', [
+                        FarmVerificationStatus::Verified,
+                        FarmVerificationStatus::Failed,
+                        FarmVerificationStatus::NeedsReview,
+                    ])->count(),
                     'verified_farms' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Verified)->count(),
                     'needs_review' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
                     'failed' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
@@ -111,6 +129,7 @@ class DashboardController extends Controller
                     'other_crop_hectares' => round($declared - $coffee, 2),
                 ],
                 'assigned_farms_preview' => $assignedPreview,
+                'today_assignments' => $todayAssignments,
                 'assigned_farms_map' => $assignedMapFarms,
                 'google_maps_api_key' => config('services.google_maps.browser_api_key'),
                 'recent_activities' => [],
@@ -156,7 +175,7 @@ class DashboardController extends Controller
                     ])->values()->all();
                 $declaredArea = (float) (clone $farms)->sum('declared_area_hectares');
                 $verifiedArea = (float) (clone $farms)
-                    ->where('verification_status', FarmVerificationStatus::Verified)
+                    ->whereNotNull('verified_area_hectares')
                     ->sum('verified_area_hectares');
 
                 return Inertia::render('dashboard', [
@@ -390,13 +409,14 @@ class DashboardController extends Controller
     }
 
     /**
-     * Verified hectares on active farms whose current status is verified.
-     * History rows are not summed, and declared area is left untouched.
+     * Accepted verified hectares on active farms. A reverification does not
+     * invalidate the previously accepted measurement. History rows are not
+     * summed, and declared area is left untouched.
      */
     private function verifiedHectares(): float
     {
         return round((float) $this->activeFarms()
-            ->where('verification_status', FarmVerificationStatus::Verified)
+            ->whereNotNull('verified_area_hectares')
             ->sum('verified_area_hectares'), 2);
     }
 
@@ -471,8 +491,8 @@ class DashboardController extends Controller
     }
 
     /**
-     * Saved boundaries of active farms whose current status is verified.
-     * Pending and inactive farms are not included.
+     * Saved accepted boundaries of active farms. Reverification in progress
+     * or awaiting follow-up does not hide the currently accepted boundary.
      *
      * @return list<array{
      *     id: int,
@@ -487,7 +507,7 @@ class DashboardController extends Controller
     private function verifiedLands(): array
     {
         $lands = $this->activeFarms()
-            ->where('verification_status', FarmVerificationStatus::Verified)
+            ->whereNotNull('verified_area_hectares')
             ->whereHas('boundary')
             ->with([
                 'farmer:id,first_name,middle_name,last_name',

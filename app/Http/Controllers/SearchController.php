@@ -36,6 +36,7 @@ class SearchController extends Controller
         $like = '%'.addcslashes($term, '%_\\').'%';
 
         $farmers = Farmer::query()
+            ->visibleTo($user)
             ->where(function ($query) use ($like): void {
                 $query->where('farmer_id', 'like', $like)
                     ->orWhere('first_name', 'like', $like)
@@ -58,6 +59,7 @@ class SearchController extends Controller
             ]);
 
         $farms = Farm::query()
+            ->visibleTo($user)
             ->with('farmer')
             ->where(function ($query) use ($like): void {
                 $query->where('farm_id', 'like', $like)

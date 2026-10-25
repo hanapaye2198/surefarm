@@ -63,6 +63,9 @@ export default function CreateHarvest({
                         quality_grade: '',
                         status: 'completed',
                         notes: '',
+                        coffee_variety: '',
+                        estimated_green_bean_quantity_kg: '',
+                        photos: [],
                     }}
                 />
             </div>

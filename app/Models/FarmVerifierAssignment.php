@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property Carbon $assigned_at
+ * @property Carbon|null $scheduled_for
  * @property Carbon|null $revoked_at
  */
 #[Fillable([
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
     'farm_id',
     'assigned_by',
     'assigned_at',
+    'scheduled_for',
     'revoked_at',
 ])]
 class FarmVerifierAssignment extends Model
@@ -32,6 +34,7 @@ class FarmVerifierAssignment extends Model
     {
         return [
             'assigned_at' => 'datetime',
+            'scheduled_for' => 'date',
             'revoked_at' => 'datetime',
         ];
     }

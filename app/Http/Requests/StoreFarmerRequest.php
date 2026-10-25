@@ -45,7 +45,7 @@ class StoreFarmerRequest extends FormRequest
             'mobile_number' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'email' => ['nullable', 'email', 'max:255'],
             'cooperative_id' => ['nullable', 'integer', Rule::exists('cooperatives', 'id')->where('status', CooperativeStatus::Active->value)],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             'has_spouse' => ['boolean'],
             'spouse_first_name' => [
                 Rule::excludeUnless($recordingSpouse),
@@ -109,6 +109,7 @@ class StoreFarmerRequest extends FormRequest
             'mobile_number.regex' => 'Enter a valid mobile number.',
             'email.email' => 'Enter a valid email address.',
             'photo.image' => 'Farmer photo must be a JPG or PNG image.',
+            'photo.required' => 'A farmer photo is required.',
             'photo.mimes' => 'Farmer photo must be a JPG or PNG image.',
             'photo.max' => 'Farmer photo must be 5 MB or smaller.',
             'spouse_first_name.required' => 'Spouse first name is required.',

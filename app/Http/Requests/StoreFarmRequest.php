@@ -31,10 +31,10 @@ class StoreFarmRequest extends FormRequest
             'declared_area_hectares' => ['bail', 'required', 'numeric', 'gt:0', 'lte:99999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             'purok_sitio' => ['nullable', 'string', 'max:255'],
             'barangay' => ['nullable', 'string', 'max:255'],
-            'municipality' => ['nullable', 'string', 'max:255'],
-            'province' => ['nullable', 'string', 'max:255'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'municipality' => ['required', 'string', 'max:255'],
+            'province' => ['required', 'string', 'max:255'],
+            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'current_stage' => ['nullable', Rule::enum(FarmDevelopmentStage::class)],
             'number_of_hills' => ['nullable', 'integer', 'min:0', 'max:1000000000'],
@@ -64,6 +64,10 @@ class StoreFarmRequest extends FormRequest
             'latitude.between' => 'Latitude must be between -90 and 90.',
             'longitude.numeric' => 'Enter a valid longitude.',
             'longitude.between' => 'Longitude must be between -180 and 180.',
+            'municipality.required' => 'Farm municipality or city is required.',
+            'province.required' => 'Farm province is required.',
+            'latitude.required_with' => 'Enter both farm coordinates, or leave both blank.',
+            'longitude.required_with' => 'Enter both farm coordinates, or leave both blank.',
             'current_stage.enum' => 'Select a valid farm stage.',
             'number_of_hills.integer' => 'Number of hills must be a whole number.',
             'number_of_hills.min' => 'Number of hills cannot be negative.',
@@ -81,6 +85,10 @@ class StoreFarmRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->isMethod('POST') && ! array_key_exists('crop_type', $this->all())) {
+            $this->merge(['crop_type' => CropType::Coffee->value]);
+        }
+
         $this->merge([
             'farm_name' => $this->blankToNull('farm_name'),
             'purok_sitio' => $this->blankToNull('purok_sitio'),

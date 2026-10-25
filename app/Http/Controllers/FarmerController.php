@@ -148,22 +148,6 @@ class FarmerController extends Controller
                 'account_name' => $account?->account_name ?? $farmer->fullName(),
                 'bank_account_status' => $account?->status->value ?? BankAccountStatus::Unverified->value,
             ],
-            'farmerAccounts' => array_merge(
-                [['value' => '', 'label' => 'No mobile account linked']],
-                User::query()
-                    ->where('role', UserRole::Farmer)
-                    ->whereNotNull('email_verified_at')
-                    ->where(function ($query) use ($farmer): void {
-                        $query->whereDoesntHave('farmer')->orWhere('id', $farmer->user_id);
-                    })
-                    ->orderBy('name')
-                    ->get(['id', 'name', 'email'])
-                    ->map(fn (User $user): array => [
-                        'value' => (string) $user->id,
-                        'label' => $user->name.' · '.$user->email,
-                    ])
-                    ->all(),
-            ),
         ]);
     }
 

@@ -28,6 +28,7 @@ use App\Models\FarmHarvest;
 use App\Models\FarmInsurance;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
+use App\Models\FarmVerifierAssignment;
 use App\Models\Inventory;
 use App\Models\InventoryProcessingStage;
 use App\Models\TraceabilityLot;
@@ -512,15 +513,30 @@ class DemoSeeder extends Seeder
      */
     private function farm(Farmer $farmer, array $attributes): Farm
     {
-        return Farm::query()->updateOrCreate(
+        $verifierId = $attributes['assigned_verifier_id'] ?? null;
+        $assignedAt = $attributes['assigned_at'] ?? now();
+        unset($attributes['assigned_verifier_id'], $attributes['assigned_at']);
+
+        $farm = Farm::query()->updateOrCreate(
             ['farm_id' => $attributes['farm_id']],
             [
-                'assigned_verifier_id' => null,
-                'assigned_at' => null,
                 ...$attributes,
                 'farmer_id' => $farmer->id,
             ],
         );
+
+        if ($verifierId !== null) {
+            FarmVerifierAssignment::query()->updateOrCreate(
+                ['user_id' => $verifierId, 'farm_id' => $farm->id],
+                [
+                    'assigned_by' => null,
+                    'assigned_at' => $assignedAt,
+                    'revoked_at' => null,
+                ],
+            );
+        }
+
+        return $farm;
     }
 
     private function farmByCode(string $farmId): Farm
