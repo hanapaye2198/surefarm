@@ -27,4 +27,17 @@ enum AccessEventAction: string
     case MembershipEnded = 'membership.ended';
     case OfficerAssigned = 'officer.assigned';
     case OfficerRevoked = 'officer.revoked';
+    case FinancingSubmitted = 'financing.submitted';
+    case FinancingReviewStarted = 'financing.review_started';
+    case FinancingApproved = 'financing.approved';
+    case FinancingRejected = 'financing.rejected';
+    case FinancingCancelled = 'financing.cancelled';
+    case FinancingDisbursed = 'financing.disbursed';
+    case FinancingRepaymentRecorded = 'financing.repayment_recorded';
+    case FinancingAdjusted = 'financing.adjusted';
+    case FinancingReversed = 'financing.reversed';
+    case FinancingReconciled = 'financing.reconciled';
+    case FinancingDefaulted = 'financing.defaulted';
+    case FinancingCompleted = 'financing.completed';
+    case FinancingExported = 'financing.exported';
 }

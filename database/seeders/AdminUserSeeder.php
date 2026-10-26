@@ -27,7 +27,7 @@ class AdminUserSeeder extends Seeder
             'email_verified_at' => $admin->email_verified_at ?? now(),
         ];
 
-        if ($isNew) {
+        if ($isNew || ! app()->isProduction()) {
             $attributes['password'] = Hash::make('password!');
         }
 

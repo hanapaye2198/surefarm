@@ -156,7 +156,6 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 icon: Landmark,
                 roles: ['operations'],
                 match: 'parent',
-                status: 'partial',
             },
             {
                 title: 'Crop Insurance',

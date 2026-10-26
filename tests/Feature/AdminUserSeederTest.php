@@ -48,6 +48,21 @@ test('updates an existing account with the admin email instead of creating anoth
 
     expect($admin->name)->toBe('SureFarm Administrator')
         ->and($admin->role)->toBe(UserRole::Admin)
-        ->and(Hash::check('password', $admin->password))->toBeTrue()
+        ->and(Hash::check('password!', $admin->password))->toBeTrue()
+        ->and(Hash::check('password', $admin->password))->toBeFalse();
+});
+
+test('keeps an existing password when seeding in production', function () {
+    $this->app->detectEnvironment(fn (): string => 'production');
+
+    User::factory()->create([
+        'email' => 'admin@surefarm.io',
+    ]);
+
+    (new AdminUserSeeder)->run();
+
+    $admin = User::query()->where('email', 'admin@surefarm.io')->first();
+
+    expect(Hash::check('password', $admin->password))->toBeTrue()
         ->and(Hash::check('password!', $admin->password))->toBeFalse();
 });

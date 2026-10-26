@@ -25,6 +25,7 @@ export type InsuranceRecord = {
 
 export type FinancingRecord = {
     id: number;
+    reference?: string;
     amount_label: string;
     date_granted: string;
     date_granted_input: string;
@@ -33,6 +34,9 @@ export type FinancingRecord = {
     financing_type_label: string;
     amount: string;
     loan_balance: string;
+    status_label?: string;
+    balance_source_label?: string;
+    finance_url?: string;
 };
 
 function Detail({ label, value }: { label: string; value: string }) {
@@ -62,15 +66,35 @@ export function CropInsuranceDetails({ record }: { record: InsuranceRecord }) {
 
 export function FinancingDetails({ record }: { record: FinancingRecord }) {
     return (
-        <dl className="grid gap-4 sm:grid-cols-2">
-            <Detail label="Amount" value={record.amount_label} />
-            <Detail label="Date Granted" value={record.date_granted} />
-            <Detail label="Loan Balance" value={record.loan_balance_label} />
-            <Detail
-                label="Financing Type"
-                value={record.financing_type_label}
-            />
-        </dl>
+        <div className="grid gap-4">
+            <dl className="grid gap-4 sm:grid-cols-2">
+                {record.reference && (
+                    <Detail label="Reference" value={record.reference} />
+                )}
+                {record.status_label && (
+                    <Detail label="Status" value={record.status_label} />
+                )}
+                <Detail label="Amount" value={record.amount_label} />
+                <Detail label="Date Granted" value={record.date_granted} />
+                <Detail
+                    label={
+                        record.balance_source_label === 'Ledger'
+                            ? 'Outstanding principal'
+                            : 'Loan Balance'
+                    }
+                    value={record.loan_balance_label}
+                />
+                <Detail
+                    label="Financing Type"
+                    value={record.financing_type_label}
+                />
+            </dl>
+            {record.finance_url && (
+                <Button variant="outline" size="sm" className="w-fit" asChild>
+                    <Link href={record.finance_url}>Open in Finance</Link>
+                </Button>
+            )}
+        </div>
     );
 }
 

@@ -302,7 +302,10 @@ class FarmController extends Controller
             'verifications.boundaryCapturer:id,name',
             'verifications.photos.uploader:id,name',
             'insurances' => fn ($query) => $query->latest('id'),
-            'financings' => fn ($query) => $query->orderByDesc('date_granted')->orderByDesc('id'),
+            'financings' => fn ($query) => $query
+                ->orderByRaw('date_granted is null')
+                ->orderByDesc('date_granted')
+                ->orderByDesc('id'),
         ]);
 
         $user = $request->user();
@@ -412,7 +415,15 @@ class FarmController extends Controller
                 'financings' => $hidesPrivateCoverage || ! $canViewCoverage
                     ? []
                     : $farm->financings
-                        ->map(fn (FarmFinancing $financing): array => $financing->present())
+                        ->map(function (FarmFinancing $financing) use ($canManageCoverage): array {
+                            $presented = $financing->present();
+
+                            if ($canManageCoverage) {
+                                $presented['finance_url'] = route('finance.show', $financing);
+                            }
+
+                            return $presented;
+                        })
                         ->values()
                         ->all(),
                 'inventory_summary' => $stock->balances($farm->id),

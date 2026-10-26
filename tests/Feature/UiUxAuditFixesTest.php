@@ -28,9 +28,10 @@ test('finance and insurance lists open the existing farm records', function () {
         ->get(route('finance.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('coverage/index')
-            ->where('kind', 'financing')
-            ->where('records.data.0.farm_name', 'North Plot'));
+            ->component('finance/index')
+            ->where('financings.data.0.farm_name', 'North Plot')
+            ->where('summary.snapshot_count', 1)
+            ->where('summary.currencies', []));
 });
 
 test('a farmer account cannot open the finance list', function () {

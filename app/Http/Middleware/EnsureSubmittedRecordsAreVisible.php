@@ -11,6 +11,8 @@ use App\Models\FarmInsurance;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
 use App\Models\FarmVerificationPhoto;
+use App\Models\FinancingDocument;
+use App\Models\FinancingTransaction;
 use App\Models\Inventory;
 use App\Models\InventoryMovement;
 use App\Models\TraceabilityLot;
@@ -81,6 +83,10 @@ class EnsureSubmittedRecordsAreVisible
                 ->exists(),
             $record instanceof FarmVerificationPhoto => FarmVerification::query()
                 ->whereKey($record->farm_verification_id)
+                ->whereHas('farm', fn ($farm) => $farm->visibleTo($user))
+                ->exists(),
+            $record instanceof FinancingTransaction, $record instanceof FinancingDocument => FarmFinancing::query()
+                ->whereKey($record->farm_financing_id)
                 ->whereHas('farm', fn ($farm) => $farm->visibleTo($user))
                 ->exists(),
             $record instanceof Inventory => Inventory::query()->whereKey($record->id)->visibleTo($user)->exists(),

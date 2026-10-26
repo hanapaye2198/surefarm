@@ -17,6 +17,7 @@ use App\Http\Controllers\FarmInsuranceController;
 use App\Http\Controllers\FarmProductionController;
 use App\Http\Controllers\FarmVerificationController;
 use App\Http\Controllers\FarmVerifierAssignmentController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\HarvestInventoryController;
 use App\Http\Controllers\InventoryAdjustmentController;
 use App\Http\Controllers\InventoryController;
@@ -153,8 +154,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware(['role:operations,field_verifier', 'registry.scope'])->group(function () {
-        Route::get('finance', [FarmFinancingController::class, 'index'])->name('finance.index');
         Route::get('insurance', [FarmInsuranceController::class, 'index'])->name('insurance.index');
+    });
+
+    Route::middleware(['role:operations', 'registry.scope'])->group(function () {
+        Route::get('finance/transactions', [FinanceController::class, 'transactions'])->name('finance.transactions');
+        Route::get('finance/export', [FinanceController::class, 'export'])->name('finance.export');
+        Route::get('finance/create', [FinanceController::class, 'create'])->name('finance.create');
+        Route::post('finance', [FinanceController::class, 'store'])->name('finance.store');
+        Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
+        Route::get('finance/{financing}', [FinanceController::class, 'show'])->name('finance.show');
+        Route::post('finance/{financing}/review', [FinanceController::class, 'review'])->name('finance.review');
+        Route::post('finance/{financing}/approve', [FinanceController::class, 'approve'])->name('finance.approve');
+        Route::post('finance/{financing}/reject', [FinanceController::class, 'reject'])->name('finance.reject');
+        Route::post('finance/{financing}/cancel', [FinanceController::class, 'cancel'])->name('finance.cancel');
+        Route::post('finance/{financing}/disburse', [FinanceController::class, 'disburse'])->name('finance.disburse');
+        Route::post('finance/{financing}/repayments', [FinanceController::class, 'repay'])->name('finance.repayments.store');
+        Route::post('finance/{financing}/default', [FinanceController::class, 'default'])->name('finance.default');
+        Route::post('finance/{financing}/adjustments', [FinanceController::class, 'adjust'])->name('finance.adjustments.store');
+        Route::post('finance/{financing}/transactions/{transaction}/reverse', [FinanceController::class, 'reverse'])->name('finance.transactions.reverse');
+        Route::post('finance/{financing}/transactions/{transaction}/reconcile', [FinanceController::class, 'reconcile'])->name('finance.transactions.reconcile');
+        Route::post('finance/{financing}/documents', [FinanceController::class, 'storeDocument'])->name('finance.documents.store');
+        Route::get('finance/{financing}/documents/{document}', [FinanceController::class, 'document'])->name('finance.documents.show');
     });
 
     Route::middleware(['role:operations,field_verifier,farmer,cooperative_officer', 'registry.scope'])->group(function () {
