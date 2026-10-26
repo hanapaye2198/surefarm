@@ -8,6 +8,7 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+/.tmp-build/
 /storage/*.key
 /storage/pail
 /resources/js/actions

@@ -182,7 +182,13 @@ export default function CreateFarmer({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="photo">
-                                Farmer Photo <span className="text-destructive" aria-hidden="true">*</span>
+                                Farmer Photo{' '}
+                                <span
+                                    className="text-destructive"
+                                    aria-hidden="true"
+                                >
+                                    *
+                                </span>
                             </Label>
                             <Input
                                 id="photo"

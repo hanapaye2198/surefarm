@@ -899,10 +899,18 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                 method: 'POST',
                 path: `/farm-verification/${data.farmId}/inspection`,
                 fields: [
-                    { key: 'boundary_revision', label: '', kind: 'hidden', required: true },
+                    {
+                        key: 'boundary_revision',
+                        label: '',
+                        kind: 'hidden',
+                        required: true,
+                    },
                     yesNo('farm_exists', 'Farm physically exists'),
                     yesNo('location_matches', 'Location matches registration'),
-                    yesNo('crop_observed', `${data.cropLabel ?? 'Registered crop'} observed`),
+                    yesNo(
+                        'crop_observed',
+                        `${data.cropLabel ?? 'Registered crop'} observed`,
+                    ),
                     yesNo('boundary_captured', 'GPS boundary captured'),
                     yesNo('area_checked', 'Farm area checked'),
                     yesNo(
@@ -927,14 +935,9 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                             { value: 'other', label: 'Other' },
                         ],
                     },
-                    text('latitude', 'Evidence latitude', {
-                        kind: 'number',
-                        hint: 'Filled from photo GPS metadata or your current location when available.',
-                    }),
-                    text('longitude', 'Evidence longitude', {
-                        kind: 'number',
-                        hint: 'Filled from photo GPS metadata or your current location when available.',
-                    }),
+                    text('latitude', '', { kind: 'hidden' }),
+                    text('longitude', '', { kind: 'hidden' }),
+                    text('captured_at', '', { kind: 'hidden' }),
                     text('remarks', 'Observations', {
                         multiline: true,
                         hint: 'Record field notes or issues for this inspection.',
@@ -942,7 +945,8 @@ export function formForPage(component: string, data: Data): FormSpec | null {
                     text('evidence_photo', 'Inspection evidence photo', {
                         kind: 'image',
                         required: true,
-                        hint: 'Take a farm photo or choose one from your device.',
+                        cameraOnly: true,
+                        hint: 'Capture this photo in the app. Capture time and GPS location are saved with the evidence.',
                     }),
                 ],
             };

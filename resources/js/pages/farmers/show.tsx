@@ -57,6 +57,8 @@ type FarmerProfile = {
     first_name: string;
     middle_name: string | null;
     last_name: string;
+    can_view_personal_details: boolean;
+    can_view_sensitive_details: boolean;
     date_of_birth: string | null;
     government_id: string | null;
     address: string;
@@ -224,24 +226,28 @@ export default function FarmerProfilePage({
                                 </p>
                                 <FarmerStatusBadge status={farmer.status} />
                             </div>
-                            <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-4">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <Phone className="size-3.5" />
-                                    {farmer.mobile_number}
-                                </span>
-                                <span className="inline-flex items-center gap-1.5">
-                                    <Mail className="size-3.5" />
-                                    {display(farmer.email)}
-                                </span>
-                                <span className="inline-flex items-center gap-1.5">
-                                    <MapPin className="size-3.5" />
-                                    {display(
-                                        [farmer.municipality, farmer.province]
-                                            .filter(Boolean)
-                                            .join(', '),
+                            {(farmer.can_view_personal_details || location) && (
+                                <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-4">
+                                    {farmer.can_view_personal_details && (
+                                        <>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Phone className="size-3.5" />
+                                                {farmer.mobile_number}
+                                            </span>
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Mail className="size-3.5" />
+                                                {display(farmer.email)}
+                                            </span>
+                                        </>
                                     )}
-                                </span>
-                            </div>
+                                    {location && (
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <MapPin className="size-3.5" />
+                                            {location}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                             <p className="text-sm text-muted-foreground">
                                 {farmer.cooperative ??
                                     'No cooperative recorded'}
@@ -327,127 +333,141 @@ export default function FarmerProfilePage({
                                                 label="Full Name"
                                                 value={farmer.full_name}
                                             />
-                                            <Detail
-                                                label="Date of Birth"
-                                                value={display(
-                                                    farmer.date_of_birth,
-                                                )}
-                                            />
-                                            <div className="sm:col-span-2">
+                                            {farmer.can_view_personal_details && (
+                                                <>
+                                                    <Detail
+                                                        label="Date of Birth"
+                                                        value={display(
+                                                            farmer.date_of_birth,
+                                                        )}
+                                                    />
+                                                    <div className="sm:col-span-2">
+                                                        <Detail
+                                                            label="Address"
+                                                            value={display(
+                                                                farmer.address,
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <Detail
+                                                        label="Contact No."
+                                                        value={
+                                                            farmer.mobile_number
+                                                        }
+                                                    />
+                                                    <Detail
+                                                        label="Email"
+                                                        value={display(
+                                                            farmer.email,
+                                                        )}
+                                                    />
+                                                </>
+                                            )}
+                                            {farmer.can_view_sensitive_details && (
                                                 <Detail
-                                                    label="Address"
+                                                    label="Government ID"
                                                     value={display(
-                                                        farmer.address,
+                                                        farmer.government_id,
                                                     )}
                                                 />
-                                            </div>
-                                            <Detail
-                                                label="Government ID"
-                                                value={display(
-                                                    farmer.government_id,
-                                                )}
-                                            />
-                                            <Detail
-                                                label="Contact No."
-                                                value={farmer.mobile_number}
-                                            />
-                                            <Detail
-                                                label="Email"
-                                                value={display(farmer.email)}
-                                            />
+                                            )}
                                         </dl>
                                     </CardContent>
                                 </Card>
                                 <div className="grid content-start gap-4">
-                                    <Card className="shadow-none">
-                                        <CardHeader>
-                                            <CardTitle>Bank Account</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            {farmer.bank_account ? (
-                                                <div className="grid gap-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                                            <Landmark className="size-5" />
+                                    {farmer.can_view_sensitive_details && (
+                                        <Card className="shadow-none">
+                                            <CardHeader>
+                                                <CardTitle>
+                                                    Bank Account
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {farmer.bank_account ? (
+                                                    <div className="grid gap-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                                                <Landmark className="size-5" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-semibold">
+                                                                    {
+                                                                        farmer
+                                                                            .bank_account
+                                                                            .bank_name
+                                                                    }
+                                                                </p>
+                                                                <p className="font-mono text-sm tracking-wide text-muted-foreground">
+                                                                    {
+                                                                        farmer
+                                                                            .bank_account
+                                                                            .account_number
+                                                                    }
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-sm font-semibold">
-                                                                {
+                                                        <dl className="grid gap-4 sm:grid-cols-2">
+                                                            <Detail
+                                                                label="Account Name"
+                                                                value={
                                                                     farmer
                                                                         .bank_account
-                                                                        .bank_name
+                                                                        .account_name
                                                                 }
-                                                            </p>
-                                                            <p className="font-mono text-sm tracking-wide text-muted-foreground">
-                                                                {
-                                                                    farmer
+                                                            />
+                                                            <div className="grid gap-1">
+                                                                <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                                    Status
+                                                                </dt>
+                                                                <dd>
+                                                                    {farmer
                                                                         .bank_account
-                                                                        .account_number
-                                                                }
-                                                            </p>
-                                                        </div>
+                                                                        .status ===
+                                                                    'verified' ? (
+                                                                        <StatusBadge status="verified" />
+                                                                    ) : (
+                                                                        <Badge
+                                                                            variant="secondary"
+                                                                            className="uppercase"
+                                                                        >
+                                                                            {
+                                                                                farmer
+                                                                                    .bank_account
+                                                                                    .status_label
+                                                                            }
+                                                                        </Badge>
+                                                                    )}
+                                                                </dd>
+                                                            </div>
+                                                        </dl>
                                                     </div>
-                                                    <dl className="grid gap-4 sm:grid-cols-2">
-                                                        <Detail
-                                                            label="Account Name"
-                                                            value={
-                                                                farmer
-                                                                    .bank_account
-                                                                    .account_name
-                                                            }
-                                                        />
-                                                        <div className="grid gap-1">
-                                                            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                                Status
-                                                            </dt>
-                                                            <dd>
-                                                                {farmer
-                                                                    .bank_account
-                                                                    .status ===
-                                                                'verified' ? (
-                                                                    <StatusBadge status="verified" />
-                                                                ) : (
-                                                                    <Badge
-                                                                        variant="secondary"
-                                                                        className="uppercase"
-                                                                    >
-                                                                        {
-                                                                            farmer
-                                                                                .bank_account
-                                                                                .status_label
-                                                                        }
-                                                                    </Badge>
-                                                                )}
-                                                            </dd>
-                                                        </div>
-                                                    </dl>
-                                                </div>
-                                            ) : (
-                                                <div className="grid gap-3">
-                                                    <p className="text-sm text-muted-foreground">
-                                                        No bank account linked
-                                                        yet.
-                                                    </p>
-                                                    {canRegister && (
-                                                        <Button
-                                                            variant="outline"
-                                                            className="w-fit"
-                                                            asChild
-                                                        >
-                                                            <Link
-                                                                href={edit(
-                                                                    farmer.id,
-                                                                )}
+                                                ) : (
+                                                    <div className="grid gap-3">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            No bank account
+                                                            linked yet.
+                                                        </p>
+                                                        {canRegister && (
+                                                            <Button
+                                                                variant="outline"
+                                                                className="w-fit"
+                                                                asChild
                                                             >
-                                                                Link bank
-                                                                account
-                                                            </Link>
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
+                                                                <Link
+                                                                    href={edit(
+                                                                        farmer.id,
+                                                                    )}
+                                                                >
+                                                                    Link bank
+                                                                    account
+                                                                </Link>
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    )}
                                     <Card className="shadow-none">
                                         <CardHeader>
                                             <CardTitle>Cooperative</CardTitle>

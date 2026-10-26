@@ -432,7 +432,8 @@ export function FarmBoundaryMap({
                                 <p>
                                     {boundary.capture_method === 'device_gps'
                                         ? 'Device GPS'
-                                        : boundary.capture_method === 'map_manual'
+                                        : boundary.capture_method ===
+                                            'map_manual'
                                           ? 'Map drawn manually'
                                           : 'Not recorded'}
                                 </p>
@@ -453,9 +454,9 @@ export function FarmBoundaryMap({
                     </div>
                     {boundary && mode === 'view' && (
                         <p className="text-xs text-muted-foreground">
-                            GPS readings and capture details are supplied by
-                            the device and are not independently attested.
-                            Server time records when this boundary was saved.
+                            GPS readings and capture details are supplied by the
+                            device and are not independently attested. Server
+                            time records when this boundary was saved.
                         </p>
                     )}
                     {mode === 'view' && boundary === null && (

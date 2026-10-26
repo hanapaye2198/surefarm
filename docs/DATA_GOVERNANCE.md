@@ -6,16 +6,16 @@ Until that review and a backup drill are finished, store synthetic data only.
 
 ## Ownership
 
-| Record | System behavior | Accountable role | Named person |
-|---|---|---|---|
-| Farmer identity and contact fields | Operations inside registry scope creates and edits them. | Operations supervisor | Unassigned |
-| Government id and bank account | Encrypted at rest. Shown to operations. Hidden from verifiers, cooperative officers, and other farmers. | Operations supervisor | Unassigned |
-| Cooperative membership | One open membership. History is kept when it ends. Officers can view and cannot enroll. | Operations supervisor | Unassigned |
-| Farm boundary and declared area | Operations writes. A boundary change does not by itself change declared area or verification. | Operations supervisor | Unassigned |
-| Verification decision | Field verifier on an assigned farm. Previous decisions stay in `farm_verifications`. | Verification lead | Unassigned |
-| Harvest and inventory movements | Operations. Receipts, reversals, and alignments follow `docs/DATA_INTEGRITY.md`. | Inventory custodian | Unassigned |
-| Financing and insurance rows | Editable in place. Not approved for pilot use. | Unassigned, and excluded | Unassigned |
-| Photos and drone images | Private disk, authorized download routes. | Operations supervisor | Unassigned |
+| Record                             | System behavior                                                                                         | Accountable role         | Named person |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------ | ------------ |
+| Farmer identity and contact fields | Operations inside registry scope creates and edits them.                                                | Operations supervisor    | Unassigned   |
+| Government id and bank account     | Encrypted at rest. Shown to operations. Hidden from verifiers, cooperative officers, and other farmers. | Operations supervisor    | Unassigned   |
+| Cooperative membership             | One open membership. History is kept when it ends. Officers can view and cannot enroll.                 | Operations supervisor    | Unassigned   |
+| Farm boundary and declared area    | Operations writes. A boundary change does not by itself change declared area or verification.           | Operations supervisor    | Unassigned   |
+| Verification decision              | Field verifier on an assigned farm. Previous decisions stay in `farm_verifications`.                    | Verification lead        | Unassigned   |
+| Harvest and inventory movements    | Operations. Receipts, reversals, and alignments follow `docs/DATA_INTEGRITY.md`.                        | Inventory custodian      | Unassigned   |
+| Financing and insurance rows       | Editable in place. Not approved for pilot use.                                                          | Unassigned, and excluded | Unassigned   |
+| Photos and drone images            | Private disk, authorized download routes.                                                               | Operations supervisor    | Unassigned   |
 
 The administrator provisions accounts. The administrator does not automatically approve a verification, a stock alignment, or a financing edit.
 

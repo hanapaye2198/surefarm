@@ -88,7 +88,10 @@ export default function Login({ status, canResetPassword }: Props) {
                                     name="remember"
                                     tabIndex={3}
                                 />
-                                <Label htmlFor="remember" className="font-normal">
+                                <Label
+                                    htmlFor="remember"
+                                    className="font-normal"
+                                >
                                     Remember me
                                 </Label>
                             </div>

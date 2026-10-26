@@ -15,7 +15,12 @@ import { userCanAccess } from '@/lib/access';
 import { show as showFarm } from '@/routes/farms';
 import { show as showFarmer } from '@/routes/farmers';
 import { index as harvestIndex } from '@/routes/harvest';
-import { index as inventoryIndex, processing, reconciliation, show } from '@/routes/inventory';
+import {
+    index as inventoryIndex,
+    processing,
+    reconciliation,
+    show,
+} from '@/routes/inventory';
 
 type InventoryRow = {
     id: number;
@@ -121,7 +126,9 @@ export default function InventoryIndex({
                             </Button>
                             {canManage && (
                                 <Button variant="outline" asChild>
-                                    <Link href={reconciliation()}>Reconcile stock</Link>
+                                    <Link href={reconciliation()}>
+                                        Reconcile stock
+                                    </Link>
                                 </Button>
                             )}
                             {canManage && (

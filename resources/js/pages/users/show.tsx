@@ -125,7 +125,8 @@ export default function UserShow({
                             <p>{account.email}</p>
                             <p>Role: {account.role_label}</p>
                             <p>
-                                Status: {account.suspended ? 'Suspended' : 'Active'}
+                                Status:{' '}
+                                {account.suspended ? 'Suspended' : 'Active'}
                             </p>
                             <p>
                                 Two-factor:{' '}
@@ -133,7 +134,10 @@ export default function UserShow({
                                     ? 'Confirmed'
                                     : 'Not confirmed'}
                             </p>
-                            <p>Scope: {account.organization ?? 'No registry scope'}</p>
+                            <p>
+                                Scope:{' '}
+                                {account.organization ?? 'No registry scope'}
+                            </p>
                             <p>Created: {account.created_at ?? '—'}</p>
                         </CardContent>
                     </Card>
@@ -152,7 +156,8 @@ export default function UserShow({
                     <FarmerLinkCard accountId={account.id} farmer={farmer} />
                 )}
 
-                {(account.role === 'admin' || account.role === 'operations') && (
+                {(account.role === 'admin' ||
+                    account.role === 'operations') && (
                     <GrantCard accountId={account.id} grants={grants} />
                 )}
 
@@ -222,7 +227,9 @@ function RoleForm({
                     className={selectClassName}
                     value={form.data.role}
                     disabled={locked || form.processing}
-                    onChange={(event) => form.setData('role', event.target.value)}
+                    onChange={(event) =>
+                        form.setData('role', event.target.value)
+                    }
                 >
                     {roles.map((role) => (
                         <option key={role.value} value={role.value}>
@@ -261,12 +268,16 @@ function StatusForm({ account }: { account: Account }) {
                         variant={account.suspended ? 'outline' : 'destructive'}
                         disabled={locked || form.processing}
                     >
-                        {account.suspended ? 'Reactivate account' : 'Suspend account'}
+                        {account.suspended
+                            ? 'Reactivate account'
+                            : 'Suspend account'}
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogTitle>
-                        {account.suspended ? 'Reactivate this account?' : 'Suspend this account?'}
+                        {account.suspended
+                            ? 'Reactivate this account?'
+                            : 'Suspend this account?'}
                     </DialogTitle>
                     <DialogDescription>
                         {account.suspended
@@ -281,11 +292,15 @@ function StatusForm({ account }: { account: Account }) {
                         </DialogClose>
                         <Button
                             type="button"
-                            variant={account.suspended ? 'default' : 'destructive'}
+                            variant={
+                                account.suspended ? 'default' : 'destructive'
+                            }
                             disabled={form.processing}
                             onClick={() =>
                                 account.suspended
-                                    ? form.delete(restoreAccount.url(account.id))
+                                    ? form.delete(
+                                          restoreAccount.url(account.id),
+                                      )
                                     : form.post(suspendAccount.url(account.id))
                             }
                         >
@@ -333,7 +348,10 @@ function FarmerLinkCard({
                         {farmer.cooperative ? `, ${farmer.cooperative}` : ''}.
                     </p>
                 )}
-                <form onSubmit={save} className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <form
+                    onSubmit={save}
+                    className="grid gap-3 sm:grid-cols-[1fr_auto]"
+                >
                     <div className="grid gap-2">
                         <Label htmlFor="farmer_code">Farmer ID</Label>
                         <Input
@@ -358,7 +376,9 @@ function FarmerLinkCard({
                         description="The farmer, farms, and history stay in the registry. This account will no longer open them."
                         label="Unlink"
                         processing={unlink.processing}
-                        onConfirm={() => unlink.delete(unlinkFarmer.url(accountId))}
+                        onConfirm={() =>
+                            unlink.delete(unlinkFarmer.url(accountId))
+                        }
                         error={unlink.errors.farmer_code}
                     />
                 )}
@@ -401,7 +421,9 @@ function GrantCard({
                             id="kind"
                             className={selectClassName}
                             value={form.data.kind}
-                            onChange={(event) => form.setData('kind', event.target.value)}
+                            onChange={(event) =>
+                                form.setData('kind', event.target.value)
+                            }
                         >
                             <option value="platform">Platform</option>
                             <option value="province">Province</option>
@@ -474,7 +496,12 @@ function GrantItem({
                     label="Revoke"
                     processing={form.processing}
                     onConfirm={() =>
-                        form.delete(revokeGrant.url({ user: accountId, grant: grant.id }))
+                        form.delete(
+                            revokeGrant.url({
+                                user: accountId,
+                                grant: grant.id,
+                            }),
+                        )
                     }
                     error={form.errors.grant}
                 />
@@ -510,7 +537,10 @@ function AssignmentCard({
                     Assignment allows inspection and verification of that farm.
                     It does not allow financial, identity, or inventory changes.
                 </p>
-                <form onSubmit={save} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                <form
+                    onSubmit={save}
+                    className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+                >
                     <div className="grid gap-2">
                         <Label htmlFor="farm_code">Farm ID</Label>
                         <Input
@@ -524,13 +554,18 @@ function AssignmentCard({
                         <InputError message={form.errors.farm_code} />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="scheduled_for">Visit date (optional)</Label>
+                        <Label htmlFor="scheduled_for">
+                            Visit date (optional)
+                        </Label>
                         <Input
                             id="scheduled_for"
                             type="date"
                             value={form.data.scheduled_for}
                             onChange={(event) =>
-                                form.setData('scheduled_for', event.target.value)
+                                form.setData(
+                                    'scheduled_for',
+                                    event.target.value,
+                                )
                             }
                         />
                         <InputError message={form.errors.scheduled_for} />
@@ -543,7 +578,9 @@ function AssignmentCard({
                 </form>
                 <ul className="space-y-2 text-sm">
                     {assignments.length === 0 && (
-                        <li className="text-muted-foreground">No farms assigned.</li>
+                        <li className="text-muted-foreground">
+                            No farms assigned.
+                        </li>
                     )}
                     {assignments.map((assignment) => (
                         <AssignmentItem
@@ -573,7 +610,9 @@ function AssignmentItem({
 
     function saveSchedule(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        scheduleForm.post(storeAssignment.url(accountId), { preserveScroll: true });
+        scheduleForm.post(storeAssignment.url(accountId), {
+            preserveScroll: true,
+        });
     }
 
     return (
@@ -581,7 +620,9 @@ function AssignmentItem({
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>
                     {assignment.farm_code} · {assignment.farm_name} ·{' '}
-                    {assignment.open ? 'Open' : `Revoked ${assignment.revoked_at ?? ''}`}
+                    {assignment.open
+                        ? 'Open'
+                        : `Revoked ${assignment.revoked_at ?? ''}`}
                     {assignment.open && assignment.scheduled_for
                         ? ` · Scheduled ${assignment.scheduled_for}`
                         : ''}
@@ -605,20 +646,34 @@ function AssignmentItem({
                 )}
             </div>
             {assignment.open && (
-                <form onSubmit={saveSchedule} className="flex flex-wrap items-end gap-2">
+                <form
+                    onSubmit={saveSchedule}
+                    className="flex flex-wrap items-end gap-2"
+                >
                     <div className="grid gap-1.5">
-                        <Label htmlFor={`schedule-${assignment.id}`}>Visit date</Label>
+                        <Label htmlFor={`schedule-${assignment.id}`}>
+                            Visit date
+                        </Label>
                         <Input
                             id={`schedule-${assignment.id}`}
                             type="date"
                             value={scheduleForm.data.scheduled_for}
                             onChange={(event) =>
-                                scheduleForm.setData('scheduled_for', event.target.value)
+                                scheduleForm.setData(
+                                    'scheduled_for',
+                                    event.target.value,
+                                )
                             }
                         />
-                        <InputError message={scheduleForm.errors.scheduled_for} />
+                        <InputError
+                            message={scheduleForm.errors.scheduled_for}
+                        />
                     </div>
-                    <Button type="submit" variant="outline" disabled={scheduleForm.processing}>
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        disabled={scheduleForm.processing}
+                    >
                         Save schedule
                     </Button>
                     <span className="text-xs text-muted-foreground">
@@ -648,7 +703,12 @@ function ConfirmAction({
         <div className="space-y-2">
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button type="button" size="sm" variant="outline" disabled={processing}>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={processing}
+                    >
                         {label}
                     </Button>
                 </DialogTrigger>
@@ -661,7 +721,11 @@ function ConfirmAction({
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button type="button" variant="destructive" onClick={onConfirm}>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={onConfirm}
+                        >
                             {label}
                         </Button>
                     </DialogFooter>

@@ -34,7 +34,7 @@ import Svg, { Circle, Path, Polygon } from 'react-native-svg';
 import BoundaryMap, { type BoundaryPoint } from './src/BoundaryMap';
 import FarmAssignmentMap, { type FarmPin } from './src/FarmAssignmentMap';
 import { withoutDemoWordText } from './src/displayText';
-import { ApiError, apiRequest, API_URL, SITE_URL } from './src/api';
+import { ApiError, apiRequest, SITE_URL } from './src/api';
 import {
     formForPage,
     initialFieldValues,
@@ -132,31 +132,37 @@ function isBoundaryDraft(value: unknown): value is BoundaryDraft {
     )
         return false;
 
-    return draft.points.every(
-        (point) =>
-            Array.isArray(point) &&
-            point.length === 2 &&
-            Number.isFinite(point[0]) &&
-            Number.isFinite(point[1]) &&
-            Math.abs(point[0]) <= 180 &&
-            Math.abs(point[1]) <= 90,
-    ) && draft.accuracies.every(
-        (accuracy) =>
-            accuracy === null ||
-            (typeof accuracy === 'number' &&
-                Number.isFinite(accuracy) &&
-                accuracy >= 0 &&
-                accuracy <= 1000),
-    ) && draft.capturedAt.every(
-        (capturedAt) =>
-            typeof capturedAt === 'string' &&
-            !Number.isNaN(Date.parse(capturedAt)),
+    return (
+        draft.points.every(
+            (point) =>
+                Array.isArray(point) &&
+                point.length === 2 &&
+                Number.isFinite(point[0]) &&
+                Number.isFinite(point[1]) &&
+                Math.abs(point[0]) <= 180 &&
+                Math.abs(point[1]) <= 90,
+        ) &&
+        draft.accuracies.every(
+            (accuracy) =>
+                accuracy === null ||
+                (typeof accuracy === 'number' &&
+                    Number.isFinite(accuracy) &&
+                    accuracy >= 0 &&
+                    accuracy <= 1000),
+        ) &&
+        draft.capturedAt.every(
+            (capturedAt) =>
+                typeof capturedAt === 'string' &&
+                !Number.isNaN(Date.parse(capturedAt)),
+        )
     );
 }
 
 async function getBoundaryDraftItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
-        return typeof window === 'undefined' ? null : window.localStorage.getItem(key);
+        return typeof window === 'undefined'
+            ? null
+            : window.localStorage.getItem(key);
     }
 
     return SecureStore.getItemAsync(key);
@@ -164,7 +170,8 @@ async function getBoundaryDraftItem(key: string): Promise<string | null> {
 
 async function setBoundaryDraftItem(key: string, value: string): Promise<void> {
     if (Platform.OS === 'web') {
-        if (typeof window === 'undefined') throw new Error('Local storage is unavailable.');
+        if (typeof window === 'undefined')
+            throw new Error('Local storage is unavailable.');
         window.localStorage.setItem(key, value);
         return;
     }
@@ -202,12 +209,14 @@ async function readBoundaryDraft(key: string): Promise<BoundaryDraft | null> {
         const chunk = await getBoundaryDraftItem(
             `${key}:${manifest.generation}:${index}`,
         );
-        if (chunk === null) throw new Error('The saved GPS draft is incomplete.');
+        if (chunk === null)
+            throw new Error('The saved GPS draft is incomplete.');
         chunks.push(chunk);
     }
 
     const draft: unknown = JSON.parse(chunks.join(''));
-    if (!isBoundaryDraft(draft)) throw new Error('The saved GPS draft is invalid.');
+    if (!isBoundaryDraft(draft))
+        throw new Error('The saved GPS draft is invalid.');
     return draft;
 }
 
@@ -248,7 +257,11 @@ async function writeBoundaryDraft(
     const generation = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const serialized = JSON.stringify(draft);
     const chunks: string[] = [];
-    for (let index = 0; index < serialized.length; index += BOUNDARY_DRAFT_CHUNK_SIZE) {
+    for (
+        let index = 0;
+        index < serialized.length;
+        index += BOUNDARY_DRAFT_CHUNK_SIZE
+    ) {
         chunks.push(serialized.slice(index, index + BOUNDARY_DRAFT_CHUNK_SIZE));
     }
 
@@ -322,7 +335,10 @@ function imageCaptureTimestamp(
 function exifNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
     if (value && typeof value === 'object' && 'numerator' in value) {
-        const rational = value as { numerator?: unknown; denominator?: unknown };
+        const rational = value as {
+            numerator?: unknown;
+            denominator?: unknown;
+        };
         const numerator = exifNumber(rational.numerator);
         const denominator = exifNumber(rational.denominator);
         return numerator === null || denominator === null || denominator === 0
@@ -332,7 +348,9 @@ function exifNumber(value: unknown): number | null {
     if (typeof value !== 'string') return null;
 
     const trimmed = value.trim();
-    const fraction = trimmed.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+    const fraction = trimmed.match(
+        /^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/,
+    );
     if (fraction) {
         const denominator = Number(fraction[2]);
         return denominator === 0 ? null : Number(fraction[1]) / denominator;
@@ -359,11 +377,14 @@ function imageCaptureCoordinates(
         if (parts.some((part) => part === null)) return null;
 
         const numbers = parts as number[];
-        const degrees = numbers.length >= 3
-            ? numbers[0] + numbers[1] / 60 + numbers[2] / 3600
-            : numbers[0];
-        const hemisphere = typeof reference === 'string' ? reference.toUpperCase() : '';
-        const signed = hemisphere === 'S' || hemisphere === 'W' ? -degrees : degrees;
+        const degrees =
+            numbers.length >= 3
+                ? numbers[0] + numbers[1] / 60 + numbers[2] / 3600
+                : numbers[0];
+        const hemisphere =
+            typeof reference === 'string' ? reference.toUpperCase() : '';
+        const signed =
+            hemisphere === 'S' || hemisphere === 'W' ? -degrees : degrees;
 
         return Number.isFinite(signed) ? signed : null;
     };
@@ -788,7 +809,10 @@ function SureFarmApp() {
     const [pageError, setPageError] = useState('');
     const [values, setValues] = useState<Record<string, any>>({});
     const [photos, setPhotos] = useState<
-        Record<string, ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]>
+        Record<
+            string,
+            ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]
+        >
     >({});
     const [formError, setFormError] = useState('');
     const [search, setSearch] = useState('');
@@ -831,9 +855,10 @@ function SureFarmApp() {
                 if (
                     error instanceof ApiError &&
                     (error.status === 401 ||
-                        ['account_suspended', 'two_factor_setup_required'].includes(
-                            error.code ?? '',
-                        ))
+                        [
+                            'account_suspended',
+                            'two_factor_setup_required',
+                        ].includes(error.code ?? ''))
                 ) {
                     await removeStoredToken().catch(() => undefined);
                     setToken(null);
@@ -1148,7 +1173,11 @@ function SureFarmApp() {
             } else {
                 body = Object.fromEntries(
                     Object.entries(values)
-                        .filter(([key]) => spec.fields.find((field) => field.key === key)?.kind !== 'image')
+                        .filter(
+                            ([key]) =>
+                                spec.fields.find((field) => field.key === key)
+                                    ?.kind !== 'image',
+                        )
                         .map(([key, value]) => [
                             key.replace(/_input$/, ''),
                             typeof value === 'boolean' ? Number(value) : value,
@@ -1209,6 +1238,17 @@ function SureFarmApp() {
     };
 
     const chooseImage = async (field: string, camera: boolean) => {
+        const isVerificationEvidence =
+            page?.component === 'farm-verification/inspection' &&
+            field === 'evidence_photo';
+
+        if (isVerificationEvidence && !camera) {
+            setFormError(
+                'Capture verification evidence with the in-app camera so its time and GPS location can be recorded.',
+            );
+            return;
+        }
+
         const permission = camera
             ? await ImagePicker.requestCameraPermissionsAsync()
             : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -1238,20 +1278,26 @@ function SureFarmApp() {
               });
         if (result.canceled || !result.assets[0]) return;
 
-        const pickedAssets = field === 'photos'
-            ? result.assets
-            : result.assets.slice(0, 1);
+        const pickedAssets =
+            field === 'photos' ? result.assets : result.assets.slice(0, 1);
         const currentSelection = photos[field];
         const currentAssets = Array.isArray(currentSelection)
             ? currentSelection
             : currentSelection
               ? [currentSelection]
               : [];
-        const nextAssets = field === 'photos'
-            ? [...currentAssets, ...pickedAssets].slice(0, 6)
-            : pickedAssets;
-        if (field === 'photos' && currentAssets.length + pickedAssets.length > 6) {
-            Alert.alert('Photo limit', 'A harvest can include up to six photos.');
+        const nextAssets =
+            field === 'photos'
+                ? [...currentAssets, ...pickedAssets].slice(0, 6)
+                : pickedAssets;
+        if (
+            field === 'photos' &&
+            currentAssets.length + pickedAssets.length > 6
+        ) {
+            Alert.alert(
+                'Photo limit',
+                'A harvest can include up to six photos.',
+            );
         }
         setPhotos((old) => ({
             ...old,
@@ -1261,27 +1307,39 @@ function SureFarmApp() {
         if (field === 'photos') {
             let oldMetadata: Record<string, unknown>[] = [];
             try {
-                const parsed = JSON.parse(String(values.photos_metadata ?? '[]'));
+                const parsed = JSON.parse(
+                    String(values.photos_metadata ?? '[]'),
+                );
                 if (Array.isArray(parsed)) oldMetadata = parsed;
             } catch {
                 oldMetadata = [];
             }
-            const retainedCount = Math.min(currentAssets.length, nextAssets.length);
+            const retainedCount = Math.min(
+                currentAssets.length,
+                nextAssets.length,
+            );
             const addedCount = Math.max(0, nextAssets.length - retainedCount);
             const metadata = oldMetadata.slice(0, Math.max(0, retainedCount));
-            let fallbackCoordinates: { latitude: number; longitude: number } | null = null;
+            let fallbackCoordinates: {
+                latitude: number;
+                longitude: number;
+            } | null = null;
 
             if (
                 camera &&
-                pickedAssets.some((asset) => imageCaptureCoordinates(asset) === null)
+                pickedAssets.some(
+                    (asset) => imageCaptureCoordinates(asset) === null,
+                )
             ) {
                 try {
                     const locationPermission =
                         await Location.requestForegroundPermissionsAsync();
                     if (locationPermission.granted) {
-                        const position = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.High,
-                        });
+                        const position = await Location.getCurrentPositionAsync(
+                            {
+                                accuracy: Location.Accuracy.High,
+                            },
+                        );
                         fallbackCoordinates = {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude,
@@ -1307,48 +1365,87 @@ function SureFarmApp() {
 
             setValues((old) => ({
                 ...old,
-                photos_metadata: JSON.stringify(metadata.slice(0, nextAssets.length)),
+                photos_metadata: JSON.stringify(
+                    metadata.slice(0, nextAssets.length),
+                ),
             }));
         }
 
         const asset = pickedAssets[0];
-        if (
-            page?.component === 'farm-verification/inspection' &&
-            field === 'evidence_photo'
-        ) {
-            const capturedAt =
-                imageCaptureTimestamp(asset) ??
-                (camera ? new Date().toISOString() : '');
-            let coordinates = imageCaptureCoordinates(asset);
+        if (isVerificationEvidence) {
+            setBusy(true);
+            try {
+                const capturedAt =
+                    imageCaptureTimestamp(asset) ??
+                    (camera ? new Date().toISOString() : '');
+                let coordinates = imageCaptureCoordinates(asset);
 
-            if (coordinates === null && camera) {
-                try {
-                    const locationPermission =
-                        await Location.requestForegroundPermissionsAsync();
-                    if (locationPermission.granted) {
-                        const position = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.High,
-                        });
+                if (coordinates === null && camera) {
+                    try {
+                        const locationPermission =
+                            await Location.requestForegroundPermissionsAsync();
+                        if (!locationPermission.granted) {
+                            throw new Error(
+                                'Location permission was not granted.',
+                            );
+                        }
+
+                        const position = await Location.getCurrentPositionAsync(
+                            {
+                                accuracy: Location.Accuracy.High,
+                            },
+                        );
                         coordinates = {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude,
                         };
+                    } catch {
+                        setPhotos((old) => {
+                            const next = { ...old };
+                            delete next[field];
+                            return next;
+                        });
+                        setValues((old) => ({
+                            ...old,
+                            captured_at: '',
+                            latitude: '',
+                            longitude: '',
+                        }));
+                        setFormError(
+                            'Allow location access and capture the evidence photo again so its GPS position can be saved.',
+                        );
+                        return;
                     }
-                } catch {
-                    // Keep the photo if location metadata is unavailable.
                 }
-            }
 
-            setValues((old) => ({
-                ...old,
-                captured_at: capturedAt,
-                ...(coordinates === null
-                    ? {}
-                    : {
-                          latitude: coordinates.latitude.toFixed(7),
-                          longitude: coordinates.longitude.toFixed(7),
-                      }),
-            }));
+                if (coordinates === null || capturedAt === '') {
+                    setPhotos((old) => {
+                        const next = { ...old };
+                        delete next[field];
+                        return next;
+                    });
+                    setValues((old) => ({
+                        ...old,
+                        captured_at: '',
+                        latitude: '',
+                        longitude: '',
+                    }));
+                    setFormError(
+                        'The capture time or GPS position is missing. Capture the evidence photo again.',
+                    );
+                    return;
+                }
+
+                setFormError('');
+                setValues((old) => ({
+                    ...old,
+                    captured_at: capturedAt,
+                    latitude: coordinates.latitude.toFixed(7),
+                    longitude: coordinates.longitude.toFixed(7),
+                }));
+            } finally {
+                setBusy(false);
+            }
         }
     };
 
@@ -2296,7 +2393,9 @@ function Dashboard({
                 )}
             {user?.role === 'field_verifier' && (
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Today’s scheduled farms</Text>
+                    <Text style={styles.cardTitle}>
+                        Today’s scheduled farms
+                    </Text>
                     {(page.data.today_assignments ?? []).length ? (
                         page.data.today_assignments.map((farm: any) => (
                             <Pressable
@@ -2322,7 +2421,8 @@ function Dashboard({
                                     {farm.farm_id} · {farm.scheduled_for}
                                 </Text>
                                 <Text style={styles.mutedSmall}>
-                                    {farm.farmer_name ?? 'Farmer'} · {farm.location}
+                                    {farm.farmer_name ?? 'Farmer'} ·{' '}
+                                    {farm.location}
                                 </Text>
                                 <VerificationProgress
                                     status={farm.verification_status}
@@ -2750,7 +2850,9 @@ function DataPage(props: {
                         <Text style={styles.cardTitle}>Recent history</Text>
                         {history.map((event) => (
                             <View key={event.id} style={styles.relatedRow}>
-                                <Text style={styles.muted}>{event.summary}</Text>
+                                <Text style={styles.muted}>
+                                    {event.summary}
+                                </Text>
                                 <Text style={styles.mutedSmall}>
                                     {[event.actor, event.created_at]
                                         .filter(Boolean)
@@ -2926,13 +3028,19 @@ function DataPage(props: {
                                     key={`area-declaration-${entry.id}`}
                                     style={styles.relatedRow}
                                 >
-                                    <Text style={styles.recordTitle}>{title}</Text>
-                                    <Text style={styles.mutedSmall}>
-                                        {previous} {'→'}{' '}
-                                        {Number(entry.declared_area_hectares).toFixed(2)} ha
+                                    <Text style={styles.recordTitle}>
+                                        {title}
                                     </Text>
                                     <Text style={styles.mutedSmall}>
-                                        {entry.recorded_at ?? 'Date not recorded'}
+                                        {previous} {'→'}{' '}
+                                        {Number(
+                                            entry.declared_area_hectares,
+                                        ).toFixed(2)}{' '}
+                                        ha
+                                    </Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {entry.recorded_at ??
+                                            'Date not recorded'}
                                         {' · '}
                                         {entry.recorded_by ?? 'System baseline'}
                                     </Text>
@@ -3063,23 +3171,42 @@ function DataPage(props: {
                                         value={item.coffee_variety}
                                     />
                                 ) : null}
-                                {item.estimated_green_bean_quantity_kg != null ? (
+                                {item.estimated_green_bean_quantity_kg !=
+                                null ? (
                                     <SummaryRow
                                         label="Estimated green beans"
                                         value={`${item.estimated_green_bean_quantity_kg} kg`}
                                     />
                                 ) : null}
                                 {(item.photos ?? []).length > 0 && (
-                                    <ScrollView horizontal style={styles.evidenceGrid}>
+                                    <ScrollView
+                                        horizontal
+                                        style={styles.evidenceGrid}
+                                    >
                                         {item.photos.map((photo: any) => (
-                                            <View key={photo.id} style={styles.evidenceItem}>
+                                            <View
+                                                key={photo.id}
+                                                style={styles.evidenceItem}
+                                            >
                                                 <Image
                                                     source={{ uri: photo.url }}
-                                                    style={[styles.evidenceImage, { width: 112, height: 92 }]}
+                                                    style={[
+                                                        styles.evidenceImage,
+                                                        {
+                                                            width: 112,
+                                                            height: 92,
+                                                        },
+                                                    ]}
                                                 />
                                                 {photo.captured_at ? (
-                                                    <Text style={styles.mutedSmall}>
-                                                        {new Date(photo.captured_at).toLocaleDateString()}
+                                                    <Text
+                                                        style={
+                                                            styles.mutedSmall
+                                                        }
+                                                    >
+                                                        {new Date(
+                                                            photo.captured_at,
+                                                        ).toLocaleDateString()}
                                                     </Text>
                                                 ) : null}
                                             </View>
@@ -3131,7 +3258,8 @@ function DataPage(props: {
                             onPress={() =>
                                 props.onLocalForm('farmer/activity', {
                                     farms: page.data.farms,
-                                    activityTypes: page.data.activityTypes ?? [],
+                                    activityTypes:
+                                        page.data.activityTypes ?? [],
                                     activityStatuses:
                                         page.data.activityStatuses ?? [],
                                     units: page.data.units ?? [],
@@ -3217,16 +3345,27 @@ function DataPage(props: {
                                 />
                             ) : null}
                             {(item.photos ?? []).length > 0 && (
-                                <ScrollView horizontal style={styles.evidenceGrid}>
+                                <ScrollView
+                                    horizontal
+                                    style={styles.evidenceGrid}
+                                >
                                     {item.photos.map((photo: any) => (
-                                        <View key={photo.id} style={styles.evidenceItem}>
+                                        <View
+                                            key={photo.id}
+                                            style={styles.evidenceItem}
+                                        >
                                             <Image
                                                 source={{ uri: photo.url }}
-                                                style={[styles.evidenceImage, { width: 112, height: 92 }]}
+                                                style={[
+                                                    styles.evidenceImage,
+                                                    { width: 112, height: 92 },
+                                                ]}
                                             />
                                             {photo.captured_at ? (
                                                 <Text style={styles.mutedSmall}>
-                                                    {new Date(photo.captured_at).toLocaleDateString()}
+                                                    {new Date(
+                                                        photo.captured_at,
+                                                    ).toLocaleDateString()}
                                                 </Text>
                                             ) : null}
                                         </View>
@@ -3797,11 +3936,11 @@ function DataPage(props: {
             inspection?.boundary_captured_for_attempt === true;
         const hasInspection = Boolean(
             hasFreshBoundary &&
-                hasCompleteChecklist &&
-                inspection?.photos?.some(
-                    (photo) =>
-                        photo.boundary_revision === inspection.boundary_revision,
-                ),
+            hasCompleteChecklist &&
+            inspection?.photos?.some(
+                (photo) =>
+                    photo.boundary_revision === inspection.boundary_revision,
+            ),
         );
         return (
             <ScrollView
@@ -3900,7 +4039,8 @@ function DataPage(props: {
                                     freshBoundaryCapture: true,
                                     verificationCapture: true,
                                     verificationReference:
-                                        page.data.inspection?.verification_reference,
+                                        page.data.inspection
+                                            ?.verification_reference,
                                     google_maps_api_key:
                                         page.data.google_maps_api_key,
                                 })
@@ -3916,23 +4056,23 @@ function DataPage(props: {
                                     freshBoundaryCapture: true,
                                     verificationCapture: true,
                                     verificationReference:
-                                        page.data.inspection?.verification_reference,
+                                        page.data.inspection
+                                            ?.verification_reference,
                                     google_maps_api_key:
                                         page.data.google_maps_api_key,
                                 })
                             }
                         />
                     ))}
-                {canVerify &&
-                    farm.verification_status === 'verified' && (
-                        <View style={styles.noticeCard}>
-                            <AppIcon name="lock" size={17} color={API_FOREST} />
-                            <Text style={[styles.mutedSmall, styles.flex]}>
-                                The saved boundary is read-only until a new
-                                verification is started.
-                            </Text>
-                        </View>
-                    )}
+                {canVerify && farm.verification_status === 'verified' && (
+                    <View style={styles.noticeCard}>
+                        <AppIcon name="lock" size={17} color={API_FOREST} />
+                        <Text style={[styles.mutedSmall, styles.flex]}>
+                            The saved boundary is read-only until a new
+                            verification is started.
+                        </Text>
+                    </View>
+                )}
                 {canVerify &&
                     ['pending', 'needs_review', 'failed'].includes(
                         farm.verification_status,
@@ -3947,146 +4087,48 @@ function DataPage(props: {
                             onPress={() => props.onStartVerification(farm.id)}
                         />
                     )}
-                {canVerify &&
-                    farm.verification_status === 'verified' && (
-                        <Primary
-                            title="Start re-verification"
-                            busy={props.busy}
-                            onPress={() => props.onStartVerification(farm.id)}
-                        />
-                    )}
-                {canVerify &&
-                    farm.verification_status === 'in_progress' && (
-                        <>
-                            {page.data.boundary &&
-                                hasFreshBoundary &&
-                                !hasInspection &&
-                                canVerify && (
-                                    <Primary
-                                        title="Complete inspection & add evidence"
-                                        onPress={() =>
-                                            props.onLocalForm(
-                                                'farm-verification/inspection',
-                                                {
-                                                    farmId: farm.id,
-                                                    farmName: farm.farm_name,
-                                                    farmCode: farm.farm_id,
-                                                    farmerName:
-                                                        farm.farmer_name,
-                                                    declaredArea:
-                                                        page.data.comparison
-                                                            ?.declared_area,
-                                                    measuredArea:
-                                                        page.data.comparison
-                                                            ?.measured_area,
-                                                    difference:
-                                                        page.data.comparison
-                                                            ?.difference,
-                                                    variance:
-                                                        page.data.comparison
-                                                            ?.variance,
-                                                },
-                                            )
-                                        }
-                                    />
-                                )}
-                            {page.data.boundary && hasInspection && (
-                                <>
-                                    <Secondary
-                                        title="Add another evidence photo"
-                                        onPress={() =>
-                                            props.onLocalForm(
-                                                'farm-verification/inspection',
-                                                {
-                                                    farmId: farm.id,
-                                                    farmName: farm.farm_name,
-                                                    farmCode: farm.farm_id,
-                                                    farmerName:
-                                                        farm.farmer_name,
-                                                    declaredArea:
-                                                        page.data.comparison
-                                                            ?.declared_area,
-                                                    measuredArea:
-                                                        page.data.comparison
-                                                            ?.measured_area,
-                                                    difference:
-                                                        page.data.comparison
-                                                            ?.difference,
-                                                    variance:
-                                                        page.data.comparison
-                                                            ?.variance,
-                                                    farm_exists:
-                                                        inspection.checklist
-                                                            .farm_exists,
-                                                    location_matches:
-                                                        inspection.checklist
-                                                            .location_matches,
-                                                    coffee_crop_observed:
-                                                        inspection.checklist
-                                                            .coffee_crop_observed,
-                                                    boundary_captured:
-                                                        inspection.checklist
-                                                            .boundary_captured,
-                                                    area_checked:
-                                                        inspection.checklist
-                                                            .area_checked,
-                                                    farmer_or_representative_met:
-                                                        inspection.checklist
-                                                            .farmer_or_representative_met,
-                                                    remarks:
-                                                        inspection.checklist
-                                                            .observations,
-                                                },
-                                            )
-                                        }
-                                    />
-                                    <Primary
-                                        title="Record verification result"
-                                        onPress={() =>
-                                            props.onLocalForm(
-                                                'farm-verification/decision',
-                                                {
-                                                    farmId: farm.id,
-                                                    farmName: farm.farm_name,
-                                                    farmCode: farm.farm_id,
-                                                    farmerName:
-                                                        farm.farmer_name,
-                                                    declaredArea:
-                                                        page.data.comparison
-                                                            ?.declared_area,
-                                                    measuredArea:
-                                                        page.data.comparison
-                                                            ?.measured_area,
-                                                    difference:
-                                                        page.data.comparison
-                                                            ?.difference,
-                                                    variance:
-                                                        page.data.comparison
-                                                            ?.variance,
-                                                    gpsPoints:
-                                                        boundaryPointCount(
-                                                            page.data.boundary,
-                                                        ),
-                                                    evidencePhotos:
-                                                        inspection.photos
-                                                            .length,
-                                                    requiredChecksPassed:
-                                                        inspectionChecks
-                                                            .slice(0, 6)
-                                                            .filter(
-                                                                (key) =>
-                                                                    inspection
-                                                                        .checklist?.[
-                                                                        key
-                                                                    ] === true,
-                                                            ).length,
-                                                },
-                                            )
-                                        }
-                                    />
-                                </>
+                {canVerify && farm.verification_status === 'verified' && (
+                    <Primary
+                        title="Start re-verification"
+                        busy={props.busy}
+                        onPress={() => props.onStartVerification(farm.id)}
+                    />
+                )}
+                {canVerify && farm.verification_status === 'in_progress' && (
+                    <>
+                        {page.data.boundary &&
+                            hasFreshBoundary &&
+                            !hasInspection &&
+                            canVerify && (
+                                <Primary
+                                    title="Complete inspection & add evidence"
+                                    onPress={() =>
+                                        props.onLocalForm(
+                                            'farm-verification/inspection',
+                                            {
+                                                farmId: farm.id,
+                                                farmName: farm.farm_name,
+                                                farmCode: farm.farm_id,
+                                                farmerName: farm.farmer_name,
+                                                declaredArea:
+                                                    page.data.comparison
+                                                        ?.declared_area,
+                                                measuredArea:
+                                                    page.data.comparison
+                                                        ?.measured_area,
+                                                difference:
+                                                    page.data.comparison
+                                                        ?.difference,
+                                                variance:
+                                                    page.data.comparison
+                                                        ?.variance,
+                                            },
+                                        )
+                                    }
+                                />
                             )}
-                            {page.data.boundary && hasInspection && (
+                        {page.data.boundary && hasInspection && (
+                            <>
                                 <Secondary
                                     title="Add another evidence photo"
                                     onPress={() =>
@@ -4103,170 +4145,245 @@ function DataPage(props: {
                                                 measuredArea:
                                                     page.data.comparison
                                                         ?.measured_area,
+                                                difference:
+                                                    page.data.comparison
+                                                        ?.difference,
+                                                variance:
+                                                    page.data.comparison
+                                                        ?.variance,
                                                 farm_exists:
                                                     inspection.checklist
-                                                        ?.farm_exists,
+                                                        .farm_exists,
                                                 location_matches:
                                                     inspection.checklist
-                                                        ?.location_matches,
+                                                        .location_matches,
                                                 coffee_crop_observed:
                                                     inspection.checklist
-                                                        ?.coffee_crop_observed,
+                                                        .coffee_crop_observed,
                                                 boundary_captured:
                                                     inspection.checklist
-                                                        ?.boundary_captured,
+                                                        .boundary_captured,
                                                 area_checked:
                                                     inspection.checklist
-                                                        ?.area_checked,
+                                                        .area_checked,
                                                 farmer_or_representative_met:
                                                     inspection.checklist
-                                                        ?.farmer_or_representative_met,
+                                                        .farmer_or_representative_met,
                                                 remarks:
                                                     inspection.checklist
-                                                        ?.observations,
-                                                evidence_type:
-                                                    inspection.photos?.at(-1)
-                                                        ?.type ?? '',
+                                                        .observations,
                                             },
                                         )
                                     }
                                 />
-                            )}
-                            {inspection && hasFreshBoundary && (
-                                <View style={styles.card}>
-                                    <Text style={styles.cardTitle}>
-                                        Field inspection
-                                    </Text>
-                                    <SummaryRow
-                                        label="Farm physically exists"
-                                        value={checklistAnswer(
-                                            inspection.checklist?.farm_exists,
-                                        )}
-                                    />
-                                    <SummaryRow
-                                        label="Location matches registration"
-                                        value={checklistAnswer(
-                                            inspection.checklist
-                                                ?.location_matches,
-                                        )}
-                                    />
-                                    <SummaryRow
-                                        label={`${farm.crop_label ?? 'Registered crop'} observed`}
-                                        value={checklistAnswer(
-                                            inspection.checklist?.crop_observed ??
+                                <Primary
+                                    title="Record verification result"
+                                    onPress={() =>
+                                        props.onLocalForm(
+                                            'farm-verification/decision',
+                                            {
+                                                farmId: farm.id,
+                                                farmName: farm.farm_name,
+                                                farmCode: farm.farm_id,
+                                                farmerName: farm.farmer_name,
+                                                declaredArea:
+                                                    page.data.comparison
+                                                        ?.declared_area,
+                                                measuredArea:
+                                                    page.data.comparison
+                                                        ?.measured_area,
+                                                difference:
+                                                    page.data.comparison
+                                                        ?.difference,
+                                                variance:
+                                                    page.data.comparison
+                                                        ?.variance,
+                                                gpsPoints: boundaryPointCount(
+                                                    page.data.boundary,
+                                                ),
+                                                evidencePhotos:
+                                                    inspection.photos.length,
+                                                requiredChecksPassed:
+                                                    inspectionChecks
+                                                        .slice(0, 6)
+                                                        .filter(
+                                                            (key) =>
+                                                                inspection
+                                                                    .checklist?.[
+                                                                    key
+                                                                ] === true,
+                                                        ).length,
+                                            },
+                                        )
+                                    }
+                                />
+                            </>
+                        )}
+                        {page.data.boundary && hasInspection && (
+                            <Secondary
+                                title="Add another evidence photo"
+                                onPress={() =>
+                                    props.onLocalForm(
+                                        'farm-verification/inspection',
+                                        {
+                                            farmId: farm.id,
+                                            farmName: farm.farm_name,
+                                            farmCode: farm.farm_id,
+                                            farmerName: farm.farmer_name,
+                                            declaredArea:
+                                                page.data.comparison
+                                                    ?.declared_area,
+                                            measuredArea:
+                                                page.data.comparison
+                                                    ?.measured_area,
+                                            farm_exists:
+                                                inspection.checklist
+                                                    ?.farm_exists,
+                                            location_matches:
+                                                inspection.checklist
+                                                    ?.location_matches,
+                                            coffee_crop_observed:
                                                 inspection.checklist
                                                     ?.coffee_crop_observed,
-                                        )}
-                                    />
-                                    <SummaryRow
-                                        label="GPS boundary captured"
-                                        value={checklistAnswer(
+                                            boundary_captured:
+                                                inspection.checklist
+                                                    ?.boundary_captured,
+                                            area_checked:
+                                                inspection.checklist
+                                                    ?.area_checked,
+                                            farmer_or_representative_met:
+                                                inspection.checklist
+                                                    ?.farmer_or_representative_met,
+                                            remarks:
+                                                inspection.checklist
+                                                    ?.observations,
+                                            evidence_type:
+                                                inspection.photos?.at(-1)
+                                                    ?.type ?? '',
+                                        },
+                                    )
+                                }
+                            />
+                        )}
+                        {inspection && hasFreshBoundary && (
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>
+                                    Field inspection
+                                </Text>
+                                <SummaryRow
+                                    label="Farm physically exists"
+                                    value={checklistAnswer(
+                                        inspection.checklist?.farm_exists,
+                                    )}
+                                />
+                                <SummaryRow
+                                    label="Location matches registration"
+                                    value={checklistAnswer(
+                                        inspection.checklist?.location_matches,
+                                    )}
+                                />
+                                <SummaryRow
+                                    label={`${farm.crop_label ?? 'Registered crop'} observed`}
+                                    value={checklistAnswer(
+                                        inspection.checklist?.crop_observed ??
                                             inspection.checklist
-                                                ?.boundary_captured,
-                                        )}
-                                    />
-                                    <SummaryRow
-                                        label="Farm area checked"
-                                        value={checklistAnswer(
-                                            inspection.checklist?.area_checked,
-                                        )}
-                                    />
-                                    <SummaryRow
-                                        label="Evidence photos"
-                                        value={`${inspection.photos?.length ?? 0} uploaded`}
-                                    />
-                                    <SummaryRow
-                                        label="Farmer or representative met"
-                                        value={checklistAnswer(
-                                            inspection.checklist
-                                                ?.farmer_or_representative_met,
-                                        )}
-                                    />
-                                    {inspection.checklist?.observations ? (
-                                        <Text style={styles.muted}>
-                                            {inspection.checklist.observations}
-                                        </Text>
-                                    ) : null}
-                                    <View style={styles.evidenceGrid}>
-                                        {(inspection.photos ?? []).map(
-                                            (photo: any) => (
-                                                <View
-                                                    key={photo.id}
-                                                    style={styles.evidenceItem}
-                                                >
-                                                    <Image
-                                                        source={{
-                                                            uri: photo.url,
-                                                            headers: {
-                                                                Authorization: `Bearer ${props.token}`,
-                                                            },
-                                                        }}
-                                                        style={
-                                                            styles.evidenceImage
-                                                        }
-                                                        accessibilityLabel={withoutDemoWordText(
-                                                            `Inspection evidence: ${photo.name}`,
-                                                        )}
-                                                    />
+                                                ?.coffee_crop_observed,
+                                    )}
+                                />
+                                <SummaryRow
+                                    label="GPS boundary captured"
+                                    value={checklistAnswer(
+                                        inspection.checklist?.boundary_captured,
+                                    )}
+                                />
+                                <SummaryRow
+                                    label="Farm area checked"
+                                    value={checklistAnswer(
+                                        inspection.checklist?.area_checked,
+                                    )}
+                                />
+                                <SummaryRow
+                                    label="Evidence photos"
+                                    value={`${inspection.photos?.length ?? 0} uploaded`}
+                                />
+                                <SummaryRow
+                                    label="Farmer or representative met"
+                                    value={checklistAnswer(
+                                        inspection.checklist
+                                            ?.farmer_or_representative_met,
+                                    )}
+                                />
+                                {inspection.checklist?.observations ? (
+                                    <Text style={styles.muted}>
+                                        {inspection.checklist.observations}
+                                    </Text>
+                                ) : null}
+                                <View style={styles.evidenceGrid}>
+                                    {(inspection.photos ?? []).map(
+                                        (photo: any) => (
+                                            <View
+                                                key={photo.id}
+                                                style={styles.evidenceItem}
+                                            >
+                                                <Image
+                                                    source={{
+                                                        uri: photo.url,
+                                                        headers: {
+                                                            Authorization: `Bearer ${props.token}`,
+                                                        },
+                                                    }}
+                                                    style={styles.evidenceImage}
+                                                    accessibilityLabel={withoutDemoWordText(
+                                                        `Inspection evidence: ${photo.name}`,
+                                                    )}
+                                                />
+                                                <Text style={styles.mutedSmall}>
+                                                    {String(
+                                                        photo.type ??
+                                                            'field_inspection',
+                                                    ).replaceAll('_', ' ')}
+                                                </Text>
+                                                <Text style={styles.mutedSmall}>
+                                                    {photo.name}
+                                                </Text>
+                                                <Text style={styles.mutedSmall}>
+                                                    {photo.captured_at
+                                                        ? new Date(
+                                                              photo.captured_at,
+                                                          ).toLocaleString()
+                                                        : 'Capture time unavailable'}
+                                                </Text>
+                                                {photo.uploaded_at ? (
                                                     <Text
                                                         style={
                                                             styles.mutedSmall
                                                         }
                                                     >
-                                                        {String(
-                                                            photo.type ??
-                                                                'field_inspection',
-                                                        ).replaceAll('_', ' ')}
+                                                        Uploaded{' '}
+                                                        {new Date(
+                                                            photo.uploaded_at,
+                                                        ).toLocaleString()}
                                                     </Text>
+                                                ) : null}
+                                                {photo.latitude != null &&
+                                                photo.longitude != null ? (
                                                     <Text
                                                         style={
                                                             styles.mutedSmall
                                                         }
                                                     >
-                                                        {photo.name}
+                                                        {photo.latitude},{' '}
+                                                        {photo.longitude}
                                                     </Text>
-                                                    <Text
-                                                        style={
-                                                            styles.mutedSmall
-                                                        }
-                                                    >
-                                                        {photo.captured_at
-                                                            ? new Date(
-                                                                  photo.captured_at,
-                                                              ).toLocaleString()
-                                                            : 'Capture time unavailable'}
-                                                    </Text>
-                                                    {photo.uploaded_at ? (
-                                                        <Text
-                                                            style={
-                                                                styles.mutedSmall
-                                                            }
-                                                        >
-                                                            Uploaded{' '}
-                                                            {new Date(
-                                                                photo.uploaded_at,
-                                                            ).toLocaleString()}
-                                                        </Text>
-                                                    ) : null}
-                                                    {photo.latitude != null &&
-                                                    photo.longitude != null ? (
-                                                        <Text
-                                                            style={
-                                                                styles.mutedSmall
-                                                            }
-                                                        >
-                                                            {photo.latitude},{' '}
-                                                            {photo.longitude}
-                                                        </Text>
-                                                    ) : null}
-                                                </View>
-                                            ),
-                                        )}
-                                    </View>
+                                                ) : null}
+                                            </View>
+                                        ),
+                                    )}
                                 </View>
-                            )}
-                        </>
-                    )}
+                            </View>
+                        )}
+                    </>
+                )}
                 <VerificationHistory
                     title="Verification history"
                     rows={page.data.history ?? []}
@@ -5156,15 +5273,16 @@ function BoundaryCard({
                 </View>
             </View>
             <Text style={styles.mutedSmall}>
-                Reported capture method: {boundary.capture_method === 'device_gps'
+                Reported capture method:{' '}
+                {boundary.capture_method === 'device_gps'
                     ? 'Device GPS'
                     : boundary.capture_method === 'map_manual'
                       ? 'Web map edit'
                       : 'Not recorded'}
             </Text>
             <Text style={styles.mutedSmall}>
-                GPS source and capture times are reported by the app and are
-                not independently verified by the server.
+                GPS source and capture times are reported by the app and are not
+                independently verified by the server.
             </Text>
             {Array.isArray(boundary.gps_point_accuracies) &&
                 boundary.gps_point_accuracies.length > 0 && (
@@ -5287,7 +5405,10 @@ function FormView(props: {
     data: Record<string, any>;
     token: string;
     values: Record<string, any>;
-    photos: Record<string, ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]>;
+    photos: Record<
+        string,
+        ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[]
+    >;
     error: string;
     busy: boolean;
     onChange: (key: string, value: any) => void;
@@ -5302,7 +5423,8 @@ function FormView(props: {
     const [boundaryPointAccuracies, setBoundaryPointAccuracies] = useState<
         (number | null)[]
     >(() =>
-        !props.data.freshBoundaryCapture && !props.data.verificationCapture &&
+        !props.data.freshBoundaryCapture &&
+        !props.data.verificationCapture &&
         Array.isArray(props.data.boundary?.gps_point_accuracies)
             ? props.data.boundary.gps_point_accuracies.map(
                   (accuracy: unknown) =>
@@ -5315,7 +5437,8 @@ function FormView(props: {
     const [boundaryPointCapturedAt, setBoundaryPointCapturedAt] = useState<
         string[]
     >(() =>
-        !props.data.freshBoundaryCapture && !props.data.verificationCapture &&
+        !props.data.freshBoundaryCapture &&
+        !props.data.verificationCapture &&
         Array.isArray(props.data.boundary?.gps_point_captured_at)
             ? props.data.boundary.gps_point_captured_at.map(String)
             : [],
@@ -5327,9 +5450,10 @@ function FormView(props: {
     const [measuredBoundaryPreview, setMeasuredBoundaryPreview] = useState<
         string | null
     >(() => {
-        const existingArea = props.data.freshBoundaryCapture || props.data.verificationCapture
-            ? null
-            : props.data.boundary?.gps_measured_area_hectares;
+        const existingArea =
+            props.data.freshBoundaryCapture || props.data.verificationCapture
+                ? null
+                : props.data.boundary?.gps_measured_area_hectares;
         return existingArea == null
             ? null
             : typeof existingArea === 'string'
@@ -5386,8 +5510,14 @@ function FormView(props: {
                             coordinates: [draft.points],
                         }),
                     );
-                    onChangeRef.current('gps_point_accuracies', draft.accuracies);
-                    onChangeRef.current('gps_point_captured_at', draft.capturedAt);
+                    onChangeRef.current(
+                        'gps_point_accuracies',
+                        draft.accuracies,
+                    );
+                    onChangeRef.current(
+                        'gps_point_captured_at',
+                        draft.capturedAt,
+                    );
                     onChangeRef.current('capture_method', 'device_gps');
                     setBoundaryDraftMessage(
                         'Restored GPS points saved on this device.',
@@ -5565,8 +5695,12 @@ function FormView(props: {
                         capturedAt: nextCaptureTimes,
                     };
                     try {
-                        await enqueueBoundaryDraftWrite(boundaryDraftKey, draft);
-                        persistedBoundarySnapshot.current = JSON.stringify(draft);
+                        await enqueueBoundaryDraftWrite(
+                            boundaryDraftKey,
+                            draft,
+                        );
+                        persistedBoundarySnapshot.current =
+                            JSON.stringify(draft);
                         setBoundaryDraftError('');
                         setBoundaryDraftMessage(
                             'GPS draft saved on this device.',
@@ -5942,18 +6076,31 @@ function FormView(props: {
                     if (
                         field.key === 'boundary_geojson' &&
                         props.spec.path.includes('/boundary')
-                    ) return null;
-                    const selectedFarm = (props.data.farms ?? []).find(
-                        (farm: any) => String(farm.id) === String(props.values.farm_id ?? ''),
-                    ) ?? props.data.harvest?.farm;
+                    )
+                        return null;
+                    const selectedFarm =
+                        (props.data.farms ?? []).find(
+                            (farm: any) =>
+                                String(farm.id) ===
+                                String(props.values.farm_id ?? ''),
+                        ) ?? props.data.harvest?.farm;
                     if (
-                        (field.key === 'coffee_variety' || field.key === 'estimated_green_bean_quantity_kg') &&
+                        (field.key === 'coffee_variety' ||
+                            field.key === 'estimated_green_bean_quantity_kg') &&
                         selectedFarm?.crop_type !== 'coffee'
-                    ) return null;
+                    )
+                        return null;
 
-                    const displayField = field.key === 'quantity' && selectedFarm
-                        ? { ...field, label: selectedFarm?.crop_type === 'coffee' ? 'Coffee cherry quantity' : 'Harvest quantity' }
-                        : field;
+                    const displayField =
+                        field.key === 'quantity' && selectedFarm
+                            ? {
+                                  ...field,
+                                  label:
+                                      selectedFarm?.crop_type === 'coffee'
+                                          ? 'Coffee cherry quantity'
+                                          : 'Harvest quantity',
+                              }
+                            : field;
                     let options = optionList(field.options, props.data);
                     if (
                         field.key === 'destination_stage_id' &&
@@ -5989,6 +6136,11 @@ function FormView(props: {
                                 field.key === 'evidence_photo'
                                     ? props.values.captured_at
                                     : undefined
+                            }
+                            captureLocation={
+                                field.key === 'evidence_photo' &&
+                                Boolean(props.values.latitude) &&
+                                Boolean(props.values.longitude)
                             }
                             onChange={(value) => {
                                 if (field.kind === 'geojson')
@@ -6049,6 +6201,7 @@ function InputField(props: {
     options: { value: string; label: string }[];
     photo?: ImagePicker.ImagePickerAsset | ImagePicker.ImagePickerAsset[];
     captureTime?: string;
+    captureLocation?: boolean;
     onChange: (value: any) => void;
     onImage: (camera: boolean) => void;
 }) {
@@ -6117,9 +6270,14 @@ function InputField(props: {
                             {field.multiple
                                 ? `Photo ${index + 1} selected`
                                 : props.captureTime
-                                ? `Captured ${new Date(props.captureTime).toLocaleString()}`
-                                : 'Capture time unavailable. The upload time will be recorded.'}
+                                  ? `Captured ${new Date(props.captureTime).toLocaleString()}`
+                                  : 'Capture time unavailable. The upload time will be recorded.'}
                         </Text>
+                        {!field.multiple && props.captureLocation && (
+                            <Text style={styles.mutedSmall}>
+                                GPS position recorded with this evidence.
+                            </Text>
+                        )}
                     </View>
                 ))}
                 <View style={styles.imageActions}>
@@ -6127,15 +6285,19 @@ function InputField(props: {
                         <Secondary
                             title={
                                 selectedPhotos.length > 0
-                                    ? 'Retake face photo'
-                                    : 'Capture face photo'
+                                    ? `Retake ${field.label.toLowerCase()}`
+                                    : `Capture ${field.label.toLowerCase()}`
                             }
                             onPress={() => props.onImage(true)}
                         />
                     ) : (
                         <>
                             <Secondary
-                                title={field.multiple ? 'Choose photos' : 'Choose photo'}
+                                title={
+                                    field.multiple
+                                        ? 'Choose photos'
+                                        : 'Choose photo'
+                                }
                                 onPress={() => props.onImage(false)}
                             />
                             <Secondary
@@ -6740,7 +6902,8 @@ function collectionDescription(component: string) {
 }
 function emptyCollectionDescription(component: string) {
     const messages: Record<string, string> = {
-        'cooperatives/index': 'Cooperatives will appear here when they are registered.',
+        'cooperatives/index':
+            'Cooperatives will appear here when they are registered.',
         'farmers/index':
             'No farmer profiles match this view. Register a farmer to start a portfolio.',
         'farms/index':

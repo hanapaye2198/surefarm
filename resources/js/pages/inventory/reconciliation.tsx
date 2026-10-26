@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { index as inventoryIndex, reconciliation, show } from '@/routes/inventory';
+import {
+    index as inventoryIndex,
+    reconciliation,
+    show,
+} from '@/routes/inventory';
 import { update } from '@/routes/inventory/reconciliation';
 
 type Discrepancy = {
@@ -43,27 +47,42 @@ export default function InventoryReconciliation({
                     description="Compare each stored balance with the sum of its movements. A correction changes the stored quantity only."
                     actions={
                         <Button variant="outline" asChild>
-                            <Link href={inventoryIndex()}>Back to inventory</Link>
+                            <Link href={inventoryIndex()}>
+                                Back to inventory
+                            </Link>
                         </Button>
                     }
                 />
 
                 <Card className="shadow-sm">
                     <CardHeader>
-                        <CardTitle>Stored balance differs from movements</CardTitle>
+                        <CardTitle>
+                            Stored balance differs from movements
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         {discrepancies.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Stored balances match recorded movements.</p>
+                            <p className="text-sm text-muted-foreground">
+                                Stored balances match recorded movements.
+                            </p>
                         ) : (
                             discrepancies.map((row) => (
-                                <div key={row.id} className="grid gap-3 border-b pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_16rem] sm:items-end">
+                                <div
+                                    key={row.id}
+                                    className="grid gap-3 border-b pb-4 last:border-0 last:pb-0 sm:grid-cols-[1fr_16rem] sm:items-end"
+                                >
                                     <div className="text-sm">
-                                        <Link href={show(row.id)} className="font-medium hover:underline">
-                                            {row.stage ?? 'Inventory'} · {row.farm ?? 'Farm'}
+                                        <Link
+                                            href={show(row.id)}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {row.stage ?? 'Inventory'} ·{' '}
+                                            {row.farm ?? 'Farm'}
                                         </Link>
                                         <p className="text-muted-foreground">
-                                            Stored {row.stored} {row.unit}. Movements total {row.movements} {row.unit}.
+                                            Stored {row.stored} {row.unit}.
+                                            Movements total {row.movements}{' '}
+                                            {row.unit}.
                                         </p>
                                     </div>
                                     <CorrectionForm inventoryId={row.id} />
@@ -79,18 +98,30 @@ export default function InventoryReconciliation({
                     </CardHeader>
                     <CardContent className="grid gap-4">
                         <p className="text-sm text-muted-foreground">
-                            kg, tons, and bags are not converted. These receipts were saved before that rule. Reverse a receipt from its inventory record when no later movement exists.
+                            kg, tons, and bags are not converted. These receipts
+                            were saved before that rule. Reverse a receipt from
+                            its inventory record when no later movement exists.
                         </p>
                         {incompatible_receipts.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No mismatched receipt units.</p>
+                            <p className="text-sm text-muted-foreground">
+                                No mismatched receipt units.
+                            </p>
                         ) : (
                             incompatible_receipts.map((receipt) => (
-                                <div key={receipt.movement_id} className="border-b pb-4 text-sm last:border-0 last:pb-0">
+                                <div
+                                    key={receipt.movement_id}
+                                    className="border-b pb-4 text-sm last:border-0 last:pb-0"
+                                >
                                     <p>
-                                        {receipt.quantity} {receipt.receipt_unit} received against a {receipt.harvest_unit} harvest.
+                                        {receipt.quantity}{' '}
+                                        {receipt.receipt_unit} received against
+                                        a {receipt.harvest_unit} harvest.
                                     </p>
                                     {receipt.inventory_id !== null && (
-                                        <Link href={show(receipt.inventory_id)} className="font-medium hover:underline">
+                                        <Link
+                                            href={show(receipt.inventory_id)}
+                                            className="font-medium hover:underline"
+                                        >
                                             Open inventory
                                         </Link>
                                     )}

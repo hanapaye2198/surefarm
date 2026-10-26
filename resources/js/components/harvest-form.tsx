@@ -175,7 +175,8 @@ export function HarvestForm({
                                                 : '',
                                         estimated_green_bean_quantity_kg:
                                             match?.crop_type === 'coffee'
-                                                ? form.data.estimated_green_bean_quantity_kg
+                                                ? form.data
+                                                      .estimated_green_bean_quantity_kg
                                                 : '',
                                     });
                                 }}
@@ -457,7 +458,9 @@ export function HarvestForm({
                                 onChange={(event) =>
                                     form.setData(
                                         'photos',
-                                        Array.from(event.target.files ?? []).slice(0, 6),
+                                        Array.from(
+                                            event.target.files ?? [],
+                                        ).slice(0, 6),
                                     )
                                 }
                             />
@@ -468,7 +471,9 @@ export function HarvestForm({
                             </p>
                             {form.data.photos.length > 0 && (
                                 <p className="text-xs text-muted-foreground">
-                                    {form.data.photos.map((file) => file.name).join(', ')}
+                                    {form.data.photos
+                                        .map((file) => file.name)
+                                        .join(', ')}
                                 </p>
                             )}
                         </Field>

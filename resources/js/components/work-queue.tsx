@@ -23,10 +23,7 @@ export function WorkQueue({ items }: { items: WorkQueueItem[] }) {
             )}
             <ul className="flex flex-col">
                 {items.map((item) => (
-                    <li
-                        key={item.status}
-                        className="border-b last:border-b-0"
-                    >
+                    <li key={item.status} className="border-b last:border-b-0">
                         <Link
                             href={item.href}
                             className="flex items-center justify-between gap-3 rounded-md py-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

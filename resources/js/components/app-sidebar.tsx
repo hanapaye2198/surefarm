@@ -86,14 +86,24 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Farmers',
                 href: farmersIndex(),
                 icon: Users,
-                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
+                roles: [
+                    'operations',
+                    'field_verifier',
+                    'farmer',
+                    'cooperative_officer',
+                ],
                 match: 'parent',
             },
             {
                 title: 'Farms & Map',
                 href: farmsIndex(),
                 icon: MapPinned,
-                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
+                roles: [
+                    'operations',
+                    'field_verifier',
+                    'farmer',
+                    'cooperative_officer',
+                ],
                 match: 'parent',
             },
             {

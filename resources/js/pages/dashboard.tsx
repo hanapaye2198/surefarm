@@ -306,7 +306,9 @@ function VerifierDashboard({
                     />
                     <StatCard
                         label="Scheduled today"
-                        value={countFormatter.format(summary.scheduled_today ?? 0)}
+                        value={countFormatter.format(
+                            summary.scheduled_today ?? 0,
+                        )}
                         tone={summary.scheduled_today ? 'warning' : 'neutral'}
                     />
                     <StatCard
@@ -350,18 +352,31 @@ function VerifierDashboard({
                     ) : (
                         <ul>
                             {todayAssignments.map((farm) => (
-                                <li key={farm.id} className="border-b last:border-b-0">
+                                <li
+                                    key={farm.id}
+                                    className="border-b last:border-b-0"
+                                >
                                     <Link
                                         href={showVerification(farm.id)}
                                         className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/50 sm:px-5"
                                     >
                                         <span className="min-w-0">
-                                            <span className="block truncate font-medium">{farm.farm_name}</span>
+                                            <span className="block truncate font-medium">
+                                                {farm.farm_name}
+                                            </span>
                                             <span className="block truncate text-muted-foreground">
-                                                {farm.farm_id}{farm.farmer_name ? ` · ${farm.farmer_name}` : ''}{farm.location ? ` · ${farm.location}` : ''}
+                                                {farm.farm_id}
+                                                {farm.farmer_name
+                                                    ? ` · ${farm.farmer_name}`
+                                                    : ''}
+                                                {farm.location
+                                                    ? ` · ${farm.location}`
+                                                    : ''}
                                             </span>
                                         </span>
-                                        <StatusBadge status={farm.verification_status} />
+                                        <StatusBadge
+                                            status={farm.verification_status}
+                                        />
                                     </Link>
                                 </li>
                             ))}
@@ -883,8 +898,8 @@ export default function Dashboard({
                     <CardHeader>
                         <CardTitle>Verification queue</CardTitle>
                         <CardDescription>
-                            Current active farms. Declared area is unchanged
-                            by these counts.
+                            Current active farms. Declared area is unchanged by
+                            these counts.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1143,9 +1158,7 @@ export default function Dashboard({
                                 <ProductionBalance
                                     expected={harvest_summary.expected_label}
                                     actual={harvest_summary.actual_label}
-                                    remaining={
-                                        harvest_summary.remaining_label
-                                    }
+                                    remaining={harvest_summary.remaining_label}
                                     exceeds={harvest_summary.exceeds}
                                     message={harvest_summary.message}
                                     progress={harvest_summary.progress}

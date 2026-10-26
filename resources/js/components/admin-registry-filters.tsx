@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { formString } from '@/lib/form-data';
 import { dashboard } from '@/routes';
 import type { RegistryFilters, RegistryPayload } from '@/types/admin-dashboard';
 
@@ -71,40 +72,44 @@ export function AdminRegistryFilters({
     function apply(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
-        const province = String(form.get('province') ?? '');
-        const municipality = String(form.get('municipality') ?? '');
+        const province = formString(form, 'province');
+        const municipality = formString(form, 'municipality');
 
         visitRegistry(filters, {
-            search: String(form.get('search') ?? '').trim(),
+            search: formString(form, 'search').trim(),
             province,
             municipality: province === filters.province ? municipality : '',
             barangay:
                 province === filters.province &&
                 municipality === filters.municipality
-                    ? String(form.get('barangay') ?? '')
+                    ? formString(form, 'barangay')
                     : '',
-            farmer: String(form.get('farmer') ?? ''),
+            farmer: formString(form, 'farmer'),
             farm:
-                String(form.get('farmer') ?? '') === filters.farmer
-                    ? String(form.get('farm') ?? '')
+                formString(form, 'farmer') === filters.farmer
+                    ? formString(form, 'farm')
                     : '',
-            crop: String(form.get('crop') ?? ''),
-            verification_status: String(form.get('verification_status') ?? ''),
-            status: String(form.get('status') ?? ''),
-            boundary: String(form.get('boundary') ?? ''),
-            registered_from: String(form.get('registered_from') ?? ''),
-            registered_to: String(form.get('registered_to') ?? ''),
-            updated_from: String(form.get('updated_from') ?? ''),
-            updated_to: String(form.get('updated_to') ?? ''),
-            trend: String(form.get('trend') ?? '30'),
-            trend_from: String(form.get('trend_from') ?? ''),
-            trend_to: String(form.get('trend_to') ?? ''),
-            rank: String(form.get('rank') ?? 'declared'),
+            crop: formString(form, 'crop'),
+            verification_status: formString(form, 'verification_status'),
+            status: formString(form, 'status'),
+            boundary: formString(form, 'boundary'),
+            registered_from: formString(form, 'registered_from'),
+            registered_to: formString(form, 'registered_to'),
+            updated_from: formString(form, 'updated_from'),
+            updated_to: formString(form, 'updated_to'),
+            trend: formString(form, 'trend', '30'),
+            trend_from: formString(form, 'trend_from'),
+            trend_to: formString(form, 'trend_to'),
+            rank: formString(form, 'rank', 'declared'),
         });
     }
 
     return (
-            <form key={JSON.stringify(filters)} onSubmit={apply} className="grid gap-3">
+        <form
+            key={JSON.stringify(filters)}
+            onSubmit={apply}
+            className="grid gap-3"
+        >
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <label className="grid gap-1 text-xs font-medium text-muted-foreground sm:col-span-2">
                     Search
@@ -116,30 +121,64 @@ export function AdminRegistryFilters({
                         className={selectClass}
                     />
                 </label>
-                <Field label="Province" name="province" value={filters.province} options={options.provinces} />
+                <Field
+                    label="Province"
+                    name="province"
+                    value={filters.province}
+                    options={options.provinces}
+                />
                 <Field
                     label="Municipality"
                     name="municipality"
                     value={filters.municipality}
                     options={options.municipalities}
                 />
-                <Field label="Barangay" name="barangay" value={filters.barangay} options={options.barangays} />
-                <Field label="Crop" name="crop" value={filters.crop} options={options.crops} />
+                <Field
+                    label="Barangay"
+                    name="barangay"
+                    value={filters.barangay}
+                    options={options.barangays}
+                />
+                <Field
+                    label="Crop"
+                    name="crop"
+                    value={filters.crop}
+                    options={options.crops}
+                />
                 <Field
                     label="Verification"
                     name="verification_status"
                     value={filters.verification_status}
                     options={options.verification_statuses}
                 />
-                <Field label="Farm status" name="status" value={filters.status} options={options.statuses} />
-                <Field label="Boundary" name="boundary" value={filters.boundary} options={options.boundaries} />
-                <Field label="Registered farmer" name="farmer" value={filters.farmer} options={options.farmers} />
+                <Field
+                    label="Farm status"
+                    name="status"
+                    value={filters.status}
+                    options={options.statuses}
+                />
+                <Field
+                    label="Boundary"
+                    name="boundary"
+                    value={filters.boundary}
+                    options={options.boundaries}
+                />
+                <Field
+                    label="Registered farmer"
+                    name="farmer"
+                    value={filters.farmer}
+                    options={options.farmers}
+                />
                 <Field
                     label="Farm"
                     name="farm"
                     value={filters.farm}
                     options={options.farms}
-                    emptyLabel={filters.farmer === '' ? 'Choose a farmer first' : 'All farms'}
+                    emptyLabel={
+                        filters.farmer === ''
+                            ? 'Choose a farmer first'
+                            : 'All farms'
+                    }
                 />
             </div>
             <details className="rounded-xl border bg-card px-3 py-2">
@@ -147,14 +186,50 @@ export function AdminRegistryFilters({
                     Dates, ranking, and trend
                 </summary>
                 <div className="grid gap-2 pt-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <DateField label="Registered from" name="registered_from" value={filters.registered_from} />
-                    <DateField label="Registered to" name="registered_to" value={filters.registered_to} />
-                    <DateField label="Updated from" name="updated_from" value={filters.updated_from} />
-                    <DateField label="Updated to" name="updated_to" value={filters.updated_to} />
-                    <Field label="Owner ranking" name="rank" value={filters.rank} options={options.ranks} includeBlank={false} />
-                    <Field label="Trend" name="trend" value={filters.trend} options={options.trends} includeBlank={false} />
-                    <DateField label="Trend from" name="trend_from" value={filters.trend_from} />
-                    <DateField label="Trend to" name="trend_to" value={filters.trend_to} />
+                    <DateField
+                        label="Registered from"
+                        name="registered_from"
+                        value={filters.registered_from}
+                    />
+                    <DateField
+                        label="Registered to"
+                        name="registered_to"
+                        value={filters.registered_to}
+                    />
+                    <DateField
+                        label="Updated from"
+                        name="updated_from"
+                        value={filters.updated_from}
+                    />
+                    <DateField
+                        label="Updated to"
+                        name="updated_to"
+                        value={filters.updated_to}
+                    />
+                    <Field
+                        label="Owner ranking"
+                        name="rank"
+                        value={filters.rank}
+                        options={options.ranks}
+                        includeBlank={false}
+                    />
+                    <Field
+                        label="Trend"
+                        name="trend"
+                        value={filters.trend}
+                        options={options.trends}
+                        includeBlank={false}
+                    />
+                    <DateField
+                        label="Trend from"
+                        name="trend_from"
+                        value={filters.trend_from}
+                    />
+                    <DateField
+                        label="Trend to"
+                        name="trend_to"
+                        value={filters.trend_to}
+                    />
                 </div>
             </details>
             <div className="flex flex-wrap items-center gap-2">
@@ -172,7 +247,8 @@ export function AdminRegistryFilters({
                 </Link>
                 {options.farmers_limited && (
                     <p className="text-xs text-muted-foreground">
-                        The farmer list shows the first 100 matches. Search to narrow it.
+                        The farmer list shows the first 100 matches. Search to
+                        narrow it.
                     </p>
                 )}
             </div>
@@ -198,7 +274,12 @@ function Field({
     return (
         <label className="grid gap-1 text-xs font-medium text-muted-foreground">
             {label}
-            <select name={name} defaultValue={value} aria-label={label} className={selectClass}>
+            <select
+                name={name}
+                defaultValue={value}
+                aria-label={label}
+                className={selectClass}
+            >
                 {includeBlank && <option value="">{emptyLabel}</option>}
                 {options.map((option) => (
                     <option key={option.value} value={option.value}>

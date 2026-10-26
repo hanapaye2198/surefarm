@@ -144,7 +144,10 @@ export function loadGoogleMaps(apiKey: string): Promise<void> {
     if (loading === null) {
         loading = new Promise((resolve, reject) => {
             const callbackName = '__surefarmGoogleMapsReady';
-            const windowWithCallback = window as unknown as Record<string, () => void>;
+            const windowWithCallback = window as unknown as Record<
+                string,
+                () => void
+            >;
 
             windowWithCallback[callbackName] = () => {
                 delete windowWithCallback[callbackName];
@@ -156,8 +159,7 @@ export function loadGoogleMaps(apiKey: string): Promise<void> {
                     return;
                 }
 
-                maps
-                    .importLibrary('maps')
+                maps.importLibrary('maps')
                     .then(() => resolve())
                     .catch((error: unknown) => {
                         loading = null;
