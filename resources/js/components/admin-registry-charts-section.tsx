@@ -40,10 +40,11 @@ export function AdminRegistryCharts({ registry }: { registry: RegistryPayload })
                 </Card>
                 <Card className="shadow-sm">
                     <CardHeader>
-                        <CardTitle>Area by crop</CardTitle>
+                        <CardTitle>Coffee area</CardTitle>
+                        <CardDescription>Declared and verified hectares for coffee farms only.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <CropChart rows={registry.charts.crops} />
+                        <CropChart rows={registry.charts.crops.filter((row) => row.crop === 'coffee')} />
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">

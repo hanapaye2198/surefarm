@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('farmers', function (Blueprint $table): void {
-            $table->foreignId('user_id')->nullable()->unique()->constrained()->nullOnDelete();
-        });
+        if (! Schema::hasColumn('farmers', 'user_id')) {
+            Schema::table('farmers', function (Blueprint $table): void {
+                $table->foreignId('user_id')->nullable()->unique()->constrained()->nullOnDelete();
+            });
+        }
 
-        Schema::table('farms', function (Blueprint $table): void {
-            $table->foreignId('assigned_verifier_id')->nullable()->constrained('users')->nullOnDelete();
-        });
+        if (! Schema::hasColumn('farms', 'assigned_verifier_id')) {
+            Schema::table('farms', function (Blueprint $table): void {
+                $table->foreignId('assigned_verifier_id')->nullable()->constrained('users')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

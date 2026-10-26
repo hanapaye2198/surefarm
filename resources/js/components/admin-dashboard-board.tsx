@@ -4,8 +4,6 @@ import { TrendChart } from '@/components/admin-registry-charts';
 import { farmStatusColor } from '@/lib/farm-status-colors';
 import type { CropRow, RegistryMetric, RegistryPayload } from '@/types/admin-dashboard';
 
-const cropPalette = ['#2f6b45', '#d4a017', '#2563eb', '#ea580c', '#7c3aed', '#0f766e', '#be123c', '#78716c'];
-
 const hectares = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
 });
@@ -55,9 +53,9 @@ export function AdminDashboardBoard({ registry }: { registry: RegistryPayload })
             </div>
             <div className="grid gap-4">
                 <article className="rounded-2xl border bg-card p-4 shadow-sm">
-                    <h2 className="text-sm font-semibold">Crop distribution</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">Declared hectares in the current filters.</p>
-                    <CropDonut rows={registry.charts.crops} />
+                    <h2 className="text-sm font-semibold">Coffee area</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">Declared and verified coffee hectares. Other crops are left out.</p>
+                    <CoffeeAreaChart rows={registry.charts.crops} />
                 </article>
                 <article className="rounded-2xl border bg-card p-4 shadow-sm">
                     <h2 className="text-sm font-semibold">Recent farm registrations</h2>
@@ -135,11 +133,16 @@ function SummaryTile({
     );
 }
 
-function CropDonut({ rows }: { rows: CropRow[] }) {
-    const total = rows.reduce((sum, row) => sum + row.declared_hectares, 0);
+function CoffeeAreaChart({ rows }: { rows: CropRow[] }) {
+    const coffee = rows.find((row) => row.crop === 'coffee');
+    const slices = [
+        { label: 'Declared', value: coffee?.declared_hectares ?? 0, color: '#6b4f3a' },
+        { label: 'Verified', value: coffee?.verified_hectares ?? 0, color: '#2f6b45' },
+    ];
+    const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
-    if (rows.length === 0 || total <= 0) {
-        return <p className="mt-4 text-sm text-muted-foreground">No declared crop area in this filtered set.</p>;
+    if (coffee === undefined || coffee.farms === 0) {
+        return <p className="mt-4 text-sm text-muted-foreground">No coffee farms in this filtered set.</p>;
     }
 
     const radius = 42;
@@ -149,45 +152,46 @@ function CropDonut({ rows }: { rows: CropRow[] }) {
     return (
         <div className="mt-4 grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center">
             <div className="relative mx-auto size-36">
-                <svg viewBox="0 0 120 120" className="size-full -rotate-90" role="img" aria-label="Declared hectares by crop">
-                    {rows.map((row, index) => {
-                        const length = (row.declared_hectares / total) * circumference;
-                        const dash = `${length} ${circumference - length}`;
-                        const circle = (
-                            <circle
-                                key={row.crop}
-                                cx="60"
-                                cy="60"
-                                r={radius}
-                                fill="none"
-                                stroke={cropPalette[index % cropPalette.length]}
-                                strokeWidth="14"
-                                strokeDasharray={dash}
-                                strokeDashoffset={-offset}
-                            />
-                        );
-                        offset += length;
+                <svg viewBox="0 0 120 120" className="size-full -rotate-90" role="img" aria-label="Declared and verified coffee hectares">
+                    {total <= 0 ? (
+                        <circle cx="60" cy="60" r={radius} fill="none" stroke="#e7e5e4" strokeWidth="14" />
+                    ) : (
+                        slices.map((slice) => {
+                            const length = (slice.value / total) * circumference;
+                            const circle = (
+                                <circle
+                                    key={slice.label}
+                                    cx="60"
+                                    cy="60"
+                                    r={radius}
+                                    fill="none"
+                                    stroke={slice.color}
+                                    strokeWidth="14"
+                                    strokeDasharray={`${length} ${circumference - length}`}
+                                    strokeDashoffset={-offset}
+                                />
+                            );
+                            offset += length;
 
-                        return circle;
-                    })}
+                            return circle;
+                        })
+                    )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-sm font-semibold tabular-nums">{hectares.format(total)}</span>
-                    <span className="text-[10px] tracking-wide text-muted-foreground uppercase">Hectares</span>
+                    <span className="text-sm font-semibold tabular-nums">{coffee.farms}</span>
+                    <span className="text-[10px] tracking-wide text-muted-foreground uppercase">Farms</span>
                 </div>
             </div>
             <ul className="grid gap-1.5 text-xs">
-                {rows.map((row, index) => (
-                    <li key={row.crop} className="flex items-center justify-between gap-2">
+                {slices.map((slice) => (
+                    <li key={slice.label} className="flex items-center justify-between gap-2">
                         <span className="flex min-w-0 items-center gap-2">
-                            <span
-                                className="size-2 shrink-0 rounded-full"
-                                style={{ backgroundColor: cropPalette[index % cropPalette.length] }}
-                            />
-                            <span className="truncate">{row.label}</span>
+                            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
+                            <span className="truncate">{slice.label}</span>
                         </span>
                         <span className="shrink-0 tabular-nums text-muted-foreground">
-                            ({((row.declared_hectares / total) * 100).toFixed(1)}%) {hectares.format(row.declared_hectares)} ha
+                            {total > 0 ? `(${((slice.value / total) * 100).toFixed(1)}%) ` : ''}
+                            {hectares.format(slice.value)} ha
                         </span>
                     </li>
                 ))}
