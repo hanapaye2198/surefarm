@@ -131,6 +131,16 @@ class Farm extends Model
     }
 
     /**
+     * Crop records for this farm. Each record uses the farm's crop type.
+     *
+     * @return HasMany<FarmCrop, $this>
+     */
+    public function crops(): HasMany
+    {
+        return $this->hasMany(FarmCrop::class);
+    }
+
+    /**
      * Expected production estimates. Harvest totals are not stored here.
      *
      * @return HasMany<FarmProduction, $this>

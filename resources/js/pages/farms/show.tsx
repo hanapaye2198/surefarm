@@ -293,6 +293,18 @@ function initialTab(): FarmTab {
 export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
     const [tab, setTab] = useState<FarmTab>(initialTab);
     const [mapOpened, setMapOpened] = useState(() => initialTab() === 'Map');
+    const mapFarm = {
+        id: farm.id,
+        farm_id: farm.farm_id,
+        farm_name: farm.farm_name,
+        declared_area_hectares: farm.declared_area_hectares,
+        verification_status: farm.verification_status,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
+        farmer_name: farm.farmer.full_name,
+        can_manage_boundary: farm.can_manage_boundary,
+        can_remove_boundary: farm.can_remove_boundary,
+    };
 
     function selectTab(item: FarmTab) {
         setTab(item);
@@ -403,7 +415,34 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                     className="grid gap-4 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     {tab === 'Overview' && (
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="grid gap-4">
+                            <Card className="shadow-none">
+                                <CardHeader className="flex-row items-center justify-between gap-3">
+                                    <div className="grid gap-1">
+                                        <CardTitle>Map</CardTitle>
+                                        <p className="text-xs text-muted-foreground">
+                                            Recorded location and saved
+                                            boundary for this farm.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => selectTab('Map')}
+                                    >
+                                        Edit boundary
+                                    </Button>
+                                </CardHeader>
+                                <CardContent>
+                                    <FarmBoundaryMap
+                                        preview
+                                        active
+                                        farm={mapFarm}
+                                        boundary={farm.boundary}
+                                    />
+                                </CardContent>
+                            </Card>
+                            <div className="grid gap-4 lg:grid-cols-2">
                             <Card className="shadow-none">
                                 <CardHeader>
                                     <CardTitle>Location</CardTitle>
@@ -637,6 +676,7 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     )}
                                 </CardContent>
                             </Card>
+                            </div>
                         </div>
                     )}
 
@@ -644,22 +684,7 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                         <div className={tab === 'Map' ? undefined : 'hidden'}>
                             <FarmBoundaryMap
                                 active={tab === 'Map'}
-                                farm={{
-                                    id: farm.id,
-                                    farm_id: farm.farm_id,
-                                    farm_name: farm.farm_name,
-                                    declared_area_hectares:
-                                        farm.declared_area_hectares,
-                                    verification_status:
-                                        farm.verification_status,
-                                    latitude: farm.latitude,
-                                    longitude: farm.longitude,
-                                    farmer_name: farm.farmer.full_name,
-                                    can_manage_boundary:
-                                        farm.can_manage_boundary,
-                                    can_remove_boundary:
-                                        farm.can_remove_boundary,
-                                }}
+                                farm={mapFarm}
                                 review={farm.boundary_review}
                                 boundary={farm.boundary}
                             />

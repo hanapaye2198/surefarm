@@ -229,7 +229,30 @@ test('the farms list returns saved records', function () {
             ->has('farms.data', 1)
             ->where('farms.data.0.farm_id', $farm->farm_id)
             ->where('farms.data.0.farmer_name', 'Juan Cruz')
-            ->where('farms.data.0.crop_label', 'Coffee'));
+            ->where('farms.data.0.crop_label', 'Coffee')
+            ->has('locations', 0));
+});
+
+test('the farms map includes only farms with coordinates', function () {
+    $mapped = Farm::factory()->create([
+        'farm_name' => 'Mapped Farm',
+        'latitude' => 8.1575,
+        'longitude' => 125.1278,
+    ]);
+    Farm::factory()->create([
+        'farm_name' => 'Unmapped Farm',
+    ]);
+
+    $this->actingAs(operationsUser())
+        ->get(route('farms.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('farms/index')
+            ->has('locations', 1)
+            ->where('locations.0.id', $mapped->id)
+            ->where('locations.0.farm_name', 'Mapped Farm')
+            ->where('locations.0.latitude', 8.1575)
+            ->where('locations.0.longitude', 125.1278));
 });
 
 test('dashboard farm counts come from the database', function () {

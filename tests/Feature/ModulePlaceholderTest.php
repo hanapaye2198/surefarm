@@ -4,7 +4,7 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests cannot open an unfinished module', function () {
-    $this->get(route('modules.show', 'crop-management'))
+    $this->get(route('modules.show', 'logistics-export'))
         ->assertRedirect(route('login'));
 });
 
@@ -20,10 +20,15 @@ test('unfinished modules show their real status', function (string $module, stri
             ->where('status', $status)
             ->missing('summary'));
 })->with([
-    'crop management' => ['crop-management', 'Crop Management', 'A separate crop-management workspace is not available. Day-to-day crop work is recorded under Farm Activities, Production, and Harvest.', 'planned'],
     'logistics' => ['logistics-export', 'Logistics & Export', 'Logistics and export tools are not available yet.', 'planned'],
     'reports' => ['reports', 'Reports', 'Dashboard summaries are available. A separate reports workspace is not available yet.', 'planned'],
 ]);
+
+test('crop management is no longer a planned placeholder', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/modules/crop-management')
+        ->assertNotFound();
+});
 
 test('web finance and insurance placeholders are not live modules', function () {
     $this->actingAs(User::factory()->create())

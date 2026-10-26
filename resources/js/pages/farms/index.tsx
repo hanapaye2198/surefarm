@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { DataTable } from '@/components/data-table';
+import { FarmLocationMap } from '@/components/farm-location-map';
+import type { FarmLocation } from '@/components/farm-location-map';
 import { PageHeader } from '@/components/page-header';
 import { FarmerStatusBadge, StatusBadge } from '@/components/status-badge';
 import type { FarmStatus, FarmerRecordStatus } from '@/components/status-badge';
@@ -53,11 +55,13 @@ function display(value: string | null): string {
 
 export default function FarmsIndex({
     farms,
+    locations,
     filters,
     verificationStatuses,
     statuses,
 }: {
     farms: PaginatedFarms;
+    locations: FarmLocation[];
     filters: {
         search: string;
         verification_status: string;
@@ -113,6 +117,12 @@ export default function FarmsIndex({
                             </Button>
                         ) : null
                     }
+                />
+
+                <FarmLocationMap
+                    locations={locations}
+                    emptyTitle="No farm locations on the map yet."
+                    emptyDescription="Farms appear here after a latitude and longitude are recorded."
                 />
 
                 <form

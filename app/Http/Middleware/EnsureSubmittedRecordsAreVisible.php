@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmCrop;
 use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmHarvest;
@@ -74,6 +75,7 @@ class EnsureSubmittedRecordsAreVisible
                 ->visibleTo($user)
                 ->exists(),
             $record instanceof FarmActivity,
+            $record instanceof FarmCrop,
             $record instanceof FarmFinancing,
             $record instanceof FarmHarvest,
             $record instanceof FarmInsurance,

@@ -235,6 +235,7 @@ export function FarmBoundaryMap({
     review,
     active,
     inspection = false,
+    preview = false,
 }: {
     farm: {
         id: number;
@@ -252,6 +253,7 @@ export function FarmBoundaryMap({
     review?: FieldReview;
     active: boolean;
     inspection?: boolean;
+    preview?: boolean;
 }) {
     const [mode, setMode] = useState<Mode>('view');
     const [points, setPoints] = useState<MapPoint[]>([]);
@@ -397,14 +399,14 @@ export function FarmBoundaryMap({
     return (
         <div
             className={
-                inspection
+                preview || inspection
                     ? undefined
                     : review
                       ? 'grid overflow-hidden rounded-xl border bg-card lg:h-[calc(100vh-14rem)] lg:min-h-[36rem] lg:grid-cols-[22rem_minmax(0,1fr)]'
                       : 'grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]'
             }
         >
-            {!inspection && review && (
+            {!preview && !inspection && review && (
                 <FieldBoundaryReview
                     review={review}
                     farmId={farm.farm_id ?? farm.farm_name}
@@ -437,7 +439,7 @@ export function FarmBoundaryMap({
                     onRemove={() => setConfirmRemove(true)}
                 />
             )}
-            {!inspection && !review && (
+            {!preview && !inspection && !review && (
                 <aside className="flex flex-col gap-4 rounded-xl border bg-card p-4">
                     <div>
                         <h2 className="text-base font-semibold">Farm Map</h2>
@@ -676,9 +678,11 @@ export function FarmBoundaryMap({
 
             <div
                 className={
-                    review
-                        ? 'farm-boundary-map relative min-h-96 overflow-hidden lg:h-full'
-                        : 'farm-boundary-map relative min-h-96 overflow-hidden rounded-xl border'
+                    preview
+                        ? 'farm-boundary-map relative overflow-hidden rounded-xl border'
+                        : review
+                          ? 'farm-boundary-map relative min-h-96 overflow-hidden lg:h-full'
+                          : 'farm-boundary-map relative min-h-96 overflow-hidden rounded-xl border'
                 }
             >
                 {!hasLocation && (
@@ -707,9 +711,11 @@ export function FarmBoundaryMap({
                 )}
                 <div
                     className={
-                        review
-                            ? 'relative h-full min-h-[28rem]'
-                            : 'relative h-[32rem]'
+                        preview
+                            ? 'relative h-80 sm:h-[28rem]'
+                            : review
+                              ? 'relative h-full min-h-[28rem]'
+                              : 'relative h-[32rem]'
                     }
                 >
                     <div

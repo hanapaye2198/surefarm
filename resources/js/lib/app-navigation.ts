@@ -35,6 +35,7 @@ import { index as productionIndex } from '@/routes/production';
 import { index as farmVerificationIndex } from '@/routes/farm-verification';
 import { index as farmsIndex } from '@/routes/farms';
 import { index as cooperativesIndex } from '@/routes/cooperatives';
+import { index as cropsIndex } from '@/routes/crops';
 import { show as showModule } from '@/routes/modules';
 import { index as activityTypesIndex } from '@/routes/activity-types';
 import { edit as editProfile } from '@/routes/profile';
@@ -99,10 +100,10 @@ const groups: { label: string; items: SidebarLink[] }[] = [
         items: [
             {
                 title: 'Crop Management',
-                href: showModule('crop-management'),
+                href: cropsIndex(),
                 icon: Sprout,
                 roles: ['operations'],
-                status: 'planned',
+                match: 'parent',
             },
             {
                 title: 'Farm Activities',

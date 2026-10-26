@@ -21,6 +21,8 @@ class RecordFarmInsurance
             'covered' => $covered,
             'amount' => $covered ? ($data['amount'] ?? null) : null,
             'term_months' => $covered ? ($data['term_months'] ?? null) : null,
+            'currency' => 'PHP',
+            'status' => 'recorded',
         ]);
     }
 }

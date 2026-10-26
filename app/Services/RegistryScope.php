@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CooperativeOfficer;
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\FarmCrop;
 use App\Models\Farmer;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
@@ -72,7 +73,7 @@ class RegistryScope
             return $this->constrainFarms($query, $user);
         }
 
-        if ($model instanceof FarmActivity || $model instanceof FarmHarvest || $model instanceof FarmProduction) {
+        if ($model instanceof FarmActivity || $model instanceof FarmCrop || $model instanceof FarmHarvest || $model instanceof FarmProduction) {
             $query->whereIn($query->qualifyColumn('farm_id'), $this->visibleFarmIds($user));
 
             return $query;

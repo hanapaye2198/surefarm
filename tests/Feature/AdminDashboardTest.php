@@ -1,8 +1,10 @@
 <?php
 
+use App\AccessEventAction;
 use App\CropType;
 use App\FarmStatus;
 use App\FarmVerificationStatus;
+use App\Models\AccessEvent;
 use App\Models\Farm;
 use App\Models\FarmBoundary;
 use App\Models\Farmer;
@@ -281,6 +283,37 @@ test('an administrator sees one trend point for each month of the year to date',
             ->where('registry.charts.trend.points.0.label', 'Jan 2026')
             ->where('registry.charts.trend.points.2.label', 'Mar 2026'));
 });
+
+test('the administrator dashboard labels financing access events', function (AccessEventAction $action, string $label) {
+    $admin = User::factory()->create(['name' => 'SureFarm Administrator']);
+
+    AccessEvent::query()->create([
+        'actor_id' => $admin->id,
+        'action' => $action,
+        'created_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('registry.administration.events.0.action', $label)
+            ->where('registry.administration.events.0.actor', 'SureFarm Administrator'));
+})->with([
+    'submitted' => [AccessEventAction::FinancingSubmitted, 'Financing application submitted'],
+    'review started' => [AccessEventAction::FinancingReviewStarted, 'Financing review started'],
+    'approved' => [AccessEventAction::FinancingApproved, 'Financing approved'],
+    'rejected' => [AccessEventAction::FinancingRejected, 'Financing rejected'],
+    'cancelled' => [AccessEventAction::FinancingCancelled, 'Financing cancelled'],
+    'disbursed' => [AccessEventAction::FinancingDisbursed, 'Financing disbursed'],
+    'repayment recorded' => [AccessEventAction::FinancingRepaymentRecorded, 'Financing repayment recorded'],
+    'adjustment posted' => [AccessEventAction::FinancingAdjusted, 'Financing adjustment posted'],
+    'reversed' => [AccessEventAction::FinancingReversed, 'Financing reversed'],
+    'reconciled' => [AccessEventAction::FinancingReconciled, 'Financing reconciled'],
+    'marked in default' => [AccessEventAction::FinancingDefaulted, 'Financing marked in default'],
+    'completed' => [AccessEventAction::FinancingCompleted, 'Financing completed'],
+    'exported' => [AccessEventAction::FinancingExported, 'Financing exported'],
+]);
 
 test('an unknown registry filter is rejected', function () {
     $this->actingAs(User::factory()->create())

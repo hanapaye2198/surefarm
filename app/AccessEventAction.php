@@ -40,4 +40,18 @@ enum AccessEventAction: string
     case FinancingDefaulted = 'financing.defaulted';
     case FinancingCompleted = 'financing.completed';
     case FinancingExported = 'financing.exported';
+    case InsuranceSubmitted = 'insurance.submitted';
+    case InsuranceReviewStarted = 'insurance.review_started';
+    case InsuranceApproved = 'insurance.approved';
+    case InsuranceRejected = 'insurance.rejected';
+    case InsuranceCancelled = 'insurance.cancelled';
+    case InsuranceActivated = 'insurance.activated';
+    case InsuranceExpired = 'insurance.expired';
+    case InsuranceClaimSubmitted = 'insurance.claim_submitted';
+    case InsuranceClaimReviewStarted = 'insurance.claim_review_started';
+    case InsuranceClaimApproved = 'insurance.claim_approved';
+    case InsuranceClaimRejected = 'insurance.claim_rejected';
+    case InsuranceClaimSettled = 'insurance.claim_settled';
+    case InsuranceClaimClosed = 'insurance.claim_closed';
+    case InsuranceExported = 'insurance.exported';
 }

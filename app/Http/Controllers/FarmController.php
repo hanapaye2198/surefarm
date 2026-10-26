@@ -112,6 +112,7 @@ class FarmController extends Controller
 
         return Inertia::render('farms/index', [
             'farms' => $farms,
+            'locations' => $this->mapLocations($viewer),
             'filters' => [
                 'search' => $search,
                 'verification_status' => $this->enumValue(FarmVerificationStatus::tryFrom($verificationStatus)),
@@ -643,6 +644,60 @@ class FarmController extends Controller
                 'label' => $status->label(),
             ])
             ->all());
+    }
+
+    /**
+     * Farms with a recorded point, for the Farms & Map page.
+     * Farms without coordinates stay in the table and are left off the map.
+     *
+     * @return list<array{
+     *     id: int,
+     *     farm_id: string,
+     *     farm_name: string,
+     *     farmer_name: string,
+     *     crop_label: string,
+     *     declared_area_hectares: float,
+     *     verification_status: string,
+     *     status: string,
+     *     latitude: float,
+     *     longitude: float
+     * }>
+     */
+    private function mapLocations(?User $viewer): array
+    {
+        return Farm::query()
+            ->visibleTo($viewer)
+            ->select([
+                'id',
+                'farmer_id',
+                'farm_id',
+                'farm_name',
+                'crop_type',
+                'declared_area_hectares',
+                'verification_status',
+                'status',
+                'latitude',
+                'longitude',
+            ])
+            ->with('farmer:id,first_name,middle_name,last_name')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderBy('farm_id')
+            ->get()
+            ->map(fn (Farm $farm): array => [
+                'id' => $farm->id,
+                'farm_id' => $farm->farm_id,
+                'farm_name' => $farm->displayName(),
+                'farmer_name' => $farm->farmer->fullName(),
+                'crop_label' => $farm->crop_type->label(),
+                'declared_area_hectares' => (float) $farm->declared_area_hectares,
+                'verification_status' => $farm->verification_status->value,
+                'status' => $farm->status->value,
+                'latitude' => (float) $farm->latitude,
+                'longitude' => (float) $farm->longitude,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

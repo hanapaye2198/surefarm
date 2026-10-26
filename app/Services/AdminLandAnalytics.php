@@ -1427,6 +1427,19 @@ class AdminLandAnalytics
             AccessEventAction::MembershipEnded => 'Membership ended',
             AccessEventAction::OfficerAssigned => 'Officer assigned',
             AccessEventAction::OfficerRevoked => 'Officer revoked',
+            AccessEventAction::FinancingSubmitted => 'Financing application submitted',
+            AccessEventAction::FinancingReviewStarted => 'Financing review started',
+            AccessEventAction::FinancingApproved => 'Financing approved',
+            AccessEventAction::FinancingRejected => 'Financing rejected',
+            AccessEventAction::FinancingCancelled => 'Financing cancelled',
+            AccessEventAction::FinancingDisbursed => 'Financing disbursed',
+            AccessEventAction::FinancingRepaymentRecorded => 'Financing repayment recorded',
+            AccessEventAction::FinancingAdjusted => 'Financing adjustment posted',
+            AccessEventAction::FinancingReversed => 'Financing reversed',
+            AccessEventAction::FinancingReconciled => 'Financing reconciled',
+            AccessEventAction::FinancingDefaulted => 'Financing marked in default',
+            AccessEventAction::FinancingCompleted => 'Financing completed',
+            AccessEventAction::FinancingExported => 'Financing exported',
         };
     }
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmActivityController;
 use App\Http\Controllers\FarmBoundaryController;
 use App\Http\Controllers\FarmController;
+use App\Http\Controllers\FarmCropController;
 use App\Http\Controllers\FarmerAccountLinkController;
 use App\Http\Controllers\FarmerController;
 use App\Http\Controllers\FarmFinancingController;
@@ -60,7 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('notifications/{notification}/read', [AccountNotificationController::class, 'read'])->name('notifications.read');
 
     Route::get('modules/{module}', [ModulePlaceholderController::class, 'show'])
-        ->where('module', 'crop-management|logistics-export|reports')
+        ->where('module', 'logistics-export|reports')
         ->name('modules.show');
 
     Route::middleware(['role:operations', 'registry.scope'])->group(function () {
@@ -73,6 +74,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('farmers/{farmer}/farms', [FarmController::class, 'store'])->name('farmers.farms.store');
         Route::get('farms/{farm}/edit', [FarmController::class, 'edit'])->name('farms.edit');
         Route::put('farms/{farm}', [FarmController::class, 'update'])->name('farms.update');
+        Route::get('crops/create', [FarmCropController::class, 'create'])->name('crops.create');
+        Route::post('crops', [FarmCropController::class, 'store'])->name('crops.store');
+        Route::get('crops/{crop}/edit', [FarmCropController::class, 'edit'])->name('crops.edit');
+        Route::put('crops/{crop}', [FarmCropController::class, 'update'])->name('crops.update');
         Route::get('farm-activities/create', [FarmActivityController::class, 'create'])->name('farm-activities.create');
         Route::post('farm-activities', [FarmActivityController::class, 'store'])->name('farm-activities.store');
         Route::get('farm-activities/{activity}/edit', [FarmActivityController::class, 'edit'])->name('farm-activities.edit');
@@ -185,6 +190,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('farms', [FarmController::class, 'index'])->name('farms.index');
         Route::get('farms/{farm}/drone-image', [FarmController::class, 'droneImage'])->name('farms.drone-image');
         Route::get('farms/{farm}', [FarmController::class, 'show'])->name('farms.show');
+        Route::get('crops', [FarmCropController::class, 'index'])->name('crops.index');
+        Route::get('crops/{crop}', [FarmCropController::class, 'show'])->name('crops.show');
         Route::get('farm-activities', [FarmActivityController::class, 'index'])->name('farm-activities.index');
         Route::get('farm-activities/{activity}', [FarmActivityController::class, 'show'])->name('farm-activities.show');
         Route::get('production', [FarmProductionController::class, 'index'])->name('production.index');
