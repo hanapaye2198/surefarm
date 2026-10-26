@@ -344,6 +344,18 @@ test('administrator and operations access requires confirmed two-factor authenti
         ->assertOk();
 });
 
+test('an administrator can request passkey registration options while setting up two-factor authentication', function () {
+    config(['auth.require_two_factor' => true]);
+
+    $admin = User::factory()->create(['role' => UserRole::Admin]);
+
+    $this->actingAs($admin)
+        ->withSession(['auth.password_confirmed_at' => time()])
+        ->getJson(route('passkey.registration-options'))
+        ->assertOk()
+        ->assertJsonStructure(['options']);
+});
+
 /**
  * @param  array<string, string>  $overrides
  */
