@@ -54,7 +54,9 @@ function readClosedSections(): string[] {
             return [];
         }
 
-        return parsed.filter((value): value is string => typeof value === 'string');
+        return parsed.filter(
+            (value): value is string => typeof value === 'string',
+        );
     } catch {
         return [];
     }
@@ -219,9 +221,7 @@ export function AppSidebar() {
 
         if (event.key === 'ArrowUp') {
             event.preventDefault();
-            setCursor(
-                (index) => (index - 1 + matches.length) % matches.length,
-            );
+            setCursor((index) => (index - 1 + matches.length) % matches.length);
         }
 
         if (event.key === 'Enter' && matches[cursor]) {

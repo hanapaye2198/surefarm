@@ -421,8 +421,8 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     <div className="grid gap-1">
                                         <CardTitle>Map</CardTitle>
                                         <p className="text-xs text-muted-foreground">
-                                            Recorded location and saved
-                                            boundary for this farm.
+                                            Recorded location and saved boundary
+                                            for this farm.
                                         </p>
                                     </div>
                                     <Button
@@ -443,239 +443,266 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 </CardContent>
                             </Card>
                             <div className="grid gap-4 lg:grid-cols-2">
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Location</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="grid gap-4 sm:grid-cols-2">
-                                        <Detail
-                                            label="Purok / Sitio"
-                                            value={display(farm.purok_sitio)}
-                                        />
-                                        <Detail
-                                            label="Barangay"
-                                            value={display(farm.barangay)}
-                                        />
-                                        <Detail
-                                            label="Municipality"
-                                            value={display(farm.municipality)}
-                                        />
-                                        <Detail
-                                            label="Province"
-                                            value={display(farm.province)}
-                                        />
-                                        <Detail
-                                            label="Latitude"
-                                            value={coordinate(farm.latitude)}
-                                        />
-                                        <Detail
-                                            label="Longitude"
-                                            value={coordinate(farm.longitude)}
-                                        />
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Farm details</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="grid gap-4 sm:grid-cols-2">
-                                        <Detail
-                                            label="Owner / Farmer"
-                                            value={farm.reference.owner_name}
-                                        />
-                                        <Detail
-                                            label="Property"
-                                            value={
-                                                farm.reference
-                                                    .property_ownership_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="Current Stage"
-                                            value={
-                                                farm.reference
-                                                    .current_stage_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="Recent Activity"
-                                            value={farm.recent_activity}
-                                        />
-                                        <Detail
-                                            label="Expected Production"
-                                            value={
-                                                farm.production_summary
-                                                    .expected_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="Actual Harvest"
-                                            value={
-                                                farm.production_summary
-                                                    .actual_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="Remaining Expected"
-                                            value={
-                                                farm.production_summary
-                                                    .remaining_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="No. of Hills"
-                                            value={
-                                                farm.reference
-                                                    .number_of_hills_label
-                                            }
-                                        />
-                                        <Detail
-                                            label="Data validation"
-                                            value={
-                                                farm.reference.data_validated
-                                            }
-                                        />
-                                        <Detail
-                                            label="Geolocation"
-                                            value={farm.reference.geolocation}
-                                        />
-                                        <Detail
-                                            label="Boundary"
-                                            value={
-                                                farm.reference.boundary_status
-                                            }
-                                        />
-                                        <Detail
-                                            label="Notes"
-                                            value={display(farm.notes)}
-                                        />
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Support</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="grid gap-4 sm:grid-cols-2">
-                                        <Detail
-                                            label="Contracted Value"
-                                            value={
-                                                farm.reference.contracted_value
-                                            }
-                                        />
-                                        <Detail
-                                            label="Input Support"
-                                            value={farm.reference.input_support}
-                                        />
-                                        <Detail
-                                            label="Financing Support"
-                                            value={
-                                                farm.reference.financing_support
-                                            }
-                                        />
-                                    </dl>
-                                    <p className="mt-4 text-xs text-muted-foreground">
-                                        These amounts are reference data for the
-                                        farm. They are not income, profit, or an
-                                        accounting entry.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader className="flex-row items-center justify-between">
-                                    <CardTitle>Crop Insurance</CardTitle>
-                                    {farm.can_manage_coverage && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                        >
-                                            <Link href={addInsurance(farm.id)}>
-                                                <Plus />
-                                                Add
-                                            </Link>
-                                        </Button>
-                                    )}
-                                </CardHeader>
-                                <CardContent>
-                                    {farm.insurances[0] ? (
-                                        <CropInsuranceDetails
-                                            record={farm.insurances[0]}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            No crop insurance recorded.
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Location</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="grid gap-4 sm:grid-cols-2">
+                                            <Detail
+                                                label="Purok / Sitio"
+                                                value={display(
+                                                    farm.purok_sitio,
+                                                )}
+                                            />
+                                            <Detail
+                                                label="Barangay"
+                                                value={display(farm.barangay)}
+                                            />
+                                            <Detail
+                                                label="Municipality"
+                                                value={display(
+                                                    farm.municipality,
+                                                )}
+                                            />
+                                            <Detail
+                                                label="Province"
+                                                value={display(farm.province)}
+                                            />
+                                            <Detail
+                                                label="Latitude"
+                                                value={coordinate(
+                                                    farm.latitude,
+                                                )}
+                                            />
+                                            <Detail
+                                                label="Longitude"
+                                                value={coordinate(
+                                                    farm.longitude,
+                                                )}
+                                            />
+                                        </dl>
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Farm details</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="grid gap-4 sm:grid-cols-2">
+                                            <Detail
+                                                label="Owner / Farmer"
+                                                value={
+                                                    farm.reference.owner_name
+                                                }
+                                            />
+                                            <Detail
+                                                label="Property"
+                                                value={
+                                                    farm.reference
+                                                        .property_ownership_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="Current Stage"
+                                                value={
+                                                    farm.reference
+                                                        .current_stage_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="Recent Activity"
+                                                value={farm.recent_activity}
+                                            />
+                                            <Detail
+                                                label="Expected Production"
+                                                value={
+                                                    farm.production_summary
+                                                        .expected_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="Actual Harvest"
+                                                value={
+                                                    farm.production_summary
+                                                        .actual_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="Remaining Expected"
+                                                value={
+                                                    farm.production_summary
+                                                        .remaining_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="No. of Hills"
+                                                value={
+                                                    farm.reference
+                                                        .number_of_hills_label
+                                                }
+                                            />
+                                            <Detail
+                                                label="Data validation"
+                                                value={
+                                                    farm.reference
+                                                        .data_validated
+                                                }
+                                            />
+                                            <Detail
+                                                label="Geolocation"
+                                                value={
+                                                    farm.reference.geolocation
+                                                }
+                                            />
+                                            <Detail
+                                                label="Boundary"
+                                                value={
+                                                    farm.reference
+                                                        .boundary_status
+                                                }
+                                            />
+                                            <Detail
+                                                label="Notes"
+                                                value={display(farm.notes)}
+                                            />
+                                        </dl>
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Support</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="grid gap-4 sm:grid-cols-2">
+                                            <Detail
+                                                label="Contracted Value"
+                                                value={
+                                                    farm.reference
+                                                        .contracted_value
+                                                }
+                                            />
+                                            <Detail
+                                                label="Input Support"
+                                                value={
+                                                    farm.reference.input_support
+                                                }
+                                            />
+                                            <Detail
+                                                label="Financing Support"
+                                                value={
+                                                    farm.reference
+                                                        .financing_support
+                                                }
+                                            />
+                                        </dl>
+                                        <p className="mt-4 text-xs text-muted-foreground">
+                                            These amounts are reference data for
+                                            the farm. They are not income,
+                                            profit, or an accounting entry.
                                         </p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader className="flex-row items-center justify-between">
-                                    <CardTitle>Financing</CardTitle>
-                                    {farm.can_manage_coverage && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                        >
-                                            <Link href={addFinancing(farm.id)}>
-                                                <Plus />
-                                                Add
-                                            </Link>
-                                        </Button>
-                                    )}
-                                </CardHeader>
-                                <CardContent>
-                                    {farm.financings[0] ? (
-                                        <FinancingDetails
-                                            record={farm.financings[0]}
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            No financing recorded.
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Record</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="grid gap-4 sm:grid-cols-2">
-                                        <Detail
-                                            label="Registered Date"
-                                            value={display(farm.registered_at)}
-                                        />
-                                        <Detail
-                                            label="Last Updated"
-                                            value={display(farm.updated_at)}
-                                        />
-                                    </dl>
-                                </CardContent>
-                            </Card>
-                            <Card className="shadow-none">
-                                <CardHeader>
-                                    <CardTitle>Drone image</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {farm.reference.drone_image_url ? (
-                                        <img
-                                            src={farm.reference.drone_image_url}
-                                            alt={`${farm.farm_name} drone image`}
-                                            className="max-h-72 w-full rounded-lg object-cover"
-                                        />
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            Drone image not available
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader className="flex-row items-center justify-between">
+                                        <CardTitle>Crop Insurance</CardTitle>
+                                        {farm.can_manage_coverage && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={addInsurance(farm.id)}
+                                                >
+                                                    <Plus />
+                                                    Add
+                                                </Link>
+                                            </Button>
+                                        )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        {farm.insurances[0] ? (
+                                            <CropInsuranceDetails
+                                                record={farm.insurances[0]}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                No crop insurance recorded.
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader className="flex-row items-center justify-between">
+                                        <CardTitle>Financing</CardTitle>
+                                        {farm.can_manage_coverage && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={addFinancing(farm.id)}
+                                                >
+                                                    <Plus />
+                                                    Add
+                                                </Link>
+                                            </Button>
+                                        )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        {farm.financings[0] ? (
+                                            <FinancingDetails
+                                                record={farm.financings[0]}
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                No financing recorded.
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Record</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="grid gap-4 sm:grid-cols-2">
+                                            <Detail
+                                                label="Registered Date"
+                                                value={display(
+                                                    farm.registered_at,
+                                                )}
+                                            />
+                                            <Detail
+                                                label="Last Updated"
+                                                value={display(farm.updated_at)}
+                                            />
+                                        </dl>
+                                    </CardContent>
+                                </Card>
+                                <Card className="shadow-none">
+                                    <CardHeader>
+                                        <CardTitle>Drone image</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {farm.reference.drone_image_url ? (
+                                            <img
+                                                src={
+                                                    farm.reference
+                                                        .drone_image_url
+                                                }
+                                                alt={`${farm.farm_name} drone image`}
+                                                className="max-h-72 w-full rounded-lg object-cover"
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                Drone image not available
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     )}

@@ -4,12 +4,7 @@ import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clientToken } from '@/lib/utils';
@@ -102,7 +97,11 @@ export default function CreateFinancing({
                             <CardTitle>Agreement</CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-4 sm:grid-cols-2">
-                            <Field label="Farm" error={form.errors.farm_id} required>
+                            <Field
+                                label="Farm"
+                                error={form.errors.farm_id}
+                                required
+                            >
                                 <select
                                     className={selectClassName}
                                     value={form.data.farm_id}
@@ -117,7 +116,8 @@ export default function CreateFinancing({
                                     <option value="">Choose a farm</option>
                                     {farms.map((farm) => (
                                         <option key={farm.id} value={farm.id}>
-                                            {farm.farm_name} · {farm.farmer_name}
+                                            {farm.farm_name} ·{' '}
+                                            {farm.farmer_name}
                                         </option>
                                     ))}
                                 </select>
@@ -155,7 +155,10 @@ export default function CreateFinancing({
                                 <Input
                                     value={form.data.purpose}
                                     onChange={(event) =>
-                                        form.setData('purpose', event.target.value)
+                                        form.setData(
+                                            'purpose',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
@@ -175,7 +178,10 @@ export default function CreateFinancing({
                                     }
                                 >
                                     {financingTypes.map((type) => (
-                                        <option key={type.value} value={type.value}>
+                                        <option
+                                            key={type.value}
+                                            value={type.value}
+                                        >
                                             {type.label}
                                         </option>
                                     ))}
@@ -190,7 +196,10 @@ export default function CreateFinancing({
                                     inputMode="decimal"
                                     value={form.data.amount}
                                     onChange={(event) =>
-                                        form.setData('amount', event.target.value)
+                                        form.setData(
+                                            'amount',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
@@ -265,12 +274,18 @@ export default function CreateFinancing({
                                     }
                                 />
                             </Field>
-                            <Field label="Fee amount" error={form.errors.fee_amount}>
+                            <Field
+                                label="Fee amount"
+                                error={form.errors.fee_amount}
+                            >
                                 <Input
                                     inputMode="decimal"
                                     value={form.data.fee_amount}
                                     onChange={(event) =>
-                                        form.setData('fee_amount', event.target.value)
+                                        form.setData(
+                                            'fee_amount',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
@@ -304,7 +319,9 @@ export default function CreateFinancing({
                                         )
                                     }
                                 >
-                                    <option value="">Choose before disbursement</option>
+                                    <option value="">
+                                        Choose before disbursement
+                                    </option>
                                     {frequencies.map((frequency) => (
                                         <option
                                             key={frequency.value}
@@ -330,12 +347,18 @@ export default function CreateFinancing({
                                     }
                                 />
                             </Field>
-                            <Field label="Due date" error={form.errors.due_date}>
+                            <Field
+                                label="Due date"
+                                error={form.errors.due_date}
+                            >
                                 <Input
                                     type="date"
                                     value={form.data.due_date}
                                     onChange={(event) =>
-                                        form.setData('due_date', event.target.value)
+                                        form.setData(
+                                            'due_date',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>
@@ -358,7 +381,10 @@ export default function CreateFinancing({
                                 <Input
                                     value={form.data.notes}
                                     onChange={(event) =>
-                                        form.setData('notes', event.target.value)
+                                        form.setData(
+                                            'notes',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                             </Field>

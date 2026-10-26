@@ -1,9 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { CropForm } from '@/components/crop-form';
-import type {
-    CropFarmOption,
-    CropStatusOption,
-} from '@/components/crop-form';
+import type { CropFarmOption, CropStatusOption } from '@/components/crop-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { index as cropsIndex } from '@/routes/crops';

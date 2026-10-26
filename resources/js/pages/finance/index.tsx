@@ -36,7 +36,11 @@ type Summary = {
     overdue_count: number;
     snapshot_count: number;
     currencies: CurrencyTotal[];
-    snapshots: { currency: string; stated_principal: string; stated_balance: string }[];
+    snapshots: {
+        currency: string;
+        stated_principal: string;
+        stated_balance: string;
+    }[];
     recent_transactions: {
         id: number;
         financing_id: number;
@@ -412,7 +416,12 @@ export default function FinanceIndex({
                             financing.principal,
                             financing.outstanding_principal,
                             financing.due_date,
-                            <Button key="open" variant="outline" size="sm" asChild>
+                            <Button
+                                key="open"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
                                 <Link href={show.url(financing.id)}>Open</Link>
                             </Button>,
                         ],
@@ -466,21 +475,23 @@ export default function FinanceIndex({
                                 'Amount',
                                 'Status',
                             ]}
-                            rows={summary.recent_transactions.map((transaction) => ({
-                                id: transaction.id,
-                                href: show.url(transaction.financing_id),
-                                cells: [
-                                    transaction.occurred_on,
-                                    transaction.reference,
-                                    transaction.financing_reference,
-                                    transaction.farmer_name,
-                                    transaction.type_label,
-                                    transaction.amount_label,
-                                    transaction.reversed
-                                        ? 'Reversed'
-                                        : transaction.reconciliation,
-                                ],
-                            }))}
+                            rows={summary.recent_transactions.map(
+                                (transaction) => ({
+                                    id: transaction.id,
+                                    href: show.url(transaction.financing_id),
+                                    cells: [
+                                        transaction.occurred_on,
+                                        transaction.reference,
+                                        transaction.financing_reference,
+                                        transaction.farmer_name,
+                                        transaction.type_label,
+                                        transaction.amount_label,
+                                        transaction.reversed
+                                            ? 'Reversed'
+                                            : transaction.reconciliation,
+                                    ],
+                                }),
+                            )}
                             emptyTitle="No transactions."
                             emptyDescription="Disbursements and payments appear here after they are posted."
                         />

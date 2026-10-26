@@ -95,28 +95,67 @@ export default function FinanceTransactions({
                         </Button>
                     }
                 />
-                <form onSubmit={submit} className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 xl:grid-cols-3">
-                    <Input name="search" defaultValue={filters.search} placeholder="Reference" aria-label="Search transactions" />
-                    <select name="farmer" defaultValue={filters.farmer} className={selectClassName} aria-label="Farmer">
+                <form
+                    onSubmit={submit}
+                    className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 xl:grid-cols-3"
+                >
+                    <Input
+                        name="search"
+                        defaultValue={filters.search}
+                        placeholder="Reference"
+                        aria-label="Search transactions"
+                    />
+                    <select
+                        name="farmer"
+                        defaultValue={filters.farmer}
+                        className={selectClassName}
+                        aria-label="Farmer"
+                    >
                         <option value="">All farmers</option>
                         {farmers.map((farmer) => (
-                            <option key={farmer.id} value={farmer.id}>{farmer.name}</option>
+                            <option key={farmer.id} value={farmer.id}>
+                                {farmer.name}
+                            </option>
                         ))}
                     </select>
-                    <select name="province" defaultValue={filters.province} className={selectClassName} aria-label="Province">
+                    <select
+                        name="province"
+                        defaultValue={filters.province}
+                        className={selectClassName}
+                        aria-label="Province"
+                    >
                         <option value="">All provinces</option>
                         {provinces.map((province) => (
-                            <option key={province} value={province}>{province}</option>
+                            <option key={province} value={province}>
+                                {province}
+                            </option>
                         ))}
                     </select>
-                    <select name="municipality" defaultValue={filters.municipality} className={selectClassName} aria-label="Municipality">
+                    <select
+                        name="municipality"
+                        defaultValue={filters.municipality}
+                        className={selectClassName}
+                        aria-label="Municipality"
+                    >
                         <option value="">All municipalities</option>
                         {municipalities.map((municipality) => (
-                            <option key={municipality} value={municipality}>{municipality}</option>
+                            <option key={municipality} value={municipality}>
+                                {municipality}
+                            </option>
                         ))}
                     </select>
-                    <Input name="from" type="date" defaultValue={filters.from} aria-label="From" />
-                    <Input name="to" type="date" defaultValue={filters.to} aria-label="To" />
+                    <Input
+                        name="from"
+                        type="date"
+                        defaultValue={filters.from}
+                        aria-label="From"
+                    />
+                    <Input
+                        name="to"
+                        type="date"
+                        defaultValue={filters.to}
+                        aria-label="To"
+                    />
                     <div className="flex gap-2">
                         <Button type="submit">Apply filters</Button>
                         <Button variant="outline" asChild>
@@ -125,7 +164,16 @@ export default function FinanceTransactions({
                     </div>
                 </form>
                 <DataTable
-                    columns={['Date', 'Transaction', 'Agreement', 'Type', 'Component', 'Amount', 'Reconciliation', 'Actions']}
+                    columns={[
+                        'Date',
+                        'Transaction',
+                        'Agreement',
+                        'Type',
+                        'Component',
+                        'Amount',
+                        'Reconciliation',
+                        'Actions',
+                    ]}
                     rows={rows.data.map((row) => ({
                         id: row.id,
                         href: show.url(row.financing_id),
@@ -137,8 +185,15 @@ export default function FinanceTransactions({
                             row.component,
                             row.amount,
                             row.reconciliation,
-                            <Button key="open" variant="outline" size="sm" asChild>
-                                <Link href={show.url(row.financing_id)}>Open</Link>
+                            <Button
+                                key="open"
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
+                                <Link href={show.url(row.financing_id)}>
+                                    Open
+                                </Link>
                             </Button>,
                         ],
                     }))}
@@ -153,7 +208,9 @@ export default function FinanceTransactions({
                         <div className="flex gap-2">
                             {rows.prev_page_url && (
                                 <Button variant="outline" asChild>
-                                    <Link href={rows.prev_page_url}>Previous</Link>
+                                    <Link href={rows.prev_page_url}>
+                                        Previous
+                                    </Link>
                                 </Button>
                             )}
                             {rows.next_page_url && (

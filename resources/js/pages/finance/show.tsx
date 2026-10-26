@@ -5,12 +5,7 @@ import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { clientToken } from '@/lib/utils';
@@ -26,7 +21,10 @@ import {
     show as showFinancing,
 } from '@/routes/finance';
 import { store as storeAdjustment } from '@/routes/finance/adjustments';
-import { show as downloadDocument, store as storeDocument } from '@/routes/finance/documents';
+import {
+    show as downloadDocument,
+    store as storeDocument,
+} from '@/routes/finance/documents';
 import { store as storeRepayment } from '@/routes/finance/repayments';
 import { reconcile, reverse } from '@/routes/finance/transactions';
 
@@ -156,15 +154,20 @@ export default function FinanceShow({
                     description={`${financing.farmer_name} · ${financing.farm_name}`}
                     actions={
                         <>
-                            <Badge variant="outline">{financing.status_label}</Badge>
+                            <Badge variant="outline">
+                                {financing.status_label}
+                            </Badge>
                             <Button variant="outline" asChild>
                                 <Link href={financeIndex()}>All financing</Link>
                             </Button>
                             <Button variant="outline" asChild>
                                 <Link
-                                    href={showFarm.url(financing.farm_record_id, {
-                                        query: { tab: 'financing' },
-                                    })}
+                                    href={showFarm.url(
+                                        financing.farm_record_id,
+                                        {
+                                            query: { tab: 'financing' },
+                                        },
+                                    )}
                                 >
                                     Open farm
                                 </Link>
@@ -174,10 +177,22 @@ export default function FinanceShow({
                 />
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Metric label="Outstanding principal" value={financing.outstanding_principal} />
-                    <Metric label="Outstanding interest" value={financing.outstanding_interest} />
-                    <Metric label="Outstanding fees" value={financing.outstanding_fees} />
-                    <Metric label="Total amount due" value={financing.total_due} />
+                    <Metric
+                        label="Outstanding principal"
+                        value={financing.outstanding_principal}
+                    />
+                    <Metric
+                        label="Outstanding interest"
+                        value={financing.outstanding_interest}
+                    />
+                    <Metric
+                        label="Outstanding fees"
+                        value={financing.outstanding_fees}
+                    />
+                    <Metric
+                        label="Total amount due"
+                        value={financing.total_due}
+                    />
                 </div>
 
                 {!financing.uses_ledger && (
@@ -192,38 +207,112 @@ export default function FinanceShow({
                         <CardTitle>Agreement</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <Detail label="Farmer" value={`${financing.farmer_name} (${financing.farmer_code})`} />
-                        <Detail label="Farm" value={`${financing.farm_name} (${financing.farm_code})`} />
-                        <Detail label="Location" value={[financing.municipality, financing.province].filter(Boolean).join(', ') || '—'} />
-                        <Detail label="Crop cycle" value={financing.production || '—'} />
-                        <Detail label="Purpose" value={financing.purpose || '—'} />
+                        <Detail
+                            label="Farmer"
+                            value={`${financing.farmer_name} (${financing.farmer_code})`}
+                        />
+                        <Detail
+                            label="Farm"
+                            value={`${financing.farm_name} (${financing.farm_code})`}
+                        />
+                        <Detail
+                            label="Location"
+                            value={
+                                [financing.municipality, financing.province]
+                                    .filter(Boolean)
+                                    .join(', ') || '—'
+                            }
+                        />
+                        <Detail
+                            label="Crop cycle"
+                            value={financing.production || '—'}
+                        />
+                        <Detail
+                            label="Purpose"
+                            value={financing.purpose || '—'}
+                        />
                         <Detail label="Type" value={financing.type_label} />
-                        <Detail label="Balance source" value={financing.balance_source_label} />
+                        <Detail
+                            label="Balance source"
+                            value={financing.balance_source_label}
+                        />
                         <Detail label="Principal" value={financing.principal} />
-                        <Detail label="Interest method" value={financing.interest_method} />
-                        <Detail label="Interest rate" value={financing.interest_rate ? `${financing.interest_rate}%` : '—'} />
-                        <Detail label="Stated interest" value={financing.interest_amount} />
+                        <Detail
+                            label="Interest method"
+                            value={financing.interest_method}
+                        />
+                        <Detail
+                            label="Interest rate"
+                            value={
+                                financing.interest_rate
+                                    ? `${financing.interest_rate}%`
+                                    : '—'
+                            }
+                        />
+                        <Detail
+                            label="Stated interest"
+                            value={financing.interest_amount}
+                        />
                         <Detail label="Fee" value={financing.fee_amount} />
-                        <Detail label="Application date" value={financing.application_date} />
-                        <Detail label="Disbursed on" value={financing.date_granted} />
-                        <Detail label="Due date" value={financing.due_date_label} />
-                        <Detail label="Maturity" value={financing.maturity_date} />
+                        <Detail
+                            label="Application date"
+                            value={financing.application_date}
+                        />
+                        <Detail
+                            label="Disbursed on"
+                            value={financing.date_granted}
+                        />
+                        <Detail
+                            label="Due date"
+                            value={financing.due_date_label}
+                        />
+                        <Detail
+                            label="Maturity"
+                            value={financing.maturity_date}
+                        />
                         <Detail label="Repayment" value={financing.frequency} />
-                        <Detail label="Installments" value={financing.installment_count?.toString() || '—'} />
-                        <Detail label="Disbursement reference" value={financing.disbursement_reference || '—'} />
-                        <Detail label="Submitted by" value={financing.submitted_by || '—'} />
-                        <Detail label="Approved by" value={financing.approved_by ? `${financing.approved_by} · ${financing.approved_at}` : '—'} />
+                        <Detail
+                            label="Installments"
+                            value={
+                                financing.installment_count?.toString() || '—'
+                            }
+                        />
+                        <Detail
+                            label="Disbursement reference"
+                            value={financing.disbursement_reference || '—'}
+                        />
+                        <Detail
+                            label="Submitted by"
+                            value={financing.submitted_by || '—'}
+                        />
+                        <Detail
+                            label="Approved by"
+                            value={
+                                financing.approved_by
+                                    ? `${financing.approved_by} · ${financing.approved_at}`
+                                    : '—'
+                            }
+                        />
                         <Detail label="Notes" value={financing.notes || '—'} />
                         {financing.rejection_reason && (
-                            <Detail label="Rejection" value={financing.rejection_reason} />
+                            <Detail
+                                label="Rejection"
+                                value={financing.rejection_reason}
+                            />
                         )}
                         {financing.default_reason && (
-                            <Detail label="Default" value={financing.default_reason} />
+                            <Detail
+                                label="Default"
+                                value={financing.default_reason}
+                            />
                         )}
                     </CardContent>
                 </Card>
 
-                {(abilities.review || abilities.approve || abilities.reject || abilities.cancel) && (
+                {(abilities.review ||
+                    abilities.approve ||
+                    abilities.reject ||
+                    abilities.cancel) && (
                     <Card className="shadow-none">
                         <CardHeader>
                             <CardTitle>Decision</CardTitle>
@@ -241,13 +330,22 @@ export default function FinanceShow({
                                 )}
                             <div className="flex flex-wrap gap-2">
                                 {abilities.review && (
-                                    <PostButton href={review.url(financing.id)} label="Start review" />
+                                    <PostButton
+                                        href={review.url(financing.id)}
+                                        label="Start review"
+                                    />
                                 )}
                                 {abilities.approve && (
-                                    <PostButton href={approve.url(financing.id)} label="Approve" />
+                                    <PostButton
+                                        href={approve.url(financing.id)}
+                                        label="Approve"
+                                    />
                                 )}
                                 {abilities.cancel && (
-                                    <PostButton href={cancel.url(financing.id)} label="Cancel application" />
+                                    <PostButton
+                                        href={cancel.url(financing.id)}
+                                        label="Cancel application"
+                                    />
                                 )}
                             </div>
                             {abilities.reject && (
@@ -310,18 +408,28 @@ export default function FinanceShow({
                                     <div className="flex flex-wrap items-start justify-between gap-2">
                                         <div>
                                             <p className="font-medium">
-                                                {transaction.type_label} · {transaction.amount}
+                                                {transaction.type_label} ·{' '}
+                                                {transaction.amount}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {transaction.reference} · {transaction.occurred_on} · {transaction.component} · {transaction.direction}
+                                                {transaction.reference} ·{' '}
+                                                {transaction.occurred_on} ·{' '}
+                                                {transaction.component} ·{' '}
+                                                {transaction.direction}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 {transaction.reconciliation}
-                                                {transaction.recorded_by ? ` · ${transaction.recorded_by}` : ''}
-                                                {transaction.external_reference ? ` · ${transaction.external_reference}` : ''}
+                                                {transaction.recorded_by
+                                                    ? ` · ${transaction.recorded_by}`
+                                                    : ''}
+                                                {transaction.external_reference
+                                                    ? ` · ${transaction.external_reference}`
+                                                    : ''}
                                             </p>
                                             {transaction.notes && (
-                                                <p className="text-sm">{transaction.notes}</p>
+                                                <p className="text-sm">
+                                                    {transaction.notes}
+                                                </p>
                                             )}
                                         </div>
                                         {transaction.can_reconcile && (
@@ -368,7 +476,9 @@ export default function FinanceShow({
                                         </a>
                                         <p className="text-xs text-muted-foreground">
                                             {document.uploaded_at}
-                                            {document.uploaded_by ? ` · ${document.uploaded_by}` : ''}
+                                            {document.uploaded_by
+                                                ? ` · ${document.uploaded_by}`
+                                                : ''}
                                         </p>
                                     </li>
                                 ))}
@@ -397,7 +507,9 @@ export default function FinanceShow({
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                         {event.actor}
-                                        {event.detail ? ` · ${event.detail}` : ''}
+                                        {event.detail
+                                            ? ` · ${event.detail}`
+                                            : ''}
                                     </p>
                                 </div>
                             ))
@@ -483,7 +595,13 @@ function ReasonForm({
     );
 }
 
-function DisburseForm({ financingId, today }: { financingId: number; today: string }) {
+function DisburseForm({
+    financingId,
+    today,
+}: {
+    financingId: number;
+    today: string;
+}) {
     const [token] = useState(() => clientToken());
     const form = useForm({
         occurred_on: today,
@@ -504,17 +622,30 @@ function DisburseForm({ financingId, today }: { financingId: number; today: stri
             </CardHeader>
             <CardContent>
                 <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Disbursement date" error={form.errors.occurred_on}>
+                    <Field
+                        label="Disbursement date"
+                        error={form.errors.occurred_on}
+                    >
                         <Input
                             type="date"
                             value={form.data.occurred_on}
-                            onChange={(event) => form.setData('occurred_on', event.target.value)}
+                            onChange={(event) =>
+                                form.setData('occurred_on', event.target.value)
+                            }
                         />
                     </Field>
-                    <Field label="Reference" error={form.errors.disbursement_reference}>
+                    <Field
+                        label="Reference"
+                        error={form.errors.disbursement_reference}
+                    >
                         <Input
                             value={form.data.disbursement_reference}
-                            onChange={(event) => form.setData('disbursement_reference', event.target.value)}
+                            onChange={(event) =>
+                                form.setData(
+                                    'disbursement_reference',
+                                    event.target.value,
+                                )
+                            }
                         />
                     </Field>
                     <div className="sm:col-span-2">
@@ -528,7 +659,13 @@ function DisburseForm({ financingId, today }: { financingId: number; today: stri
     );
 }
 
-function RepaymentForm({ financingId, today }: { financingId: number; today: string }) {
+function RepaymentForm({
+    financingId,
+    today,
+}: {
+    financingId: number;
+    today: string;
+}) {
     const [token] = useState(() => clientToken());
     const form = useForm({
         occurred_on: today,
@@ -558,7 +695,13 @@ function RepaymentForm({ financingId, today }: { financingId: number; today: str
                         Recording a payment does not mark it reconciled.
                     </p>
                     <Field label="Payment date" error={form.errors.occurred_on}>
-                        <Input type="date" value={form.data.occurred_on} onChange={(event) => form.setData('occurred_on', event.target.value)} />
+                        <Input
+                            type="date"
+                            value={form.data.occurred_on}
+                            onChange={(event) =>
+                                form.setData('occurred_on', event.target.value)
+                            }
+                        />
                     </Field>
                     <Field label="Amount received" error={form.errors.amount}>
                         <Input
@@ -573,23 +716,71 @@ function RepaymentForm({ financingId, today }: { financingId: number; today: str
                             }
                         />
                     </Field>
-                    <Field label="Principal" error={form.errors.principal_amount}>
-                        <Input inputMode="decimal" value={form.data.principal_amount} onChange={(event) => form.setData('principal_amount', event.target.value)} />
+                    <Field
+                        label="Principal"
+                        error={form.errors.principal_amount}
+                    >
+                        <Input
+                            inputMode="decimal"
+                            value={form.data.principal_amount}
+                            onChange={(event) =>
+                                form.setData(
+                                    'principal_amount',
+                                    event.target.value,
+                                )
+                            }
+                        />
                     </Field>
                     <Field label="Interest" error={form.errors.interest_amount}>
-                        <Input inputMode="decimal" value={form.data.interest_amount} onChange={(event) => form.setData('interest_amount', event.target.value)} />
+                        <Input
+                            inputMode="decimal"
+                            value={form.data.interest_amount}
+                            onChange={(event) =>
+                                form.setData(
+                                    'interest_amount',
+                                    event.target.value,
+                                )
+                            }
+                        />
                     </Field>
                     <Field label="Fee" error={form.errors.fee_amount}>
-                        <Input inputMode="decimal" value={form.data.fee_amount} onChange={(event) => form.setData('fee_amount', event.target.value)} />
+                        <Input
+                            inputMode="decimal"
+                            value={form.data.fee_amount}
+                            onChange={(event) =>
+                                form.setData('fee_amount', event.target.value)
+                            }
+                        />
                     </Field>
                     <Field label="Method" error={form.errors.payment_method}>
-                        <Input value={form.data.payment_method} onChange={(event) => form.setData('payment_method', event.target.value)} />
+                        <Input
+                            value={form.data.payment_method}
+                            onChange={(event) =>
+                                form.setData(
+                                    'payment_method',
+                                    event.target.value,
+                                )
+                            }
+                        />
                     </Field>
-                    <Field label="Receipt reference" error={form.errors.external_reference}>
-                        <Input value={form.data.external_reference} onChange={(event) => form.setData('external_reference', event.target.value)} />
+                    <Field
+                        label="Receipt reference"
+                        error={form.errors.external_reference}
+                    >
+                        <Input
+                            value={form.data.external_reference}
+                            onChange={(event) =>
+                                form.setData(
+                                    'external_reference',
+                                    event.target.value,
+                                )
+                            }
+                        />
                     </Field>
                     <div className="sm:col-span-2">
-                        <Button type="submit" disabled={form.processing}>Record payment</Button>
+                        <Button type="submit" disabled={form.processing}>
+                            Record payment
+                        </Button>
                     </div>
                 </form>
             </CardContent>
@@ -631,30 +822,75 @@ function AdjustmentForm({
             <CardContent>
                 <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
                     <Field label="Date" error={form.errors.occurred_on}>
-                        <Input type="date" value={form.data.occurred_on} onChange={(event) => form.setData('occurred_on', event.target.value)} />
+                        <Input
+                            type="date"
+                            value={form.data.occurred_on}
+                            onChange={(event) =>
+                                form.setData('occurred_on', event.target.value)
+                            }
+                        />
                     </Field>
                     <Field label="Amount" error={form.errors.amount}>
-                        <Input inputMode="decimal" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} />
+                        <Input
+                            inputMode="decimal"
+                            value={form.data.amount}
+                            onChange={(event) =>
+                                form.setData('amount', event.target.value)
+                            }
+                        />
                     </Field>
                     <Field label="Component" error={form.errors.component}>
-                        <select className={selectClassName} value={form.data.component} onChange={(event) => form.setData('component', event.target.value)}>
+                        <select
+                            className={selectClassName}
+                            value={form.data.component}
+                            onChange={(event) =>
+                                form.setData('component', event.target.value)
+                            }
+                        >
                             {components.map((component) => (
-                                <option key={component.value} value={component.value}>{component.label}</option>
+                                <option
+                                    key={component.value}
+                                    value={component.value}
+                                >
+                                    {component.label}
+                                </option>
                             ))}
                         </select>
                     </Field>
                     <Field label="Effect" error={form.errors.direction}>
-                        <select className={selectClassName} value={form.data.direction} onChange={(event) => form.setData('direction', event.target.value)}>
+                        <select
+                            className={selectClassName}
+                            value={form.data.direction}
+                            onChange={(event) =>
+                                form.setData('direction', event.target.value)
+                            }
+                        >
                             {directions.map((direction) => (
-                                <option key={direction.value} value={direction.value}>{direction.label}</option>
+                                <option
+                                    key={direction.value}
+                                    value={direction.value}
+                                >
+                                    {direction.label}
+                                </option>
                             ))}
                         </select>
                     </Field>
                     <Field label="Note" error={form.errors.notes}>
-                        <Input value={form.data.notes} onChange={(event) => form.setData('notes', event.target.value)} />
+                        <Input
+                            value={form.data.notes}
+                            onChange={(event) =>
+                                form.setData('notes', event.target.value)
+                            }
+                        />
                     </Field>
                     <div className="sm:col-span-2">
-                        <Button type="submit" variant="outline" disabled={form.processing}>Post adjustment</Button>
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            disabled={form.processing}
+                        >
+                            Post adjustment
+                        </Button>
                     </div>
                 </form>
             </CardContent>
@@ -680,15 +916,35 @@ function ReverseForm({
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(reverse.url({ financing: financingId, transaction: transactionId }));
+        form.post(
+            reverse.url({ financing: financingId, transaction: transactionId }),
+        );
     }
 
     return (
-        <form onSubmit={submit} className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]">
-            <Input type="date" value={form.data.occurred_on} onChange={(event) => form.setData('occurred_on', event.target.value)} aria-label="Reversal date" />
-            <Input value={form.data.notes} placeholder="Reason for reversal" onChange={(event) => form.setData('notes', event.target.value)} />
-            <Button type="submit" variant="outline" disabled={form.processing}>Reverse</Button>
-            <InputError message={form.errors.notes || form.errors.occurred_on} />
+        <form
+            onSubmit={submit}
+            className="grid gap-2 sm:grid-cols-[10rem_1fr_auto]"
+        >
+            <Input
+                type="date"
+                value={form.data.occurred_on}
+                onChange={(event) =>
+                    form.setData('occurred_on', event.target.value)
+                }
+                aria-label="Reversal date"
+            />
+            <Input
+                value={form.data.notes}
+                placeholder="Reason for reversal"
+                onChange={(event) => form.setData('notes', event.target.value)}
+            />
+            <Button type="submit" variant="outline" disabled={form.processing}>
+                Reverse
+            </Button>
+            <InputError
+                message={form.errors.notes || form.errors.occurred_on}
+            />
         </form>
     );
 }
@@ -704,12 +960,22 @@ function ReconcileButton({
 
     function submit(event: FormEvent) {
         event.preventDefault();
-        form.post(reconcile.url({ financing: financingId, transaction: transactionId }));
+        form.post(
+            reconcile.url({
+                financing: financingId,
+                transaction: transactionId,
+            }),
+        );
     }
 
     return (
         <form onSubmit={submit}>
-            <Button type="submit" variant="outline" size="sm" disabled={form.processing}>
+            <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                disabled={form.processing}
+            >
                 Mark reconciled
             </Button>
         </form>
@@ -731,10 +997,16 @@ function DocumentForm({ financingId }: { financingId: number }) {
                 id="document"
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.webp"
-                onChange={(event) => form.setData('document', event.target.files?.[0] ?? null)}
+                onChange={(event) =>
+                    form.setData('document', event.target.files?.[0] ?? null)
+                }
             />
             <InputError message={form.errors.document} />
-            <Button type="submit" variant="outline" disabled={form.processing || form.data.document === null}>
+            <Button
+                type="submit"
+                variant="outline"
+                disabled={form.processing || form.data.document === null}
+            >
                 Upload
             </Button>
         </form>

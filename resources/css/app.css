@@ -177,7 +177,10 @@
 }
 
 [data-sidebar='sidebar'] {
-    background-image: linear-gradient(var(--sidebar-primary), var(--sidebar-primary));
+    background-image: linear-gradient(
+        var(--sidebar-primary),
+        var(--sidebar-primary)
+    );
     background-repeat: no-repeat;
     background-position: top;
     background-size: 100% 2px;

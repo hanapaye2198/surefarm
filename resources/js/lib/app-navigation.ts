@@ -236,7 +236,9 @@ export function visibleNavigation(role: UserRole | undefined) {
     return groups
         .map((group) => ({
             ...group,
-            items: group.items.filter((item) => userCanAccess(role, item.roles)),
+            items: group.items.filter((item) =>
+                userCanAccess(role, item.roles),
+            ),
         }))
         .filter((group) => group.items.length > 0);
 }
@@ -287,4 +289,3 @@ export function navigationSection(
         label: navigation[index].label,
     };
 }
-
