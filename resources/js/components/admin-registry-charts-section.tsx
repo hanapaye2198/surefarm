@@ -61,10 +61,17 @@ export function AdminRegistryCharts({
                 <Card className="shadow-sm">
                     <CardHeader>
                         <CardTitle>Coffee area</CardTitle>
-                        <CardDescription>Declared and verified hectares for coffee farms only.</CardDescription>
+                        <CardDescription>
+                            Declared and verified hectares for coffee farms
+                            only.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <CropChart rows={registry.charts.crops.filter((row) => row.crop === 'coffee')} />
+                        <CropChart
+                            rows={registry.charts.crops.filter(
+                                (row) => row.crop === 'coffee',
+                            )}
+                        />
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">

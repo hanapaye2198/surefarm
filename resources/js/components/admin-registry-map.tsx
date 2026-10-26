@@ -81,7 +81,9 @@ function hectares(value: number | null): string {
 }
 
 function bubbleMarkup(feature: MapFeature): string {
-    const place = [feature.barangay, feature.municipality, feature.province].filter(Boolean).join(', ');
+    const place = [feature.barangay, feature.municipality, feature.province]
+        .filter(Boolean)
+        .join(', ');
 
     return `<div style="padding:2px 0;line-height:1.45;color:#1c1917">
         <p style="margin:0;font-weight:600">${escapeHtml(feature.farm_name)}</p>
@@ -255,25 +257,27 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                 const labelAt = featurePosition(feature, map.layer);
 
                 if (labelAt !== null) {
-                    overlays.current.push(new maps.Marker({
-                        map: instance,
-                        position: labelAt,
-                        clickable: false,
-                        label: {
-                            text: feature.farm_name,
-                            color: '#ffffff',
-                            fontSize: '12px',
-                            fontWeight: '700',
-                        },
-                        icon: {
-                            path: maps.SymbolPath.CIRCLE,
-                            scale: 0,
-                            fillColor: color,
-                            fillOpacity: 0,
-                            strokeColor: color,
-                            strokeWeight: 0,
-                        },
-                    }));
+                    overlays.current.push(
+                        new maps.Marker({
+                            map: instance,
+                            position: labelAt,
+                            clickable: false,
+                            label: {
+                                text: feature.farm_name,
+                                color: '#ffffff',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                            },
+                            icon: {
+                                path: maps.SymbolPath.CIRCLE,
+                                scale: 0,
+                                fillColor: color,
+                                fillOpacity: 0,
+                                strokeColor: color,
+                                strokeWeight: 0,
+                            },
+                        }),
+                    );
                 }
 
                 if (feature.status === 'inactive') {
@@ -411,12 +415,18 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     </button>
                 ))}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Verification status on the map">
+            <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Verification status on the map"
+            >
                 <button
                     type="button"
                     aria-pressed={filters.verification_status === ''}
                     className={`rounded-full border px-3 py-1 text-xs font-medium ${filters.verification_status === '' ? 'border-primary bg-primary text-primary-foreground' : 'bg-background'}`}
-                    onClick={() => visitRegistry(filters, { verification_status: '' })}
+                    onClick={() =>
+                        visitRegistry(filters, { verification_status: '' })
+                    }
                 >
                     All statuses
                 </button>
@@ -424,22 +434,41 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     <button
                         key={item.status}
                         type="button"
-                        aria-pressed={filters.verification_status === item.status}
+                        aria-pressed={
+                            filters.verification_status === item.status
+                        }
                         className={`rounded-full border px-3 py-1 text-xs font-medium ${filters.verification_status === item.status ? 'border-primary bg-primary text-primary-foreground' : 'bg-background'}`}
-                        onClick={() => visitRegistry(filters, { verification_status: item.status })}
+                        onClick={() =>
+                            visitRegistry(filters, {
+                                verification_status: item.status,
+                            })
+                        }
                     >
                         {item.label}
                     </button>
                 ))}
             </div>
-            <ul aria-label="Map legend" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                {map.features.filter((feature) => feature.boundary !== null).map((feature) => (
-                    <li key={feature.id} className="flex items-center gap-2">
-                        <span className="size-2.5 rounded-sm" style={{ backgroundColor: farmFieldColor(feature.id) }} />
-                        <span>{feature.farm_name}</span>
-                        <span>{feature.verification_label}</span>
-                    </li>
-                ))}
+            <ul
+                aria-label="Map legend"
+                className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground"
+            >
+                {map.features
+                    .filter((feature) => feature.boundary !== null)
+                    .map((feature) => (
+                        <li
+                            key={feature.id}
+                            className="flex items-center gap-2"
+                        >
+                            <span
+                                className="size-2.5 rounded-sm"
+                                style={{
+                                    backgroundColor: farmFieldColor(feature.id),
+                                }}
+                            />
+                            <span>{feature.farm_name}</span>
+                            <span>{feature.verification_label}</span>
+                        </li>
+                    ))}
                 <li>Dashed outline: inactive farm</li>
             </ul>
             <p className="text-xs text-muted-foreground">
@@ -523,7 +552,9 @@ function FarmPanel({
                                 <span
                                     className="mt-1 size-2.5 shrink-0 rounded-full"
                                     style={{
-                                        backgroundColor: farmFieldColor(item.id),
+                                        backgroundColor: farmFieldColor(
+                                            item.id,
+                                        ),
                                     }}
                                 />
                                 <span className="min-w-0">

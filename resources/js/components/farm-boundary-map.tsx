@@ -1,5 +1,12 @@
 import { router, useForm } from '@inertiajs/react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Fragment,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     CircleMarker,
     MapContainer,
@@ -309,7 +316,8 @@ export function FarmBoundaryMap({
     );
     const showPolygon = workingPoints.length >= 3 && mode !== 'draw';
     const center = location ?? DEFAULT_VIEW;
-    const showNeighbors = review !== undefined && mode === 'view' && layer !== 'active';
+    const showNeighbors =
+        review !== undefined && mode === 'view' && layer !== 'active';
     const overlapsActive = (review?.overlaps.length ?? 0) > 0;
     const activeCenter =
         polygonPositions.length > 0
@@ -413,7 +421,9 @@ export function FarmBoundaryMap({
                     saving={form.processing}
                     pointCount={points.length}
                     formError={form.errors.boundary_geojson}
-                    showPreviewNote={previewHectares !== null && mode !== 'view'}
+                    showPreviewNote={
+                        previewHectares !== null && mode !== 'view'
+                    }
                     onLayer={setLayer}
                     onPanel={setPanel}
                     onCentre={() => setFocusRequest((current) => current + 1)}
@@ -776,7 +786,9 @@ export function FarmBoundaryMap({
                         )}
                         {showNeighbors &&
                             review.neighbors.map((neighbor) => {
-                                const positions = openRing(neighbor.geojson).map(
+                                const positions = openRing(
+                                    neighbor.geojson,
+                                ).map(
                                     (point) =>
                                         [point.latitude, point.longitude] as [
                                             number,
@@ -867,7 +879,9 @@ export function FarmBoundaryMap({
                             activeCenter && (
                                 <Marker
                                     position={activeCenter}
-                                    icon={fieldLabel(farm.farm_id ?? farm.farm_name)}
+                                    icon={fieldLabel(
+                                        farm.farm_id ?? farm.farm_name,
+                                    )}
                                 />
                             )}
                         {mode === 'draw' &&

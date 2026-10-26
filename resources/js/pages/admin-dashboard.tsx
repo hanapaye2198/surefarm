@@ -199,7 +199,10 @@ export default function AdminDashboard({
                 <section id="overview" className="grid scroll-mt-24 gap-5">
                     <MetricGroup
                         title="Farmer and farm registry"
-                        metrics={metricsByKey(registry.metrics, registryMetricKeys)}
+                        metrics={metricsByKey(
+                            registry.metrics,
+                            registryMetricKeys,
+                        )}
                     />
                     <div className="grid gap-3">
                         <h2 className="text-lg font-semibold">Verification</h2>
@@ -271,11 +274,17 @@ export default function AdminDashboard({
                     )}
                 </section>
                 <details
-                    key={registry.active_filters.map((filter) => filter.label).join('|') || 'none'}
+                    key={
+                        registry.active_filters
+                            .map((filter) => filter.label)
+                            .join('|') || 'none'
+                    }
                     className="rounded-xl border bg-card px-4 py-3"
                     defaultOpen={registry.active_filters.length > 0}
                 >
-                    <summary className="cursor-pointer text-sm font-medium">Filter the registry</summary>
+                    <summary className="cursor-pointer text-sm font-medium">
+                        Filter the registry
+                    </summary>
                     <div className="pt-3">
                         <AdminRegistryFilters registry={registry} />
                     </div>
@@ -414,7 +423,13 @@ export default function AdminDashboard({
     );
 }
 
-function MetricGroup({ title, metrics }: { title: string; metrics: RegistryMetric[] }) {
+function MetricGroup({
+    title,
+    metrics,
+}: {
+    title: string;
+    metrics: RegistryMetric[];
+}) {
     return (
         <div className="grid gap-3">
             <h2 className="text-lg font-semibold">{title}</h2>
@@ -448,7 +463,13 @@ function MetricCards({ metrics }: { metrics: RegistryMetric[] }) {
     );
 }
 
-function StatusCount({ registry, status }: { registry: RegistryPayload; status: string }) {
+function StatusCount({
+    registry,
+    status,
+}: {
+    registry: RegistryPayload;
+    status: string;
+}) {
     const row = registry.charts.statuses.find((item) => item.status === status);
     const presentation = countLabels[status];
 

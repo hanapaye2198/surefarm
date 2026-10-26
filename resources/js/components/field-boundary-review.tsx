@@ -75,7 +75,9 @@ function place(review: FieldReview): string {
         review.province,
     ].filter((part) => part && part.trim() !== '');
 
-    return parts.length > 0 ? parts.join(', ') : 'Location has not been recorded yet.';
+    return parts.length > 0
+        ? parts.join(', ')
+        : 'Location has not been recorded yet.';
 }
 
 function declarationLabel(eventType: string): string {
@@ -180,7 +182,9 @@ export function FieldBoundaryReview({
                 <select
                     aria-label="Boundary layers"
                     value={layer}
-                    onChange={(event) => onLayer(event.target.value as FieldLayer)}
+                    onChange={(event) =>
+                        onLayer(event.target.value as FieldLayer)
+                    }
                     className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                     <option value="both">Active + neighboring fields</option>
@@ -208,31 +212,49 @@ export function FieldBoundaryReview({
                         {panel === 'size' && (
                             <>
                                 {review.overlaps.map((overlap) => (
-                                    <Alert key={overlap.id} variant="destructive">
+                                    <Alert
+                                        key={overlap.id}
+                                        variant="destructive"
+                                    >
                                         <CircleAlert />
-                                        <AlertTitle>Fix boundary overlap</AlertTitle>
+                                        <AlertTitle>
+                                            Fix boundary overlap
+                                        </AlertTitle>
                                         <AlertDescription>
                                             Active boundary has{' '}
-                                            {areaFormatter.format(overlap.percent)}%
-                                            overlap with field {overlap.farm_id}.
+                                            {areaFormatter.format(
+                                                overlap.percent,
+                                            )}
+                                            % overlap with field{' '}
+                                            {overlap.farm_id}.
                                         </AlertDescription>
                                     </Alert>
                                 ))}
                                 {review.mismatch && (
                                     <Alert variant="warning">
                                         <CircleAlert />
-                                        <AlertTitle>Review boundary mismatch</AlertTitle>
+                                        <AlertTitle>
+                                            Review boundary mismatch
+                                        </AlertTitle>
                                         <AlertDescription>
                                             The active boundary is{' '}
-                                            {hectares(review.mismatch.active_hectares)}{' '}
+                                            {hectares(
+                                                review.mismatch.active_hectares,
+                                            )}{' '}
                                             and the verified area is{' '}
-                                            {hectares(review.mismatch.verified_hectares)}.
+                                            {hectares(
+                                                review.mismatch
+                                                    .verified_hectares,
+                                            )}
+                                            .
                                         </AlertDescription>
                                     </Alert>
                                 )}
                                 <dl className="grid gap-3 text-sm">
                                     <div className="flex items-center justify-between gap-3">
-                                        <dt className="text-muted-foreground">Active</dt>
+                                        <dt className="text-muted-foreground">
+                                            Active
+                                        </dt>
                                         <dd className="font-medium tabular-nums">
                                             {measuredHectares === null
                                                 ? 'Not yet measured'
@@ -248,18 +270,23 @@ export function FieldBoundaryReview({
                                         </dd>
                                     </div>
                                     <div className="flex items-center justify-between gap-3">
-                                        <dt className="text-muted-foreground">MRV</dt>
+                                        <dt className="text-muted-foreground">
+                                            MRV
+                                        </dt>
                                         <dd className="font-medium tabular-nums">
-                                            {review.verified_area_hectares === null
+                                            {review.verified_area_hectares ===
+                                            null
                                                 ? 'Not yet verified'
-                                                : hectares(review.verified_area_hectares)}
+                                                : hectares(
+                                                      review.verified_area_hectares,
+                                                  )}
                                         </dd>
                                     </div>
                                 </dl>
                                 <p className="text-xs text-muted-foreground">
-                                    Active is the saved boundary. Former reported
-                                    is the area the farmer declared. MRV is the
-                                    verified area.
+                                    Active is the saved boundary. Former
+                                    reported is the area the farmer declared.
+                                    MRV is the verified area.
                                 </p>
                             </>
                         )}
@@ -293,16 +320,20 @@ export function FieldBoundaryReview({
                                             <dt className="text-xs text-muted-foreground">
                                                 Captured by
                                             </dt>
-                                            <dd>{boundary.captured_by ?? '—'}</dd>
+                                            <dd>
+                                                {boundary.captured_by ?? '—'}
+                                            </dd>
                                         </div>
                                         <div>
                                             <dt className="text-xs text-muted-foreground">
                                                 Capture method
                                             </dt>
                                             <dd>
-                                                {boundary.capture_method === 'device_gps'
+                                                {boundary.capture_method ===
+                                                'device_gps'
                                                     ? 'Device GPS'
-                                                    : boundary.capture_method === 'map_manual'
+                                                    : boundary.capture_method ===
+                                                        'map_manual'
                                                       ? 'Map drawn manually'
                                                       : 'Not recorded'}
                                             </dd>
@@ -311,7 +342,9 @@ export function FieldBoundaryReview({
                                             <dt className="text-xs text-muted-foreground">
                                                 Saved
                                             </dt>
-                                            <dd>{boundary.captured_at ?? '—'}</dd>
+                                            <dd>
+                                                {boundary.captured_at ?? '—'}
+                                            </dd>
                                         </div>
                                         {boundary.updated_by && (
                                             <div>
@@ -328,25 +361,36 @@ export function FieldBoundaryReview({
                         {panel === 'history' &&
                             (review.area_declarations.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
-                                    Changes to the reported area will appear here.
+                                    Changes to the reported area will appear
+                                    here.
                                 </p>
                             ) : (
                                 <div className="grid gap-3">
                                     {review.area_declarations.map((entry) => (
-                                        <div key={entry.id} className="grid gap-1">
+                                        <div
+                                            key={entry.id}
+                                            className="grid gap-1"
+                                        >
                                             <p className="text-sm font-medium">
-                                                {declarationLabel(entry.event_type)}
+                                                {declarationLabel(
+                                                    entry.event_type,
+                                                )}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {entry.previous_area_hectares === null
+                                                {entry.previous_area_hectares ===
+                                                null
                                                     ? ''
                                                     : `${hectares(entry.previous_area_hectares)} to `}
-                                                {hectares(entry.declared_area_hectares)}
+                                                {hectares(
+                                                    entry.declared_area_hectares,
+                                                )}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {entry.recorded_at ?? 'Date not recorded'}
+                                                {entry.recorded_at ??
+                                                    'Date not recorded'}
                                                 {' · '}
-                                                {entry.recorded_by ?? 'System baseline'}
+                                                {entry.recorded_by ??
+                                                    'System baseline'}
                                             </p>
                                         </div>
                                     ))}
@@ -367,7 +411,11 @@ export function FieldBoundaryReview({
                             </Button>
                         )}
                         {canRemove && boundary !== null && (
-                            <Button type="button" variant="outline" onClick={onRemove}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onRemove}
+                            >
                                 Remove boundary
                             </Button>
                         )}
@@ -414,7 +462,11 @@ export function FieldBoundaryReview({
                             >
                                 Clear boundary
                             </Button>
-                            <Button type="button" variant="outline" onClick={onCancel}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                            >
                                 Cancel
                             </Button>
                         </>
@@ -428,10 +480,20 @@ export function FieldBoundaryReview({
                             >
                                 Save boundary
                             </Button>
-                            <Button type="button" variant="outline" onClick={onRedraw}>
-                                {mode === 'preview' ? 'Redraw' : 'Clear boundary'}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onRedraw}
+                            >
+                                {mode === 'preview'
+                                    ? 'Redraw'
+                                    : 'Clear boundary'}
                             </Button>
-                            <Button type="button" variant="outline" onClick={onCancel}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                            >
                                 Cancel
                             </Button>
                         </>

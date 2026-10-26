@@ -588,7 +588,8 @@ const SECTIONS: Section[] = [
     {
         key: 'verifier-submit',
         title: 'Submit verification',
-        description: 'Send a completed inspection after GPS and evidence are saved',
+        description:
+            'Send a completed inspection after GPS and evidence are saved',
         path: '/farm-verification?queue=assignments&step=submit',
         roles: ['field_verifier'],
         icon: 'verified',
@@ -1618,8 +1619,8 @@ function SureFarmApp() {
                         </Text>
                         <Text style={styles.muted}>
                             Administration, reports, and registry management
-                            stay in the SureFarm web application. This app
-                            shows farmer and field-verifier work only.
+                            stay in the SureFarm web application. This app shows
+                            farmer and field-verifier work only.
                         </Text>
                     </View>
                 </ScrollView>
@@ -2151,7 +2152,9 @@ function Dashboard({
                         onPress={() => onOpen(activitySection)}
                     />
                 )}
-                {sections.find((section) => section.key === 'farmer-harvest') && (
+                {sections.find(
+                    (section) => section.key === 'farmer-harvest',
+                ) && (
                     <Secondary
                         title="My harvest"
                         onPress={() =>
@@ -3058,7 +3061,9 @@ function DataPage(props: {
                     contentContainerStyle={styles.content}
                 >
                     <View style={styles.card}>
-                        <Text style={styles.cardTitle}>Verification status</Text>
+                        <Text style={styles.cardTitle}>
+                            Verification status
+                        </Text>
                         <Text style={styles.mutedSmall}>
                             Declared area, GPS measured area, and verified area
                             stay separate.
@@ -3724,10 +3729,7 @@ function DataPage(props: {
                                     props.token,
                                     { method: 'POST' },
                                 );
-                                props.onOpen(
-                                    notificationRoot,
-                                    'Notifications',
-                                );
+                                props.onOpen(notificationRoot, 'Notifications');
                             }}
                             style={({ pressed }) => [
                                 styles.card,
@@ -4225,12 +4227,11 @@ function DataPage(props: {
             inspection?.boundary_captured_for_attempt === true;
         const hasInspection = Boolean(
             hasFreshBoundary &&
-                hasCompleteChecklist &&
-                inspection?.photos?.some(
-                    (photo: { boundary_revision?: number }) =>
-                        photo.boundary_revision ===
-                        inspection.boundary_revision,
-                ),
+            hasCompleteChecklist &&
+            inspection?.photos?.some(
+                (photo: { boundary_revision?: number }) =>
+                    photo.boundary_revision === inspection.boundary_revision,
+            ),
         );
         const step = pathParam(props.path, 'step');
         const stepNotice =
@@ -7442,11 +7443,7 @@ function toImageApiUrl(url: string) {
         return url;
     }
 }
-function rowPath(
-    component: string,
-    row: Record<string, any>,
-    sourcePath = '',
-) {
+function rowPath(component: string, row: Record<string, any>, sourcePath = '') {
     const id = row.id;
     if (id === undefined || id === null) return null;
     const routes: Record<string, string> = {

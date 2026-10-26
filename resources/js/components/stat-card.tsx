@@ -31,8 +31,15 @@ export function StatCard({
     const card = (
         <Card className="relative gap-0 overflow-hidden rounded-lg py-0 shadow-none">
             <span
-                className={cn('absolute inset-y-0 left-0 w-0.5', accent === undefined && toneBar[tone])}
-                style={accent === undefined ? undefined : { backgroundColor: accent }}
+                className={cn(
+                    'absolute inset-y-0 left-0 w-0.5',
+                    accent === undefined && toneBar[tone],
+                )}
+                style={
+                    accent === undefined
+                        ? undefined
+                        : { backgroundColor: accent }
+                }
             />
             <CardHeader className="gap-3 px-4 py-4 sm:px-5">
                 <div className="flex items-start justify-between gap-3">
