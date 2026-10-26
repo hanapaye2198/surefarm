@@ -230,13 +230,20 @@ export function StatusChart({ rows }: { rows: StatusRow[] }) {
     return (
         <div className="grid gap-3">
             {rows.map((row) => (
-                <Link key={row.status} href={row.href} preserveScroll className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                <Link
+                    key={row.status}
+                    href={row.href}
+                    preserveScroll
+                    className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
                     <div className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="flex items-center gap-2">
                             <span
                                 className="size-2.5 rounded-full"
                                 style={{
-                                    backgroundColor: farmStatusColor(row.status),
+                                    backgroundColor: farmStatusColor(
+                                        row.status,
+                                    ),
                                 }}
                             />
                             {row.label}
