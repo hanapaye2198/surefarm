@@ -32,6 +32,9 @@ class EnsurePrivilegedTwoFactorIsConfirmed
         'two-factor.secret-key',
         'two-factor.recovery-codes',
         'two-factor.regenerate-recovery-codes',
+        'passkey.registration-options',
+        'passkey.store',
+        'passkey.destroy',
     ];
 
     /**
