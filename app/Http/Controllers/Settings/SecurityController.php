@@ -22,7 +22,8 @@ class SecurityController extends Controller
             'twoFactorSetupRequired' => config('auth.require_two_factor')
                 && $request->user()->requiresConfirmedTwoFactor()
                 && ! $request->user()->hasConfirmedTwoFactor(),
-            'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
+            'canManageTwoFactor' => config('auth.two_factor_enabled')
+                && Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),
             'passkeys' => Features::canManagePasskeys()
                 ? $request->user()
@@ -43,7 +44,7 @@ class SecurityController extends Controller
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
         ];
 
-        if (Features::canManageTwoFactorAuthentication()) {
+        if (config('auth.two_factor_enabled') && Features::canManageTwoFactorAuthentication()) {
             $request->ensureStateIsValid();
 
             $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
