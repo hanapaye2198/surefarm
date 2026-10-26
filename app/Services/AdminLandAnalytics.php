@@ -1440,6 +1440,20 @@ class AdminLandAnalytics
             AccessEventAction::FinancingDefaulted => 'Financing marked in default',
             AccessEventAction::FinancingCompleted => 'Financing completed',
             AccessEventAction::FinancingExported => 'Financing exported',
+            AccessEventAction::InsuranceSubmitted => 'Insurance application submitted',
+            AccessEventAction::InsuranceReviewStarted => 'Insurance review started',
+            AccessEventAction::InsuranceApproved => 'Insurance approved',
+            AccessEventAction::InsuranceRejected => 'Insurance rejected',
+            AccessEventAction::InsuranceCancelled => 'Insurance cancelled',
+            AccessEventAction::InsuranceActivated => 'Insurance activated',
+            AccessEventAction::InsuranceExpired => 'Insurance expired',
+            AccessEventAction::InsuranceClaimSubmitted => 'Insurance claim submitted',
+            AccessEventAction::InsuranceClaimReviewStarted => 'Insurance claim review started',
+            AccessEventAction::InsuranceClaimApproved => 'Insurance claim approved',
+            AccessEventAction::InsuranceClaimRejected => 'Insurance claim rejected',
+            AccessEventAction::InsuranceClaimSettled => 'Insurance claim settled',
+            AccessEventAction::InsuranceClaimClosed => 'Insurance claim closed',
+            AccessEventAction::InsuranceExported => 'Insurance exported',
         };
     }
 

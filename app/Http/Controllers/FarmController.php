@@ -665,7 +665,7 @@ class FarmController extends Controller
      */
     private function mapLocations(?User $viewer): array
     {
-        return Farm::query()
+        return array_values(Farm::query()
             ->visibleTo($viewer)
             ->select([
                 'id',
@@ -697,7 +697,7 @@ class FarmController extends Controller
                 'longitude' => (float) $farm->longitude,
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

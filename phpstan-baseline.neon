@@ -337,18 +337,6 @@ parameters:
 			path: app/Models/FarmActivity.php
 
 		-
-			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmFinancing\:\:peso\(\) expects string\|null, float given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Models/FarmFinancing.php
-
-		-
-			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmFinancing\:\:plainAmount\(\) expects string, float given\.$#'
-			identifier: argument.type
-			count: 2
-			path: app/Models/FarmFinancing.php
-
-		-
 			message: '#^Cannot call method format\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 4
@@ -359,18 +347,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 4
 			path: app/Models/FarmHarvest.php
-
-		-
-			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmInsurance\:\:peso\(\) expects string\|null, float\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Models/FarmInsurance.php
-
-		-
-			message: '#^Parameter \#1 \$amount of method App\\Models\\FarmInsurance\:\:plainAmount\(\) expects string, float given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Models/FarmInsurance.php
 
 		-
 			message: '#^Cannot call method format\(\) on string\.$#'

@@ -52,8 +52,8 @@ class FarmCropController extends Controller
                 'search' => $search,
                 'farm' => $farmId === null ? '' : (string) $farmId,
                 'farmer' => $farmerId === null ? '' : (string) $farmerId,
-                'crop' => $crop?->value ?? '',
-                'status' => $status?->value ?? '',
+                'crop' => $crop->value ?? '',
+                'status' => $status->value ?? '',
             ],
             'farms' => $this->farmOptions(),
             'farmers' => $this->farmerOptions(),
@@ -163,7 +163,7 @@ class FarmCropController extends Controller
      */
     private function farmOptions(): array
     {
-        return Farm::query()
+        return array_values(Farm::query()
             ->visibleTo($this->registryViewer())
             ->with('farmer:id,first_name,middle_name,last_name')
             ->orderBy('farm_name')
@@ -178,7 +178,7 @@ class FarmCropController extends Controller
                 'crop_label' => $farm->crop_type->label(),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -186,7 +186,7 @@ class FarmCropController extends Controller
      */
     private function farmerOptions(): array
     {
-        return Farmer::query()
+        return array_values(Farmer::query()
             ->visibleTo($this->registryViewer())
             ->orderBy('last_name')
             ->orderBy('first_name')
@@ -196,7 +196,7 @@ class FarmCropController extends Controller
                 'name' => $farmer->fullName(),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

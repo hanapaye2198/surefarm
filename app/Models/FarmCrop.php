@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Crop details recorded for one registered farm. The crop type must
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property CropType $crop_type
  * @property CropRecordStatus $status
+ * @property Carbon|null $planted_on
  */
 #[Fillable([
     'farm_id',
