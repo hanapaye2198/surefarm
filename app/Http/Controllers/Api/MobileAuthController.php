@@ -53,7 +53,7 @@ class MobileAuthController extends Controller
             );
         }
 
-        if ($user->hasEnabledTwoFactorAuthentication()) {
+        if (config('auth.two_factor_enabled') && $user->hasEnabledTwoFactorAuthentication()) {
             $challengeToken = Str::random(64);
             Cache::put('surefarm:mobile-login:'.$challengeToken, [
                 'user_id' => $user->id,
@@ -71,6 +71,12 @@ class MobileAuthController extends Controller
 
     public function completeTwoFactor(Request $request, TwoFactorAuthenticationProvider $provider): JsonResponse
     {
+        if (! config('auth.two_factor_enabled')) {
+            return response()->json([
+                'message' => 'Two-factor authentication is temporarily disabled.',
+            ], 404);
+        }
+
         $data = $request->validate([
             'challenge_token' => ['required', 'string', 'size:64'],
             'code' => ['nullable', 'string', 'max:20'],

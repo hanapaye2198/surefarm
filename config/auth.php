@@ -2,6 +2,8 @@
 
 use App\Models\User;
 
+$twoFactorEnabled = filter_var(env('AUTH_TWO_FACTOR_ENABLED', false), FILTER_VALIDATE_BOOL);
+
 return [
 
     /*
@@ -129,6 +131,8 @@ return [
 
     'invitation_ttl_hours' => 72,
 
-    'require_two_factor' => filter_var(env('AUTH_REQUIRE_TWO_FACTOR', true), FILTER_VALIDATE_BOOL),
+    'two_factor_enabled' => $twoFactorEnabled,
+    'require_two_factor' => $twoFactorEnabled
+        && filter_var(env('AUTH_REQUIRE_TWO_FACTOR', true), FILTER_VALIDATE_BOOL),
 
 ];
