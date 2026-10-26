@@ -41,7 +41,7 @@ class AcceptUserInvitationController extends Controller
             'message' => 'Your account is ready.',
         ]);
 
-        if (config('auth.require_two_factor') && $user->requiresConfirmedTwoFactor()) {
+        if (config('auth.two_factor_enabled') && $user->requiresConfirmedTwoFactor()) {
             return to_route('security.edit');
         }
 
