@@ -117,10 +117,9 @@ final class FarmFieldMap
             'barangay' => $farm->barangay,
             'municipality' => $farm->municipality,
             'province' => $farm->province,
-            'area_declarations' => $farm->areaDeclarations
+            'area_declarations' => array_values($farm->areaDeclarations
                 ->map(fn (FarmAreaDeclaration $declaration): array => $declaration->present())
-                ->values()
-                ->all(),
+                ->all()),
             'neighbors' => $neighbors,
             'overlaps' => $overlaps,
             'mismatch' => $this->mismatch($farm),
