@@ -62,40 +62,58 @@ export function GeographyChart({
 
     const max = Math.max(
         1,
-        ...rows.flatMap((row) => [row.declared_hectares, row.verified_hectares]),
+        ...rows.flatMap((row) => [
+            row.declared_hectares,
+            row.verified_hectares,
+        ]),
     );
 
     return (
         <div className="grid gap-4">
             <p className="text-xs text-muted-foreground">
-                Showing {level === 'province' ? 'provinces' : level === 'municipality' ? 'municipalities' : 'barangays'}.
-                Select a row to narrow the registry.
+                Showing{' '}
+                {level === 'province'
+                    ? 'provinces'
+                    : level === 'municipality'
+                      ? 'municipalities'
+                      : 'barangays'}
+                . Select a row to narrow the registry.
             </p>
             {rows.map((row) => (
-                <Link key={row.label} href={row.href} preserveScroll className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                <Link
+                    key={row.label}
+                    href={row.href}
+                    preserveScroll
+                    className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
                     <span className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="font-medium">{row.label}</span>
                         <span className="text-muted-foreground tabular-nums">
                             {row.farms} {row.farms === 1 ? 'farm' : 'farms'}
                         </span>
                     </span>
-                    <Bar label="Declared" value={row.declared_hectares} max={max} muted />
-                    <Bar label="Verified" value={row.verified_hectares} max={max} />
+                    <Bar
+                        label="Declared"
+                        value={row.declared_hectares}
+                        max={max}
+                        muted
+                    />
+                    <Bar
+                        label="Verified"
+                        value={row.verified_hectares}
+                        max={max}
+                    />
                 </Link>
             ))}
         </div>
     );
 }
 
-export function OwnerChart({
-    rows,
-    rank,
-}: {
-    rows: OwnerRow[];
-    rank: string;
-}) {
+export function OwnerChart({ rows, rank }: { rows: OwnerRow[]; rank: string }) {
     if (rows.length === 0) {
-        return <EmptyChart label="No registered farmers match these filters." />;
+        return (
+            <EmptyChart label="No registered farmers match these filters." />
+        );
     }
 
     const max = Math.max(
@@ -120,7 +138,10 @@ export function OwnerChart({
                                 <p className="text-sm font-medium">
                                     {index + 1}.{' '}
                                     {row.profile_href ? (
-                                        <Link href={row.profile_href} className="hover:underline">
+                                        <Link
+                                            href={row.profile_href}
+                                            className="hover:underline"
+                                        >
                                             {row.farmer_name}
                                         </Link>
                                     ) : (
@@ -130,16 +151,22 @@ export function OwnerChart({
                                 <p className="text-xs text-muted-foreground">
                                     {row.farmer_reference} · {row.farms}{' '}
                                     {row.farms === 1 ? 'farm' : 'farms'} ·{' '}
-                                    {row.verified_farms} verified · {row.pending_farms}{' '}
-                                    pending
+                                    {row.verified_farms} verified ·{' '}
+                                    {row.pending_farms} pending
                                 </p>
                             </div>
-                            <Link href={row.filter_href} preserveScroll className="shrink-0 text-xs font-medium text-primary hover:underline">
+                            <Link
+                                href={row.filter_href}
+                                preserveScroll
+                                className="shrink-0 text-xs font-medium text-primary hover:underline"
+                            >
                                 Show farms
                             </Link>
                         </div>
                         <Bar
-                            label={rank === 'verified' ? 'Verified' : 'Declared'}
+                            label={
+                                rank === 'verified' ? 'Verified' : 'Declared'
+                            }
                             value={value}
                             max={max}
                         />
@@ -161,7 +188,10 @@ export function CropChart({ rows }: { rows: CropRow[] }) {
 
     const max = Math.max(
         1,
-        ...rows.flatMap((row) => [row.declared_hectares, row.verified_hectares]),
+        ...rows.flatMap((row) => [
+            row.declared_hectares,
+            row.verified_hectares,
+        ]),
     );
 
     return (
@@ -177,8 +207,17 @@ export function CropChart({ rows }: { rows: CropRow[] }) {
                             · {row.farms} {row.farms === 1 ? 'farm' : 'farms'}
                         </span>
                     </span>
-                    <Bar label="Declared" value={row.declared_hectares} max={max} muted />
-                    <Bar label="Verified" value={row.verified_hectares} max={max} />
+                    <Bar
+                        label="Declared"
+                        value={row.declared_hectares}
+                        max={max}
+                        muted
+                    />
+                    <Bar
+                        label="Verified"
+                        value={row.verified_hectares}
+                        max={max}
+                    />
                 </div>
             ))}
         </div>
@@ -194,11 +233,17 @@ export function StatusChart({ rows }: { rows: StatusRow[] }) {
                 <Link key={row.status} href={row.href} preserveScroll className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="flex items-center gap-2">
-                            <span className="size-2.5 rounded-full" style={{ backgroundColor: farmStatusColor(row.status) }} />
+                            <span
+                                className="size-2.5 rounded-full"
+                                style={{
+                                    backgroundColor: farmStatusColor(row.status),
+                                }}
+                            />
                             {row.label}
                         </span>
-                        <span className="tabular-nums text-muted-foreground">
-                            {row.farms} · {area.format(row.declared_hectares)} ha declared
+                        <span className="text-muted-foreground tabular-nums">
+                            {row.farms} · {area.format(row.declared_hectares)}{' '}
+                            ha declared
                         </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -229,7 +274,11 @@ export function TrendChart({
     const height = 180;
     const max = Math.max(
         1,
-        ...points.flatMap((point) => [point.farmers, point.farms, point.verified]),
+        ...points.flatMap((point) => [
+            point.farmers,
+            point.farms,
+            point.verified,
+        ]),
     );
 
     return (
@@ -237,10 +286,36 @@ export function TrendChart({
             <p className="text-xs text-muted-foreground">
                 {window}. {note}
             </p>
-            <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Registration and verification counts" className="h-44 w-full">
-                <Series points={points} max={max} width={width} height={height} pick="farms" color="var(--primary)" />
-                <Series points={points} max={max} width={width} height={height} pick="farmers" color="color-mix(in oklch, var(--primary) 45%, transparent)" />
-                <Series points={points} max={max} width={width} height={height} pick="verified" color="var(--foreground)" />
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                role="img"
+                aria-label="Registration and verification counts"
+                className="h-44 w-full"
+            >
+                <Series
+                    points={points}
+                    max={max}
+                    width={width}
+                    height={height}
+                    pick="farms"
+                    color="var(--primary)"
+                />
+                <Series
+                    points={points}
+                    max={max}
+                    width={width}
+                    height={height}
+                    pick="farmers"
+                    color="color-mix(in oklch, var(--primary) 45%, transparent)"
+                />
+                <Series
+                    points={points}
+                    max={max}
+                    width={width}
+                    height={height}
+                    pick="verified"
+                    color="var(--foreground)"
+                />
             </svg>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span>Farms</span>
@@ -307,11 +382,17 @@ function Bar({
             <span className="text-muted-foreground">{label}</span>
             <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
-                    className={muted ? 'h-full rounded-full bg-primary/45' : 'h-full rounded-full bg-primary'}
+                    className={
+                        muted
+                            ? 'h-full rounded-full bg-primary/45'
+                            : 'h-full rounded-full bg-primary'
+                    }
                     style={{ width: `${(value / max) * 100}%` }}
                 />
             </div>
-            <span className="text-right tabular-nums">{area.format(value)}</span>
+            <span className="text-right tabular-nums">
+                {area.format(value)}
+            </span>
         </div>
     );
 }

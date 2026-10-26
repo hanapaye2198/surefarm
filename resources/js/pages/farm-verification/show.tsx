@@ -205,19 +205,19 @@ export default function FarmVerificationShow({
         setPhotoInputKey((key) => key + 1);
     }, [inspection?.boundary_revision]);
     const inProgress = farm.verification_status === 'in_progress';
-    const hasFreshBoundary =
-        inspection?.boundary_captured_for_attempt === true;
+    const hasFreshBoundary = inspection?.boundary_captured_for_attempt === true;
     const activeChecklist = inspection?.checklist ?? {};
     const inspectionReady = Boolean(
         hasFreshBoundary &&
-            Object.keys(activeChecklist).length > 0 &&
-            inspectionChecks.every(({ key }) =>
+        Object.keys(activeChecklist).length > 0 &&
+        inspectionChecks.every(
+            ({ key }) =>
                 typeof activeChecklist[key] === 'boolean' ||
                 (key === 'crop_observed' &&
                     farm.crop_label === 'Coffee' &&
                     typeof activeChecklist.coffee_crop_observed === 'boolean'),
-            ) &&
-            (inspection?.photos.length ?? 0) > 0,
+        ) &&
+        (inspection?.photos.length ?? 0) > 0,
     );
     const pendingDecision = decision === null ? null : decisionCopy[decision];
 
@@ -337,13 +337,15 @@ export default function FarmVerificationShow({
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground">
-                                Start the verification session, then capture and save the GPS boundary during the field visit.
+                                Start the verification session, then capture and
+                                save the GPS boundary during the field visit.
                             </p>
                             {inProgress && (
                                 <p className="text-sm text-muted-foreground">
                                     Capture the perimeter with device GPS in the
                                     SureFarm Field Verifier mobile app. The web
-                                    map is read-only during an active field visit.
+                                    map is read-only during an active field
+                                    visit.
                                 </p>
                             )}
                         </CardContent>
@@ -390,10 +392,9 @@ export default function FarmVerificationShow({
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
                             <p className="text-sm text-muted-foreground">
-                                Starting records the declared area. A fresh
-                                GPS boundary must be captured and saved during
-                                this field visit before the result can be
-                                submitted.
+                                Starting records the declared area. A fresh GPS
+                                boundary must be captured and saved during this
+                                field visit before the result can be submitted.
                             </p>
                             {startForm.errors.verification && (
                                 <p className="text-sm text-destructive">

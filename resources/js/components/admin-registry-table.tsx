@@ -22,12 +22,18 @@ const columns: { key: string; label: string; sort?: string }[] = [
     { key: 'updated', label: 'Updated', sort: 'updated' },
 ];
 
-export function AdminRegistryTable({ registry }: { registry: RegistryPayload }) {
+export function AdminRegistryTable({
+    registry,
+}: {
+    registry: RegistryPayload;
+}) {
     const { farms, filters } = registry;
 
     function sort(column: string) {
         const direction =
-            filters.sort === column && filters.direction === 'desc' ? 'asc' : 'desc';
+            filters.sort === column && filters.direction === 'desc'
+                ? 'asc'
+                : 'desc';
 
         visitRegistry(filters, { sort: column, direction });
     }
@@ -65,9 +71,16 @@ export function AdminRegistryTable({ registry }: { registry: RegistryPayload }) 
                     <thead className="border-b bg-muted/50 text-left text-xs tracking-wide text-muted-foreground uppercase">
                         <tr>
                             {columns.map((column) => (
-                                <th key={column.key} className="px-3 py-2 font-medium whitespace-nowrap">
+                                <th
+                                    key={column.key}
+                                    className="px-3 py-2 font-medium whitespace-nowrap"
+                                >
                                     {column.sort ? (
-                                        <button type="button" className="hover:text-foreground" onClick={() => sort(column.sort!)}>
+                                        <button
+                                            type="button"
+                                            className="hover:text-foreground"
+                                            onClick={() => sort(column.sort!)}
+                                        >
                                             {column.label}
                                             {filters.sort === column.sort
                                                 ? filters.direction === 'asc'
@@ -84,42 +97,72 @@ export function AdminRegistryTable({ registry }: { registry: RegistryPayload }) 
                     </thead>
                     <tbody>
                         {farms.data.map((farm) => (
-                            <tr key={farm.id} className="border-b last:border-0">
+                            <tr
+                                key={farm.id}
+                                className="border-b last:border-0"
+                            >
                                 <td className="px-3 py-3">
-                                    <Link href={farm.farm_href} className="font-medium hover:underline">
+                                    <Link
+                                        href={farm.farm_href}
+                                        className="font-medium hover:underline"
+                                    >
                                         {farm.farm_name}
                                     </Link>
-                                    <p className="text-xs text-muted-foreground">{farm.farm_id}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {farm.farm_id}
+                                    </p>
                                 </td>
                                 <td className="px-3 py-3">
-                                    <Link href={farm.farmer_href} className="hover:underline">
+                                    <Link
+                                        href={farm.farmer_href}
+                                        className="hover:underline"
+                                    >
                                         {farm.farmer_name}
                                     </Link>
-                                    <p className="text-xs text-muted-foreground">{farm.farmer_reference}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {farm.farmer_reference}
+                                    </p>
                                 </td>
                                 <td className="px-3 py-3">{place(farm)}</td>
-                                <td className="px-3 py-3 whitespace-nowrap">{farm.crop_label}</td>
-                                <td className="px-3 py-3 tabular-nums whitespace-nowrap">
-                                    {area.format(farm.declared_area_hectares)} ha
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                    {farm.crop_label}
                                 </td>
-                                <td className="px-3 py-3 tabular-nums whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap tabular-nums">
+                                    {area.format(farm.declared_area_hectares)}{' '}
+                                    ha
+                                </td>
+                                <td className="px-3 py-3 whitespace-nowrap tabular-nums">
                                     {farm.verified_area_hectares === null
                                         ? 'Not recorded'
                                         : `${area.format(farm.verified_area_hectares)} ha`}
                                 </td>
                                 <td className="px-3 py-3">
-                                    <StatusBadge status={farm.verification_status as FarmStatus} />
+                                    <StatusBadge
+                                        status={
+                                            farm.verification_status as FarmStatus
+                                        }
+                                    />
                                 </td>
                                 <td className="px-3 py-3">
-                                    <FarmerStatusBadge status={farm.status as FarmerRecordStatus} />
+                                    <FarmerStatusBadge
+                                        status={
+                                            farm.status as FarmerRecordStatus
+                                        }
+                                    />
                                     {farm.tenure && (
-                                        <p className="mt-1 text-xs text-muted-foreground">{farm.tenure}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {farm.tenure}
+                                        </p>
                                     )}
                                 </td>
                                 <td className="px-3 py-3 whitespace-nowrap">
-                                    {farm.boundary_status === 'mapped' ? 'Saved' : 'Missing'}
+                                    {farm.boundary_status === 'mapped'
+                                        ? 'Saved'
+                                        : 'Missing'}
                                 </td>
-                                <td className="px-3 py-3 whitespace-nowrap">{farm.updated_at ?? '—'}</td>
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                    {farm.updated_at ?? '—'}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -127,12 +170,20 @@ export function AdminRegistryTable({ registry }: { registry: RegistryPayload }) 
             </div>
             <div className="flex gap-2">
                 {farms.prev_page_url && (
-                    <Link href={farms.prev_page_url} preserveScroll className="rounded-md border px-3 py-1.5 text-sm">
+                    <Link
+                        href={farms.prev_page_url}
+                        preserveScroll
+                        className="rounded-md border px-3 py-1.5 text-sm"
+                    >
                         Previous
                     </Link>
                 )}
                 {farms.next_page_url && (
-                    <Link href={farms.next_page_url} preserveScroll className="rounded-md border px-3 py-1.5 text-sm">
+                    <Link
+                        href={farms.next_page_url}
+                        preserveScroll
+                        className="rounded-md border px-3 py-1.5 text-sm"
+                    >
                         Next
                     </Link>
                 )}
@@ -142,7 +193,9 @@ export function AdminRegistryTable({ registry }: { registry: RegistryPayload }) 
 }
 
 function place(farm: RegistryFarm): string {
-    const value = [farm.barangay, farm.municipality, farm.province].filter(Boolean).join(', ');
+    const value = [farm.barangay, farm.municipality, farm.province]
+        .filter(Boolean)
+        .join(', ');
 
     return value === '' ? 'Not recorded' : value;
 }

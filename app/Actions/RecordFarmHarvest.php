@@ -62,12 +62,13 @@ class RecordFarmHarvest
                     $metadata = is_array($photoMetadata[$index] ?? null) ? $photoMetadata[$index] : [];
                     $latitude = $metadata['latitude'] ?? null;
                     $longitude = $metadata['longitude'] ?? null;
+                    $fileSize = $photo->getSize();
 
                     $harvest->photos()->create([
                         'storage_path' => $storedPaths[$index],
                         'original_name' => mb_substr($photo->getClientOriginalName(), 0, 255),
                         'mime_type' => $photo->getMimeType() ?? 'application/octet-stream',
-                        'file_size' => $photo->getSize() ?? 0,
+                        'file_size' => is_int($fileSize) ? $fileSize : 0,
                         'captured_at' => $metadata['captured_at'] ?? null,
                         'latitude' => $latitude,
                         'longitude' => $longitude,

@@ -103,12 +103,20 @@ export default function ReceiveHarvest({
                             <p className="text-sm text-muted-foreground sm:col-span-2">
                                 {harvest.farmer?.name ?? 'Farmer'} · {remaining}{' '}
                                 {harvest.unit} not yet received. The harvest
-                                quantity stays {harvest.quantity_label}. Receipts
-                                stay in {harvest.unit}; kg, tons, and bags are
-                                not converted.
+                                quantity stays {harvest.quantity_label}.
+                                Receipts stay in {harvest.unit}; kg, tons, and
+                                bags are not converted.
                             </p>
-                            <input type="hidden" name="unit" value={harvest.unit} />
-                            <input type="hidden" name="receipt_token" value={form.data.receipt_token} />
+                            <input
+                                type="hidden"
+                                name="unit"
+                                value={harvest.unit}
+                            />
+                            <input
+                                type="hidden"
+                                name="receipt_token"
+                                value={form.data.receipt_token}
+                            />
                             <div className="grid gap-2">
                                 <Label htmlFor="quantity">
                                     Quantity ({harvest.unit})
@@ -126,11 +134,17 @@ export default function ReceiveHarvest({
                                 />
                                 <InputError message={form.errors.quantity} />
                                 <InputError message={form.errors.unit} />
-                                <InputError message={form.errors.receipt_token} />
+                                <InputError
+                                    message={form.errors.receipt_token}
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="unit">Unit</Label>
-                                <Input id="unit" value={harvest.unit} readOnly />
+                                <Input
+                                    id="unit"
+                                    value={harvest.unit}
+                                    readOnly
+                                />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="processing_stage_id">

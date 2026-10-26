@@ -50,7 +50,7 @@ class FarmInsuranceController extends Controller
             'title' => 'Insurance',
             'description' => 'Crop insurance is recorded on each farm. Open a farm to use the existing insurance form.',
             'records' => $records,
-            'can_manage' => $user instanceof User && $user->canAccess(UserRole::Operations),
+            'can_manage' => $user->canAccess(UserRole::Operations),
         ]);
     }
 

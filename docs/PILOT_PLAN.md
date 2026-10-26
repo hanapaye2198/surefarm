@@ -6,13 +6,13 @@ SureFarm is not eligible for a controlled pilot that stores real farmer identity
 
 ## Why the pilot is stopped
 
-| Blocker | Class | Evidence |
-|---|---|---|
-| Database and file restore have never been executed | External infrastructure | `docs/DEPLOYMENT_RUNBOOK.md`. No backup command in the repository has been restored and checked. |
-| Financing and insurance can be overwritten | Unresolved business requirement | `loan_balance` and the insurance row are single editable records. No disbursement, repayment, or claim table exists. |
-| A published traceability page follows later edits of the farm and harvest | Pilot limitation requiring a decision | `TraceabilityJourney` reads current rows. `TraceabilityTest` expects processing history from inventory movements. A frozen snapshot is not implemented. |
-| No host has been checked for HTTPS, `APP_DEBUG=false`, secure cookies, workers, or mail | External infrastructure | Local `.env` has `APP_DEBUG=true`. Mail is the log driver. |
-| No role has completed a business acceptance session | High-priority operational blocker | Automated tests are not user sign-off. `docs/USER_ACCEPTANCE_TESTS.md` leaves every actual result blank. |
+| Blocker                                                                                 | Class                                 | Evidence                                                                                                                                                |
+| --------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database and file restore have never been executed                                      | External infrastructure               | `docs/DEPLOYMENT_RUNBOOK.md`. No backup command in the repository has been restored and checked.                                                        |
+| Financing and insurance can be overwritten                                              | Unresolved business requirement       | `loan_balance` and the insurance row are single editable records. No disbursement, repayment, or claim table exists.                                    |
+| A published traceability page follows later edits of the farm and harvest               | Pilot limitation requiring a decision | `TraceabilityJourney` reads current rows. `TraceabilityTest` expects processing history from inventory movements. A frozen snapshot is not implemented. |
+| No host has been checked for HTTPS, `APP_DEBUG=false`, secure cookies, workers, or mail | External infrastructure               | Local `.env` has `APP_DEBUG=true`. Mail is the log driver.                                                                                              |
+| No role has completed a business acceptance session                                     | High-priority operational blocker     | Automated tests are not user sign-off. `docs/USER_ACCEPTANCE_TESTS.md` leaves every actual result blank.                                                |
 
 Identity storage was a critical blocker and is fixed in this repository: `government_id` and `account_number` are encrypted with `APP_KEY`. That fix does not authorize a pilot. The key has not been backed up in a restore drill. Losing it makes those fields unreadable.
 

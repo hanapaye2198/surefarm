@@ -24,7 +24,10 @@ export default function EditCooperative({
         <>
             <Head title={`Edit ${cooperative.name}`} />
             <div className="flex flex-col gap-5 sm:gap-6">
-                <PageHeader title="Edit cooperative" description="Name and code can change. Membership history stays with the cooperative." />
+                <PageHeader
+                    title="Edit cooperative"
+                    description="Name and code can change. Membership history stays with the cooperative."
+                />
                 <form onSubmit={submit}>
                     <Card className="shadow-sm">
                         <CardHeader>
@@ -33,17 +36,35 @@ export default function EditCooperative({
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
-                                <Input id="name" value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />
+                                <Input
+                                    id="name"
+                                    value={form.data.name}
+                                    onChange={(event) =>
+                                        form.setData('name', event.target.value)
+                                    }
+                                />
                                 <InputError message={form.errors.name} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="code">Code</Label>
-                                <Input id="code" value={form.data.code} onChange={(event) => form.setData('code', event.target.value)} />
+                                <Input
+                                    id="code"
+                                    value={form.data.code}
+                                    onChange={(event) =>
+                                        form.setData('code', event.target.value)
+                                    }
+                                />
                                 <InputError message={form.errors.code} />
                             </div>
                         </CardContent>
                     </Card>
-                    <Button type="submit" className="mt-4" disabled={form.processing}>Save changes</Button>
+                    <Button
+                        type="submit"
+                        className="mt-4"
+                        disabled={form.processing}
+                    >
+                        Save changes
+                    </Button>
                 </form>
             </div>
         </>
@@ -51,7 +72,5 @@ export default function EditCooperative({
 }
 
 EditCooperative.layout = {
-    breadcrumbs: [
-        { title: 'Cooperatives', href: cooperativesIndex() },
-    ],
+    breadcrumbs: [{ title: 'Cooperatives', href: cooperativesIndex() }],
 };

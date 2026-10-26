@@ -105,6 +105,12 @@ class DashboardController extends Controller
 
             return Inertia::render('dashboard', [
                 'mobile_dashboard_mode' => 'verifier_dashboard',
+                'workspace' => $this->workspace($user, [
+                    'pending_verification' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Pending)->count(),
+                    'in_progress' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::InProgress)->count(),
+                    'needs_review' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::NeedsReview)->count(),
+                    'failed' => (clone $assignedFarms)->where('verification_status', FarmVerificationStatus::Failed)->count(),
+                ]),
                 'summary' => [
                     'assigned_farms' => (clone $assignedFarms)->count(),
                     'assigned_today' => $scheduledToday,
@@ -131,6 +137,7 @@ class DashboardController extends Controller
                 'assigned_farms_preview' => $assignedPreview,
                 'today_assignments' => $todayAssignments,
                 'assigned_farms_map' => $assignedMapFarms,
+                'locations' => $assignedMapFarms,
                 'google_maps_api_key' => config('services.google_maps.browser_api_key'),
                 'recent_activities' => [],
                 'recent_harvests' => [],

@@ -245,33 +245,68 @@ export default function InventoryShow({
                             </p>
                         ) : (
                             movements.map((movement) => (
-                                <div key={movement.id} className="border-b pb-4 last:border-0 last:pb-0">
-                                    <p className="text-sm font-medium">{movement.movement_date_long}</p>
-                                    <p className="text-sm">{movement.summary}</p>
-                                    {movement.notes && <p className="text-sm text-muted-foreground">{movement.notes}</p>}
+                                <div
+                                    key={movement.id}
+                                    className="border-b pb-4 last:border-0 last:pb-0"
+                                >
+                                    <p className="text-sm font-medium">
+                                        {movement.movement_date_long}
+                                    </p>
+                                    <p className="text-sm">
+                                        {movement.summary}
+                                    </p>
+                                    {movement.notes && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {movement.notes}
+                                        </p>
+                                    )}
                                     {movement.reversible && (
                                         <Dialog>
                                             <DialogTrigger asChild>
-                                                <Button type="button" size="sm" variant="outline" className="mt-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="mt-2"
+                                                >
                                                     Reverse receipt
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent>
-                                                <DialogTitle>Reverse this receipt?</DialogTitle>
+                                                <DialogTitle>
+                                                    Reverse this receipt?
+                                                </DialogTitle>
                                                 <DialogDescription>
-                                                    The original receipt stays in the ledger. A reversal movement returns the quantity to the harvest and reduces this stock balance.
+                                                    The original receipt stays
+                                                    in the ledger. A reversal
+                                                    movement returns the
+                                                    quantity to the harvest and
+                                                    reduces this stock balance.
                                                 </DialogDescription>
                                                 <DialogFooter>
                                                     <DialogClose asChild>
-                                                        <Button type="button" variant="outline">Cancel</Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            Cancel
+                                                        </Button>
                                                     </DialogClose>
                                                     <Button
                                                         type="button"
                                                         variant="destructive"
-                                                        onClick={() => router.post(reverseReceipt.url({
-                                                            inventory: inventory.id,
-                                                            movement: movement.id,
-                                                        }))}
+                                                        onClick={() =>
+                                                            router.post(
+                                                                reverseReceipt.url(
+                                                                    {
+                                                                        inventory:
+                                                                            inventory.id,
+                                                                        movement:
+                                                                            movement.id,
+                                                                    },
+                                                                ),
+                                                            )
+                                                        }
                                                     >
                                                         Reverse receipt
                                                     </Button>

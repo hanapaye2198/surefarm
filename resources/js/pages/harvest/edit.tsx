@@ -85,7 +85,9 @@ export default function EditHarvest({
                         estimated_green_bean_quantity_kg:
                             harvest.estimated_green_bean_quantity_kg === null
                                 ? ''
-                                : String(harvest.estimated_green_bean_quantity_kg),
+                                : String(
+                                      harvest.estimated_green_bean_quantity_kg,
+                                  ),
                         photos: [],
                     }}
                 />

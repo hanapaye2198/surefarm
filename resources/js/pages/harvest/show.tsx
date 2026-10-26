@@ -122,7 +122,8 @@ export default function HarvestShow({
                             <Detail
                                 label="Estimated green bean quantity"
                                 value={
-                                    harvest.estimated_green_bean_quantity_kg === null
+                                    harvest.estimated_green_bean_quantity_kg ===
+                                    null
                                         ? '—'
                                         : `${harvest.estimated_green_bean_quantity_kg} kg`
                                 }
@@ -186,7 +187,13 @@ export default function HarvestShow({
                                             {photo.latitude !== null &&
                                                 photo.longitude !== null && (
                                                     <span>
-                                                        {photo.latitude.toFixed(6)}, {photo.longitude.toFixed(6)}
+                                                        {photo.latitude.toFixed(
+                                                            6,
+                                                        )}
+                                                        ,{' '}
+                                                        {photo.longitude.toFixed(
+                                                            6,
+                                                        )}
                                                     </span>
                                                 )}
                                         </div>

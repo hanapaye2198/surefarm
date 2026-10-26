@@ -216,7 +216,9 @@ export default function EditFarmerDetails({
                                 <Field
                                     label="Account Number"
                                     htmlFor="account_number"
-                                    required={farmer.account_number_hint === null}
+                                    required={
+                                        farmer.account_number_hint === null
+                                    }
                                     error={form.errors.account_number}
                                 >
                                     <Input

@@ -14,6 +14,8 @@ use Illuminate\Support\Carbon;
  * @property AccessEventAction $action
  * @property array<string, scalar|null>|null $metadata
  * @property Carbon $created_at
+ * @property-read User|null $actor
+ * @property-read User|null $actor
  */
 #[Fillable([
     'actor_id',

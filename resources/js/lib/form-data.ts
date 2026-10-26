@@ -1,5 +1,9 @@
-export function formString(formData: FormData, key: string): string {
+export function formString(
+    formData: FormData,
+    key: string,
+    fallback = '',
+): string {
     const value = formData.get(key);
 
-    return typeof value === 'string' ? value : '';
+    return typeof value === 'string' ? value : fallback;
 }

@@ -6,27 +6,27 @@ Stack checked in the repo: PHP `^8.3` (this machine: 8.3.33), Laravel `^13.17`, 
 
 ## Baseline before this batch
 
-| Check | Result |
-|---|---|
-| `php artisan test --compact` | Passed. 241 tests, 2,246 assertions. |
-| `npx tsc --noEmit` | Passed. |
-| `npm run build` | Passed after the batch. The frontend was not changed. |
+| Check                                  | Result                                                                                                                                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `php artisan test --compact`           | Passed. 241 tests, 2,246 assertions.                                                                                                                                                                 |
+| `npx tsc --noEmit`                     | Passed.                                                                                                                                                                                              |
+| `npm run build`                        | Passed after the batch. The frontend was not changed.                                                                                                                                                |
 | `vendor/bin/phpstan analyse` (level 7) | Failed. 363 errors. Pre-existing. Dominated by inventory quantity `float` versus decimal `string`, `nullsafe.neverNull`, and `list` versus `array` return types. The coverage fix is not among them. |
-| `npm run check` (oxlint) | Not run. Application Control on this Windows machine blocks the native binding. |
-| Browser end-to-end | Not configured. |
-| `composer audit` / `npm audit` | Not run. |
+| `npm run check` (oxlint)               | Not run. Application Control on this Windows machine blocks the native binding.                                                                                                                      |
+| Browser end-to-end                     | Not configured.                                                                                                                                                                                      |
+| `composer audit` / `npm audit`         | Not run.                                                                                                                                                                                             |
 
 ## Workflow status
 
-| Journey | Status | What was executed |
-|---|---|---|
-| A. Farmer registration | **Pass** | `FarmerRegistrationTest`, `FarmerProfileDetailsTest`, `AccountAccessTest`. Create, validation, generated id, cooperative enroll, profile, list. |
-| B. Farm registration and verification | **Pass** | `FarmRegistrationTest`, `FarmBoundaryTest`, `FarmVerificationTest`, `RecordAccessTest`, `DashboardTest`. Boundary validation, assignment, history kept, operations cannot approve, dashboard queue counts active in-scope farms. |
-| C. Harvest and inventory | **Pass** | `ProductionHarvestTest`, `InventoryIntegrityTest`, `InventoryProcessingTest`. Unit match, cent arithmetic, token idempotency, rollback, reversal, reconciliation. |
-| D. Traceability | **Fail** | Lot creation, stock check, public token, and private-field hiding pass in `TraceabilityTest`. The public and internal pages read current source rows. A later edit of the farm or harvest changes the published story. No snapshot table exists. |
-| E. Financial and insurance records | **Not implemented** | One mutable insurance row and one mutable financing row per save (`FarmCoverageTest`). No disbursement, repayment, claim, or correction ledger. Outstanding balance is the stored `loan_balance`. |
-| F. Documents and reports | **Not implemented** | No document module and no report export. Farmer photos and farm drone images are private files served after scoped route binding. Crop, finance, insurance, logistics, and reports navigation items render `ModulePlaceholderController` and say they are a future release (`ModulePlaceholderTest`). |
-| G. Farmer self-service | **Pass** | A linked farmer opens their own farm and receives 404 for another farmer's farm (`RecordAccessTest`, `FarmCoverageTest`). Farmers cannot register farmers, verify farms, or post financing. Documents, claims, and payouts do not exist. |
+| Journey                               | Status              | What was executed                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A. Farmer registration                | **Pass**            | `FarmerRegistrationTest`, `FarmerProfileDetailsTest`, `AccountAccessTest`. Create, validation, generated id, cooperative enroll, profile, list.                                                                                                                                                       |
+| B. Farm registration and verification | **Pass**            | `FarmRegistrationTest`, `FarmBoundaryTest`, `FarmVerificationTest`, `RecordAccessTest`, `DashboardTest`. Boundary validation, assignment, history kept, operations cannot approve, dashboard queue counts active in-scope farms.                                                                      |
+| C. Harvest and inventory              | **Pass**            | `ProductionHarvestTest`, `InventoryIntegrityTest`, `InventoryProcessingTest`. Unit match, cent arithmetic, token idempotency, rollback, reversal, reconciliation.                                                                                                                                     |
+| D. Traceability                       | **Fail**            | Lot creation, stock check, public token, and private-field hiding pass in `TraceabilityTest`. The public and internal pages read current source rows. A later edit of the farm or harvest changes the published story. No snapshot table exists.                                                      |
+| E. Financial and insurance records    | **Not implemented** | One mutable insurance row and one mutable financing row per save (`FarmCoverageTest`). No disbursement, repayment, claim, or correction ledger. Outstanding balance is the stored `loan_balance`.                                                                                                     |
+| F. Documents and reports              | **Not implemented** | No document module and no report export. Farmer photos and farm drone images are private files served after scoped route binding. Crop, finance, insurance, logistics, and reports navigation items render `ModulePlaceholderController` and say they are a future release (`ModulePlaceholderTest`). |
+| G. Farmer self-service                | **Pass**            | A linked farmer opens their own farm and receives 404 for another farmer's farm (`RecordAccessTest`, `FarmCoverageTest`). Farmers cannot register farmers, verify farms, or post financing. Documents, claims, and payouts do not exist.                                                              |
 
 Growing seasons, warehouses, transfers, shipments, and notification preferences are not in the schema. The only queued notification found is the user invitation mail.
 
@@ -50,11 +50,11 @@ Not retested as new cases this batch: invitation GET throttling (still absent; P
 
 ## Navigation
 
-| Item | Destination | Notes |
-|---|---|---|
-| Dashboard, Farmers, Farms, Verification, Cooperatives, Activities, Production, Harvest, Inventory, Processing, Traceability, Users, Activity types, Settings | Real routes | Role lists in `app-sidebar.tsx`. Administrators see every item because `userCanAccess` returns true for `admin`. |
-| Crop Management, Finance, Insurance, Logistics & Export, Reports | Placeholder page | Visible, and the page says the module is a future release. Farm-level insurance and financing forms still exist on the farm. |
-| Cooperative officer | Farmers, Farms, Cooperatives, Dashboard | Activities, harvest, inventory, and traceability routes allow the role, and the sidebar does not list them. |
+| Item                                                                                                                                                         | Destination                             | Notes                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard, Farmers, Farms, Verification, Cooperatives, Activities, Production, Harvest, Inventory, Processing, Traceability, Users, Activity types, Settings | Real routes                             | Role lists in `app-sidebar.tsx`. Administrators see every item because `userCanAccess` returns true for `admin`.             |
+| Crop Management, Finance, Insurance, Logistics & Export, Reports                                                                                             | Placeholder page                        | Visible, and the page says the module is a future release. Farm-level insurance and financing forms still exist on the farm. |
+| Cooperative officer                                                                                                                                          | Farmers, Farms, Cooperatives, Dashboard | Activities, harvest, inventory, and traceability routes allow the role, and the sidebar does not list them.                  |
 
 ## Data consistency
 
@@ -68,16 +68,16 @@ No query timings were captured. The dashboard still loads every in-scope verifie
 
 ## Checks after the fix
 
-| Command | Result |
-|---|---|
-| `vendor/bin/pint --dirty --format agent` | Passed. |
-| `php artisan test --compact tests/Feature/FarmCoverageTest.php` | Passed. 5 tests, 178 assertions. |
-| `php artisan test --compact` | Passed. 241 tests, 2,302 assertions. |
-| `npx tsc --noEmit` | Passed before the PHP-only change. |
-| `npm run build` | Passed. |
-| PHPStan level 7 | Failed, 363 errors, pre-existing. |
-| Browser end-to-end | Not run. |
-| Migrations | No migration in this batch. |
+| Command                                                         | Result                               |
+| --------------------------------------------------------------- | ------------------------------------ |
+| `vendor/bin/pint --dirty --format agent`                        | Passed.                              |
+| `php artisan test --compact tests/Feature/FarmCoverageTest.php` | Passed. 5 tests, 178 assertions.     |
+| `php artisan test --compact`                                    | Passed. 241 tests, 2,302 assertions. |
+| `npx tsc --noEmit`                                              | Passed before the PHP-only change.   |
+| `npm run build`                                                 | Passed.                              |
+| PHPStan level 7                                                 | Failed, 363 errors, pre-existing.    |
+| Browser end-to-end                                              | Not run.                             |
+| Migrations                                                      | No migration in this batch.          |
 
 ## Release blockers that remain
 

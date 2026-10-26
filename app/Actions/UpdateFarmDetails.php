@@ -25,8 +25,7 @@ class UpdateFarmDetails
         array $data,
         ?UploadedFile $droneImage = null,
         ?User $actor = null,
-    ): Farm
-    {
+    ): Farm {
         $storedPath = null;
         $previousImage = null;
 
@@ -125,7 +124,7 @@ class UpdateFarmDetails
             return true;
         }
 
-        $crop = $farm->crop_type?->value;
+        $crop = $farm->crop_type->value;
         if ($crop !== ($data['crop_type'] ?? null)) {
             return true;
         }

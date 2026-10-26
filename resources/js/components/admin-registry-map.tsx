@@ -23,7 +23,10 @@ function toLatLng([latitude, longitude]: [number, number]): GoogleLatLng {
     return { lat: latitude, lng: longitude };
 }
 
-function featurePosition(feature: MapFeature, layer: string): GoogleLatLng | null {
+function featurePosition(
+    feature: MapFeature,
+    layer: string,
+): GoogleLatLng | null {
     const ring = positions(feature);
     const pointsOnly = layer === 'missing';
 
@@ -38,8 +41,12 @@ function featurePosition(feature: MapFeature, layer: string): GoogleLatLng | nul
         }
 
         return {
-            lat: unique.reduce((sum, point) => sum + point[0], 0) / unique.length,
-            lng: unique.reduce((sum, point) => sum + point[1], 0) / unique.length,
+            lat:
+                unique.reduce((sum, point) => sum + point[0], 0) /
+                unique.length,
+            lng:
+                unique.reduce((sum, point) => sum + point[1], 0) /
+                unique.length,
         };
     }
 
@@ -92,34 +99,54 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
     const { map, options, filters } = registry;
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [mapType, setMapType] = useState<GoogleMapType>('hybrid');
-    const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'missing' | 'failed'>('loading');
+    const [mapStatus, setMapStatus] = useState<
+        'loading' | 'ready' | 'missing' | 'failed'
+    >('loading');
     const mapHost = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<GoogleMapInstance | null>(null);
     const overlays = useRef<GoogleOverlay[]>([]);
     const infoWindow = useRef<GoogleInfoWindow | null>(null);
-    const bubbleAnchor = useRef<{ id: number; position: GoogleLatLng } | null>(null);
+    const bubbleAnchor = useRef<{ id: number; position: GoogleLatLng } | null>(
+        null,
+    );
     const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
-    const selected = map.features.find((feature) => feature.id === selectedId) ?? null;
-    const drawable = useMemo(() => map.features.filter((feature) => {
-        const hasRing = (feature.boundary?.coordinates[0]?.length ?? 0) > 2;
-        const hasPoint = feature.latitude !== null && feature.longitude !== null;
-        const pointsOnly = map.layer === 'missing';
+    const selected =
+        map.features.find((feature) => feature.id === selectedId) ?? null;
+    const drawable = useMemo(
+        () =>
+            map.features.filter((feature) => {
+                const hasRing =
+                    (feature.boundary?.coordinates[0]?.length ?? 0) > 2;
+                const hasPoint =
+                    feature.latitude !== null && feature.longitude !== null;
+                const pointsOnly = map.layer === 'missing';
 
-        return pointsOnly ? hasPoint : hasRing || hasPoint;
-    }), [map.features, map.layer]);
-    const focus = useMemo(() => drawable.flatMap((feature) => {
-        const ring = positions(feature);
+                return pointsOnly ? hasPoint : hasRing || hasPoint;
+            }),
+        [map.features, map.layer],
+    );
+    const focus = useMemo(
+        () =>
+            drawable.flatMap((feature) => {
+                const ring = positions(feature);
 
-        if (ring.length > 0 && map.layer !== 'missing') {
-            return ring;
-        }
+                if (ring.length > 0 && map.layer !== 'missing') {
+                    return ring;
+                }
 
-        if (feature.latitude !== null && feature.longitude !== null) {
-            return [[feature.latitude, feature.longitude] as [number, number]];
-        }
+                if (feature.latitude !== null && feature.longitude !== null) {
+                    return [
+                        [feature.latitude, feature.longitude] as [
+                            number,
+                            number,
+                        ],
+                    ];
+                }
 
-        return [];
-    }), [drawable, map.layer]);
+                return [];
+            }),
+        [drawable, map.layer],
+    );
 
     useEffect(() => {
         const element = mapHost.current;
@@ -139,7 +166,11 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
 
         loadGoogleMaps(googleApiKey)
             .then(() => {
-                if (cancelled || mapInstance.current !== null || !window.google?.maps) {
+                if (
+                    cancelled ||
+                    mapInstance.current !== null ||
+                    !window.google?.maps
+                ) {
                     return;
                 }
 
@@ -209,7 +240,9 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     clickable: true,
                 });
                 polygon.addListener('click', (event) => {
-                    const position = eventPosition(event) ?? featurePosition(feature, map.layer);
+                    const position =
+                        eventPosition(event) ??
+                        featurePosition(feature, map.layer);
 
                     if (position !== null) {
                         bubbleAnchor.current = { id: feature.id, position };
@@ -244,22 +277,26 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                 }
 
                 if (feature.status === 'inactive') {
-                    overlays.current.push(new maps.Polyline({
-                        map: instance,
-                        path,
-                        strokeOpacity: 0,
-                        icons: [{
-                            icon: {
-                                path: 'M 0,-1 0,1',
-                                strokeOpacity: 1,
-                                strokeColor: color,
-                                scale: 2,
-                            },
-                            offset: '0',
-                            repeat: '10px',
-                        }],
-                        clickable: false,
-                    }));
+                    overlays.current.push(
+                        new maps.Polyline({
+                            map: instance,
+                            path,
+                            strokeOpacity: 0,
+                            icons: [
+                                {
+                                    icon: {
+                                        path: 'M 0,-1 0,1',
+                                        strokeOpacity: 1,
+                                        strokeColor: color,
+                                        scale: 2,
+                                    },
+                                    offset: '0',
+                                    repeat: '10px',
+                                },
+                            ],
+                            clickable: false,
+                        }),
+                    );
                 }
 
                 return;
@@ -286,7 +323,10 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                 },
             });
             marker.addListener('click', (event) => {
-                const position = eventPosition(event) ?? { lat: latitude, lng: longitude };
+                const position = eventPosition(event) ?? {
+                    lat: latitude,
+                    lng: longitude,
+                };
                 bubbleAnchor.current = { id: feature.id, position };
                 openFarmBubble(feature, position);
                 setSelectedId(feature.id);
@@ -323,9 +363,10 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
         }
 
         const stored = bubbleAnchor.current;
-        const position = stored?.id === selected.id
-            ? stored.position
-            : featurePosition(selected, map.layer);
+        const position =
+            stored?.id === selected.id
+                ? stored.position
+                : featurePosition(selected, map.layer);
 
         if (position === null) {
             popup.close();
@@ -351,14 +392,20 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
 
     return (
         <div className="grid gap-4">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Map layer">
+            <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Map layer"
+            >
                 {options.layers.map((layer) => (
                     <button
                         key={layer.value}
                         type="button"
                         aria-pressed={map.layer === layer.value}
                         className={`rounded-full border px-3 py-1 text-xs font-medium ${map.layer === layer.value ? 'border-primary bg-primary text-primary-foreground' : 'bg-background'}`}
-                        onClick={() => visitRegistry(filters, { layer: layer.value })}
+                        onClick={() =>
+                            visitRegistry(filters, { layer: layer.value })
+                        }
                     >
                         {layer.label}
                     </button>
@@ -396,9 +443,14 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                 <li>Dashed outline: inactive farm</li>
             </ul>
             <p className="text-xs text-muted-foreground">
-                Each farm polygon has its own color. {map.drawn} of {map.matched} farms in this layer are loaded.
-                {map.truncated ? ' Narrow the filters to see more than the first 400.' : ''}
-                {map.undrawn > 0 ? ` ${map.undrawn} filtered farms are outside this layer and remain in the table.` : ''}
+                Each farm polygon has its own color. {map.drawn} of{' '}
+                {map.matched} farms in this layer are loaded.
+                {map.truncated
+                    ? ' Narrow the filters to see more than the first 400.'
+                    : ''}
+                {map.undrawn > 0
+                    ? ` ${map.undrawn} filtered farms are outside this layer and remain in the table.`
+                    : ''}
             </p>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
                 <div className="relative h-[28rem] overflow-hidden rounded-xl border sm:h-[36rem]">
@@ -415,16 +467,28 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     )}
                     {mapStatus === 'ready' && (
                         <div className="absolute top-2 right-2 z-[1] inline-flex overflow-hidden rounded-md border bg-background">
-                            <button type="button" className={`px-2 py-1 text-xs ${mapType === 'roadmap' ? 'bg-primary text-primary-foreground' : ''}`} onClick={() => setMapType('roadmap')}>
+                            <button
+                                type="button"
+                                className={`px-2 py-1 text-xs ${mapType === 'roadmap' ? 'bg-primary text-primary-foreground' : ''}`}
+                                onClick={() => setMapType('roadmap')}
+                            >
                                 Road
                             </button>
-                            <button type="button" className={`px-2 py-1 text-xs ${mapType === 'hybrid' ? 'bg-primary text-primary-foreground' : ''}`} onClick={() => setMapType('hybrid')}>
+                            <button
+                                type="button"
+                                className={`px-2 py-1 text-xs ${mapType === 'hybrid' ? 'bg-primary text-primary-foreground' : ''}`}
+                                onClick={() => setMapType('hybrid')}
+                            >
                                 Satellite
                             </button>
                         </div>
                     )}
                 </div>
-                <FarmPanel feature={selected} features={map.features} onSelect={setSelectedId} />
+                <FarmPanel
+                    feature={selected}
+                    features={map.features}
+                    onSelect={setSelectedId}
+                />
             </div>
         </div>
     );
@@ -443,21 +507,35 @@ function FarmPanel({
         return (
             <div className="grid content-start gap-2">
                 <p className="text-sm font-medium">Farms in this layer</p>
-                <ul className="app-scroll grid max-h-80 gap-2 overflow-y-auto sm:max-h-[24rem]">
+                <ul className="grid max-h-80 app-scroll gap-2 overflow-y-auto sm:max-h-[24rem]">
                     {features.length === 0 && (
-                        <li className="text-sm text-muted-foreground">Nothing in this layer matches the filters.</li>
+                        <li className="text-sm text-muted-foreground">
+                            Nothing in this layer matches the filters.
+                        </li>
                     )}
                     {features.map((item) => (
                         <li key={item.id}>
-                            <button type="button" className="flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted/60" onClick={() => onSelect(item.id)}>
+                            <button
+                                type="button"
+                                className="flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted/60"
+                                onClick={() => onSelect(item.id)}
+                            >
                                 <span
                                     className="mt-1 size-2.5 shrink-0 rounded-full"
-                                    style={{ backgroundColor: farmFieldColor(item.id) }}
+                                    style={{
+                                        backgroundColor: farmFieldColor(item.id),
+                                    }}
                                 />
                                 <span className="min-w-0">
-                                    <span className="block font-medium">{item.farm_name}</span>
+                                    <span className="block font-medium">
+                                        {item.farm_name}
+                                    </span>
                                     <span className="text-xs text-muted-foreground">
-                                        {item.farm_id} · {item.verification_label} · {item.boundary_status === 'mapped' ? 'Boundary saved' : 'No boundary'}
+                                        {item.farm_id} ·{' '}
+                                        {item.verification_label} ·{' '}
+                                        {item.boundary_status === 'mapped'
+                                            ? 'Boundary saved'
+                                            : 'No boundary'}
                                     </span>
                                 </span>
                             </button>
@@ -468,7 +546,9 @@ function FarmPanel({
         );
     }
 
-    const place = [feature.barangay, feature.municipality, feature.province].filter(Boolean).join(', ');
+    const place = [feature.barangay, feature.municipality, feature.province]
+        .filter(Boolean)
+        .join(', ');
 
     return (
         <div className="grid content-start gap-3 rounded-xl border p-3">
@@ -479,25 +559,77 @@ function FarmPanel({
                 />
                 <div>
                     <p className="text-sm font-medium">{feature.farm_name}</p>
-                    <p className="text-xs text-muted-foreground">{feature.farm_id}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {feature.farm_id}
+                    </p>
                 </div>
             </div>
             <dl className="grid gap-2 text-sm">
-                <Detail label="Registered farmer" value={`${feature.farmer_name} (${feature.farmer_reference})`} />
+                <Detail
+                    label="Registered farmer"
+                    value={`${feature.farmer_name} (${feature.farmer_reference})`}
+                />
                 <Detail label="Location" value={place || 'Not recorded'} />
-                <Detail label="Declared area" value={`${feature.declared_area_hectares.toFixed(2)} ha`} />
-                <Detail label="GPS measured area" value={feature.measured_area_hectares === null ? 'Not recorded' : `${feature.measured_area_hectares.toFixed(2)} ha`} />
-                <Detail label="Verified area" value={feature.verified_area_hectares === null ? 'Not recorded' : `${feature.verified_area_hectares.toFixed(2)} ha`} />
-                <Detail label="Verification" value={feature.verification_label} />
+                <Detail
+                    label="Declared area"
+                    value={`${feature.declared_area_hectares.toFixed(2)} ha`}
+                />
+                <Detail
+                    label="GPS measured area"
+                    value={
+                        feature.measured_area_hectares === null
+                            ? 'Not recorded'
+                            : `${feature.measured_area_hectares.toFixed(2)} ha`
+                    }
+                />
+                <Detail
+                    label="Verified area"
+                    value={
+                        feature.verified_area_hectares === null
+                            ? 'Not recorded'
+                            : `${feature.verified_area_hectares.toFixed(2)} ha`
+                    }
+                />
+                <Detail
+                    label="Verification"
+                    value={feature.verification_label}
+                />
                 <Detail label="Farm status" value={feature.status_label} />
-                <Detail label="Boundary" value={feature.boundary_status === 'mapped' ? 'Saved polygon' : 'No saved polygon'} />
-                <Detail label="Recorded tenure" value={feature.tenure ?? 'Not recorded'} />
-                <Detail label="Updated" value={feature.updated_at ?? 'Not recorded'} />
+                <Detail
+                    label="Boundary"
+                    value={
+                        feature.boundary_status === 'mapped'
+                            ? 'Saved polygon'
+                            : 'No saved polygon'
+                    }
+                />
+                <Detail
+                    label="Recorded tenure"
+                    value={feature.tenure ?? 'Not recorded'}
+                />
+                <Detail
+                    label="Updated"
+                    value={feature.updated_at ?? 'Not recorded'}
+                />
             </dl>
             <div className="flex flex-wrap gap-2">
-                <Link href={feature.farm_href} className="text-sm font-medium text-primary hover:underline">Open farm</Link>
-                <Link href={feature.farmer_href} className="text-sm font-medium text-primary hover:underline">Open farmer</Link>
-                <button type="button" className="text-sm text-muted-foreground hover:underline" onClick={() => onSelect(null)}>
+                <Link
+                    href={feature.farm_href}
+                    className="text-sm font-medium text-primary hover:underline"
+                >
+                    Open farm
+                </Link>
+                <Link
+                    href={feature.farmer_href}
+                    className="text-sm font-medium text-primary hover:underline"
+                >
+                    Open farmer
+                </Link>
+                <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:underline"
+                    onClick={() => onSelect(null)}
+                >
                     Back to list
                 </button>
             </div>

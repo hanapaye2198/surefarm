@@ -188,10 +188,9 @@ class DecideFarmVerification
                 $savedBoundary = $locked->boundary;
                 if (
                     $savedBoundary !== null
-                    && is_array($open->boundary_geojson)
                     && $savedBoundary->boundary_geojson === $open->boundary_geojson
                 ) {
-                    $previous = is_array($open->previous_boundary_geojson)
+                    $previous = $open->previous_boundary_geojson !== null
                         ? [
                             'boundary_geojson' => $open->previous_boundary_geojson,
                             'gps_point_accuracies' => $open->previous_gps_point_accuracies,
@@ -200,7 +199,7 @@ class DecideFarmVerification
                             'gps_measured_area_hectares' => $open->previous_measured_area_hectares,
                             'captured_at' => $open->previous_boundary_captured_at,
                         ]
-                        : (is_array($lastVerified?->boundary_geojson)
+                        : ($lastVerified?->boundary_geojson !== null
                             ? [
                                 'boundary_geojson' => $lastVerified->boundary_geojson,
                                 'gps_point_accuracies' => $lastVerified->gps_point_accuracies,

@@ -48,6 +48,8 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $captureMetadataRequired = $this->isMobileWorkflow();
+
         return [
             'boundary_revision' => ['required', 'integer', 'min:1'],
             'farm_exists' => ['required', 'boolean'],
@@ -58,9 +60,9 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
             'farmer_or_representative_met' => ['required', 'boolean'],
             'evidence_type' => ['required', 'string', 'in:farm_entrance,crop_plants,coffee_plants,farm_boundary,general_farm_view,other'],
             'evidence_photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
-            'captured_at' => ['nullable', 'date'],
+            'latitude' => [$captureMetadataRequired ? 'required' : 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => [$captureMetadataRequired ? 'required' : 'nullable', 'numeric', 'between:-180,180'],
+            'captured_at' => [$captureMetadataRequired ? 'required' : 'nullable', 'date'],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -68,5 +70,19 @@ class StoreFarmVerificationInspectionRequest extends FormRequest
     public function isMobileWorkflow(): bool
     {
         return $this->is('api/mobile/*');
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        if (! $this->isMobileWorkflow()) {
+            return [];
+        }
+
+        return [
+            'latitude.required' => 'Capture verification evidence with device location enabled.',
+            'longitude.required' => 'Capture verification evidence with device location enabled.',
+            'captured_at.required' => 'Capture verification evidence in the mobile app so its capture time can be recorded.',
+        ];
     }
 }

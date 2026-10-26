@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'farm_id',
@@ -48,7 +49,7 @@ class FarmAreaDeclaration extends Model
             'declared_area_hectares' => (float) $this->declared_area_hectares,
             'event_type' => $this->event_type,
             'recorded_by' => $this->recorder?->name,
-            'recorded_at' => $this->recorded_at?->format('M j, Y g:i A'),
+            'recorded_at' => Carbon::parse($this->recorded_at)->format('M j, Y g:i A'),
         ];
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\FarmVerificationStatus;
 use App\FarmVerificationResult;
+use App\FarmVerificationStatus;
 use App\Http\Requests\DestroyFarmBoundaryRequest;
 use App\Http\Requests\SaveFarmBoundaryRequest;
 use App\Models\Farm;

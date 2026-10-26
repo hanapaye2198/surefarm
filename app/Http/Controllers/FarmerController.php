@@ -26,6 +26,7 @@ use App\Services\TraceabilitySummary;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -135,7 +136,7 @@ class FarmerController extends Controller
                 'full_name' => $farmer->fullName(),
                 'suffix' => $farmer->suffix,
                 'user_id' => $farmer->user_id === null ? '' : (string) $farmer->user_id,
-                'date_of_birth' => $farmer->date_of_birth?->format('Y-m-d') ?? '',
+                'date_of_birth' => $this->formatDate($farmer->date_of_birth, 'Y-m-d') ?? '',
                 'government_id' => $farmer->government_id ?? '',
                 'sitio_purok_code' => $farmer->sitio_purok_code ?? '',
                 'barangay_code' => $farmer->barangay_code ?? '',
@@ -178,9 +179,22 @@ class FarmerController extends Controller
     {
         $viewer = request()->user();
         $viewer = $viewer instanceof User ? $viewer : null;
+        if ($viewer?->role === UserRole::Farmer) {
+            abort_unless((int) $farmer->user_id === (int) $viewer->id, 404);
+        }
+
+        $isLinkedFarmer = $viewer instanceof User
+            && ! $viewer->isSuspended()
+            && $viewer->role === UserRole::Farmer
+            && (int) $farmer->user_id === (int) $viewer->id;
         $canViewSensitiveDetails = $viewer instanceof User
             && ! $viewer->isSuspended()
-            && $viewer->canAccess(UserRole::Operations);
+            && ($viewer->canAccess(UserRole::Operations) || $isLinkedFarmer);
+        $canViewPersonalDetails = $canViewSensitiveDetails
+            || ($viewer instanceof User
+                && ! $viewer->isSuspended()
+                && $viewer->role === UserRole::Farmer
+                && (int) $farmer->user_id === (int) $viewer->id);
 
         $farmer->load([
             'spouse',
@@ -204,22 +218,22 @@ class FarmerController extends Controller
                 'middle_name' => $farmer->middle_name,
                 'last_name' => $farmer->last_name,
                 'suffix' => $farmer->suffix,
-                'sitio_purok_code' => $farmer->sitio_purok_code,
-                'barangay_code' => $farmer->barangay_code,
-                'lgu_code' => $farmer->lgu_code,
-                'security_control_code' => $farmer->security_control_code,
-                'date_of_birth' => $farmer->date_of_birth?->format('F j, Y'),
+                'can_view_personal_details' => $canViewPersonalDetails,
+                'can_view_sensitive_details' => $canViewSensitiveDetails,
+                'date_of_birth' => $canViewPersonalDetails && $farmer->date_of_birth !== null
+                    ? $this->formatDate($farmer->date_of_birth, 'F j, Y')
+                    : null,
                 'government_id' => $canViewSensitiveDetails ? $farmer->government_id : null,
-                'address' => $farmer->addressLabel(),
-                'photo_url' => $farmer->photo_path !== null
+                'address' => $canViewPersonalDetails ? $farmer->addressLabel() : '',
+                'photo_url' => $canViewPersonalDetails && $farmer->photo_path !== null
                     ? route('farmers.photo', $farmer)
                     : null,
-                'purok_sitio' => $farmer->purok_sitio,
-                'barangay' => $farmer->barangay,
-                'municipality' => $farmer->municipality,
-                'province' => $farmer->province,
-                'mobile_number' => $farmer->mobile_number,
-                'email' => $farmer->email,
+                'purok_sitio' => $canViewPersonalDetails ? $farmer->purok_sitio : null,
+                'barangay' => $canViewPersonalDetails ? $farmer->barangay : null,
+                'municipality' => $canViewPersonalDetails ? $farmer->municipality : null,
+                'province' => $canViewPersonalDetails ? $farmer->province : null,
+                'mobile_number' => $canViewPersonalDetails ? $farmer->mobile_number : '',
+                'email' => $canViewPersonalDetails ? $farmer->email : null,
                 'status' => $farmer->status->value,
                 'cooperative' => $farmer->cooperative?->name,
                 'member_since' => $farmer->created_at?->format('Y'),
@@ -252,7 +266,7 @@ class FarmerController extends Controller
                 'production_summary' => $ledger->farmerSummary($farmer),
                 'inventory_summary' => $stock->balances(farmerId: $farmer->id, viewer: $viewer),
                 'traceability_summary' => $traceability->metrics(farmerId: $farmer->id, viewer: $viewer),
-                'documents' => $this->documents($farmer),
+                'documents' => $this->documents($farmer, $canViewPersonalDetails),
                 'verification_history' => $this->verificationHistory($farmer),
                 'farm_coverage' => $farms->values()->map(function (Farm $farm, int $index) use ($canViewSensitiveDetails): array {
                     return [
@@ -280,6 +294,15 @@ class FarmerController extends Controller
 
     public function photo(Farmer $farmer): StreamedResponse
     {
+        $viewer = request()->user();
+        $canViewPhoto = $viewer instanceof User
+            && ! $viewer->isSuspended()
+            && ($viewer->canAccess(UserRole::Operations)
+                || ($viewer->role === UserRole::Farmer
+                    && (int) $farmer->user_id === (int) $viewer->id));
+
+        abort_unless($canViewPhoto, 404);
+
         if ($farmer->photo_path === null || ! Storage::disk('local')->exists($farmer->photo_path)) {
             abort(404);
         }
@@ -325,11 +348,11 @@ class FarmerController extends Controller
      *
      * @return list<array{id: string, label: string, name: string, href: string, recorded_at: string|null}>
      */
-    private function documents(Farmer $farmer): array
+    private function documents(Farmer $farmer, bool $canViewPersonalDetails): array
     {
         $documents = [];
 
-        if ($farmer->photo_path !== null) {
+        if ($canViewPersonalDetails && $farmer->photo_path !== null) {
             $documents[] = [
                 'id' => 'farmer-photo-'.$farmer->id,
                 'label' => 'Profile photo',
@@ -371,8 +394,10 @@ class FarmerController extends Controller
                 'label' => 'Verification photo',
                 'name' => is_string($name) && $name !== '' ? $name : ($farm?->displayName() ?? 'Photo'),
                 'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farmers.show', $farmer),
-                'recorded_at' => $photo->verification?->verified_at?->format('M j, Y')
-                    ?? $photo->created_at?->format('M j, Y'),
+                'recorded_at' => $this->formatDate(
+                    $photo->verification?->verified_at,
+                    'M j, Y',
+                ) ?? $this->formatDate($photo->created_at, 'M j, Y'),
             ];
         }
 
@@ -386,7 +411,7 @@ class FarmerController extends Controller
      */
     private function verificationHistory(Farmer $farmer): array
     {
-        return FarmVerification::query()
+        $history = FarmVerification::query()
             ->with(['farm', 'verifier'])
             ->whereHas('farm', fn ($query) => $query
                 ->where('farmer_id', $farmer->id)
@@ -396,7 +421,10 @@ class FarmerController extends Controller
             ->get()
             ->map(fn (FarmVerification $verification): array => [
                 'id' => $verification->id,
-                'date' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y') ?? '—',
+                'date' => $this->formatDate(
+                    $verification->verified_at ?? $verification->created_at,
+                    'M j, Y',
+                ) ?? '—',
                 'reference' => $verification->verification_reference,
                 'result' => $verification->result?->value,
                 'verified_by' => $verification->verifier?->name,
@@ -404,6 +432,14 @@ class FarmerController extends Controller
                 'farm_record_id' => $verification->farm_id,
                 'farm_name' => $verification->farm?->displayName() ?? 'Farm',
             ])
+            ->values()
             ->all();
+
+        return array_values($history);
+    }
+
+    private function formatDate(\DateTimeInterface|string|null $value, string $format): ?string
+    {
+        return $value === null ? null : Carbon::parse($value)->format($format);
     }
 }

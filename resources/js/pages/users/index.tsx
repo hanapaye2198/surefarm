@@ -399,7 +399,10 @@ export default function UsersIndex({
                 <h2 className="text-lg font-semibold tracking-tight">
                     Accounts
                 </h2>
-                <form method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                <form
+                    method="get"
+                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"
+                >
                     <Input
                         name="search"
                         defaultValue={filters.search}

@@ -13,6 +13,7 @@ use App\UserRole;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 test('a pending farm appears in the verification list', function () {
@@ -51,27 +52,28 @@ test('verification search stays on the server', function () {
             ->where('farms.data.0.farm_id', 'FARM-000001'));
 });
 
-test('verification cannot start without a boundary', function () {
+test('verification can start before boundary capture and leaves area unmeasured until the verifier captures it', function () {
     $verifier = fieldVerifier();
     $farm = Farm::factory()->create([
         'assigned_verifier_id' => $verifier->id,
         'declared_area_hectares' => 2.84,
         'verification_status' => FarmVerificationStatus::Pending,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     $this->actingAs($verifier)
         ->from(route('farm-verification.show', $farm))
         ->post(route('farm-verification.store', $farm))
-        ->assertRedirect(route('farm-verification.show', $farm))
-        ->assertSessionHasErrors([
-            'verification' => 'Farm boundary is required before verification.',
-        ]);
+        ->assertRedirect(route('farm-verification.show', $farm));
 
     $farm->refresh();
+    $verification = $farm->verifications()->firstOrFail();
 
-    expect($farm->verification_status)->toBe(FarmVerificationStatus::Pending)
+    expect($farm->verification_status)->toBe(FarmVerificationStatus::InProgress)
         ->and($farm->declared_area_hectares)->toBe('2.84')
-        ->and(FarmVerification::query()->count())->toBe(0);
+        ->and($farm->verified_area_hectares)->toBeNull()
+        ->and($verification->measured_area_hectares)->toBeNull()
+        ->and($verification->hasFreshBoundaryCapture())->toBeFalse();
 });
 
 test('starting verification moves a mapped farm to in progress', function () {
@@ -122,10 +124,10 @@ test('approval stores the measured area without changing the declared area', fun
 
     expect($farm->verification_status)->toBe(FarmVerificationStatus::Verified)
         ->and($farm->declared_area_hectares)->toBe('2.84')
-        ->and($farm->verified_area_hectares)->toBe('2.79')
+        ->and($farm->verified_area_hectares)->toBe('1.23')
         ->and($verification->result)->toBe(FarmVerificationResult::Verified)
-        ->and($verification->difference_hectares)->toBe('0.05')
-        ->and($verification->variance_percentage)->toBe('1.76')
+        ->and($verification->difference_hectares)->toBe('1.61')
+        ->and($verification->variance_percentage)->toBe('56.69')
         ->and($verification->verified_by)->toBe($verifier->id)
         ->and($verification->remarks)->toBe('Boundary matches the declared farm.')
         ->and($verification->verified_at)->not->toBeNull()
@@ -136,10 +138,10 @@ test('approval stores the measured area without changing the declared area', fun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('farm.declared_area_hectares', 2.84)
-            ->where('farm.measured_area', '2.79 ha')
-            ->where('farm.verified_area', '2.79 ha')
-            ->where('farm.difference', '0.05 ha')
-            ->where('farm.variance', '1.76%')
+            ->where('farm.measured_area', '1.23 ha')
+            ->where('farm.verified_area', '1.23 ha')
+            ->where('farm.difference', '1.61 ha')
+            ->where('farm.variance', '56.69%')
             ->where('farm.verification_status', 'verified')
             ->has('farm.verifications', 1)
             ->where('farm.verifications.0.reference', $verification->verification_reference)
@@ -152,7 +154,7 @@ test('approval stores the measured area without changing the declared area', fun
         ->assertInertia(fn (Assert $page) => $page
             ->where('summary.verified_farms', 1)
             ->where('summary.pending_verification', 0)
-            ->where('area_summary.total_verified_hectares', 2.79)
+            ->where('area_summary.total_verified_hectares', 1.23)
             ->where('area_summary.total_declared_hectares', 2.84));
 });
 
@@ -219,7 +221,7 @@ test('a later verification keeps the earlier history and verified area', functio
         ->and($records[1]->result)->toBe(FarmVerificationResult::Failed)
         ->and($records[0]->verification_reference)->not->toBe($records[1]->verification_reference)
         ->and($farm->verification_status)->toBe(FarmVerificationStatus::Failed)
-        ->and($farm->verified_area_hectares)->toBe('2.79')
+        ->and($farm->verified_area_hectares)->toBe('1.23')
         ->and($farm->declared_area_hectares)->toBe('2.84');
 });
 
@@ -231,6 +233,7 @@ test('verification references are unique', function () {
         'farm_id' => 'FARM-000002',
         'declared_area_hectares' => 1.5,
     ]);
+    assignFarmVerifier($verifier, $second);
     FarmBoundary::factory()->create([
         'farm_id' => $second->id,
         'gps_measured_area_hectares' => 1.23,
@@ -331,6 +334,7 @@ function farmReadyToVerify(): Farm
         'municipality' => 'Malaybalay',
         'verification_status' => FarmVerificationStatus::Pending,
     ]);
+    assignFarmVerifier($verifier, $farm);
 
     FarmBoundary::factory()->create([
         'farm_id' => $farm->id,
@@ -366,12 +370,55 @@ function submitFarmInspection(TestCase $test, Farm $farm, User $verifier): void
 {
     Storage::fake('local');
 
-    $test->actingAs($verifier)
-        ->post(route('farm-verification.inspection', $farm), [
-            'farm_identified' => '1',
-            'boundary_walked' => '1',
-            'farmer_or_representative_met' => '1',
-            'evidence_photo' => UploadedFile::fake()->image('inspection.jpg'),
+    $farm->loadMissing('boundary');
+    $polygon = $farm->boundary?->boundary_geojson ?? [
+        'type' => 'Polygon',
+        'coordinates' => [[
+            [125.1278, 8.1575],
+            [125.1288, 8.1575],
+            [125.1288, 8.1585],
+            [125.1278, 8.1585],
+            [125.1278, 8.1575],
+        ]],
+    ];
+    $timestamps = array_fill(0, 4, now()->toIso8601String());
+
+    Sanctum::actingAs($verifier, ['mobile']);
+    $boundaryRequest = $farm->boundary === null
+        ? $test->postJson('/api/mobile/farms/'.$farm->id.'/boundary', [
+            'boundary_geojson' => $polygon,
+            'capture_method' => 'device_gps',
+            'gps_point_accuracies' => [4, 4, 4, 4],
+            'gps_point_captured_at' => $timestamps,
         ])
-        ->assertRedirect(route('farm-verification.show', $farm));
+        : $test->putJson('/api/mobile/farms/'.$farm->id.'/boundary', [
+            'boundary_geojson' => $polygon,
+            'capture_method' => 'device_gps',
+            'gps_point_accuracies' => [4, 4, 4, 4],
+            'gps_point_captured_at' => $timestamps,
+        ]);
+    $boundaryRequest
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('redirect_url', route('farm-verification.show', $farm));
+
+    $verification = $farm->verifications()->whereNull('result')->latest('id')->firstOrFail();
+    Sanctum::actingAs($verifier, ['mobile']);
+    $test->post('/api/mobile/farm-verification/'.$farm->id.'/inspection', [
+        'boundary_revision' => $verification->boundary_revision,
+        'farm_exists' => '1',
+        'location_matches' => '1',
+        'crop_observed' => '1',
+        'boundary_captured' => '1',
+        'area_checked' => '1',
+        'farmer_or_representative_met' => '1',
+        'evidence_type' => 'general_farm_view',
+        'latitude' => $farm->latitude ?? 8.1575,
+        'longitude' => $farm->longitude ?? 125.1278,
+        'captured_at' => now()->toIso8601String(),
+        'evidence_photo' => UploadedFile::fake()->image('inspection.jpg'),
+    ])
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('redirect_url', route('farm-verification.show', $farm));
 }

@@ -692,7 +692,8 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 <CardContent className="grid gap-3">
                                     {farm.area_declarations.map((entry) => {
                                         const eventLabel =
-                                            entry.event_type === 'legacy_baseline'
+                                            entry.event_type ===
+                                            'legacy_baseline'
                                                 ? 'Baseline at history rollout'
                                                 : entry.event_type === 'initial'
                                                   ? 'Initial declaration'
@@ -708,15 +709,21 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                                         {eventLabel}
                                                     </p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {entry.previous_area_hectares === null
+                                                        {entry.previous_area_hectares ===
+                                                        null
                                                             ? 'No earlier value recorded'
                                                             : `${areaFormatter.format(entry.previous_area_hectares)} ha to `}
-                                                        {areaFormatter.format(entry.declared_area_hectares)} ha
+                                                        {areaFormatter.format(
+                                                            entry.declared_area_hectares,
+                                                        )}{' '}
+                                                        ha
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {entry.recorded_at ?? 'Date not recorded'}
+                                                        {entry.recorded_at ??
+                                                            'Date not recorded'}
                                                         {' | '}
-                                                        {entry.recorded_by ?? 'System baseline'}
+                                                        {entry.recorded_by ??
+                                                            'System baseline'}
                                                     </p>
                                                 </div>
                                             </div>

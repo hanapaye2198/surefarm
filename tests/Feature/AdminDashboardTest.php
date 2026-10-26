@@ -35,7 +35,7 @@ test('operations staff keep the operations dashboard', function () {
             ->missing('registry'));
 });
 
-test('an administrator sees scoped land analytics and keeps farms without a boundary', function () {
+test('an administrator sees full-registry land analytics and farms without a boundary', function () {
     $admin = provinceAdmin('Bukidnon');
     $farmer = Farmer::factory()->create([
         'first_name' => 'Ana',
@@ -89,26 +89,26 @@ test('an administrator sees scoped land analytics and keeps farms without a boun
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin-dashboard')
-            ->where('registry.scope', 'Provinces: Bukidnon')
-            ->where('registry.metrics.0.display', '1')
-            ->where('registry.metrics.1.display', '2')
-            ->where('registry.metrics.2.display', '5.25 ha')
-            ->where('registry.metrics.3.display', '2.79 ha')
+            ->where('registry.scope', 'Entire registry')
+            ->where('registry.metrics.0.display', '2')
+            ->where('registry.metrics.1.display', '3')
+            ->where('registry.metrics.2.display', '14.25 ha')
+            ->where('registry.metrics.3.display', '11.79 ha')
             ->where('registry.metrics.4.display', '1.25 ha')
-            ->where('registry.metrics.9.display', '1')
-            ->where('registry.farms.total', 2)
-            ->where('registry.charts.comparison.0.hectares', 5.25)
-            ->where('registry.charts.comparison.1.hectares', 2.79)
-            ->where('registry.charts.geography.rows.0.declared_hectares', 5.25)
-            ->where('registry.charts.owners.0.farmer_name', 'Ana Reyes')
-            ->where('registry.charts.owners.0.farms', 2)
-            ->where('registry.charts.owners.0.declared_hectares', 5.25)
-            ->where('registry.charts.crops.0.declared_hectares', 5.25)
+            ->where('registry.metrics.9.display', '2')
+            ->where('registry.farms.total', 3)
+            ->where('registry.charts.comparison.0.hectares', 14.25)
+            ->where('registry.charts.comparison.1.hectares', 11.79)
+            ->where('registry.charts.geography.rows.0.declared_hectares', 9)
+            ->where('registry.charts.owners.1.farmer_name', 'Ana Reyes')
+            ->where('registry.charts.owners.1.farms', 2)
+            ->where('registry.charts.owners.1.declared_hectares', 5.25)
+            ->where('registry.charts.crops.0.declared_hectares', 14.25)
             ->has('registry.charts.crops', 1)
             ->where('registry.charts.statuses.0.farms', 1)
             ->where('registry.charts.statuses.0.declared_hectares', 1.25)
-            ->where('registry.charts.statuses.2.farms', 1)
-            ->has('registry.map.features', 2));
+            ->where('registry.charts.statuses.2.farms', 2)
+            ->has('registry.map.features', 3));
 
     $this->actingAs($admin)
         ->get(route('dashboard', ['layer' => 'boundaries']))
@@ -116,7 +116,7 @@ test('an administrator sees scoped land analytics and keeps farms without a boun
         ->assertInertia(fn (Assert $page) => $page
             ->where('registry.map.matched', 1)
             ->where('registry.map.features.0.farm_id', 'FARM-000501')
-            ->where('registry.farms.total', 2));
+            ->where('registry.farms.total', 3));
 
     $this->actingAs($admin)
         ->get(route('dashboard', ['layer' => 'verified']))

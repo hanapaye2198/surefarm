@@ -175,12 +175,6 @@ parameters:
 			path: app/Http/Controllers/FarmProductionController.php
 
 		-
-			message: '#^Cannot call method format\(\) on string\.$#'
-			identifier: method.nonObject
-			count: 2
-			path: app/Http/Controllers/FarmerController.php
-
-		-
 			message: '#^Method App\\Http\\Controllers\\FarmerController\:\:recentActivities\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\{id\: int, activity_date\: string\|null, farm_id\: int, farm_name\: string, activity\: string\|null, status\: string, status_label\: string\}\>\.$#'
 			identifier: return.type
 			count: 1
@@ -188,12 +182,6 @@ parameters:
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>account_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/FarmerController.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>account_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Http/Controllers/FarmerController.php
@@ -207,12 +195,6 @@ parameters:
 		-
 			message: '#^Method App\\Http\\Controllers\\HarvestInventoryController\:\:stages\(\) should return list\<array\{id\: int, name\: string, code\: string\}\> but returns array\<int, array\{id\: int\<0, max\>, name\: string, code\: string\}\>\.$#'
 			identifier: return.type
-			count: 1
-			path: app/Http/Controllers/HarvestInventoryController.php
-
-		-
-			message: '#^Parameter \#2 \$data of method App\\Actions\\ReceiveHarvestIntoInventory\:\:handle\(\) expects array\{quantity\: float\|int\|numeric\-string, unit\: string, processing_stage_id\: int, location\?\: string\|null, received_date\: string, notes\?\: string\|null\}, array\<string, mixed\> given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/HarvestInventoryController.php
 
@@ -389,12 +371,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Models/FarmInsurance.php
-
-		-
-			message: '#^Cannot call method format\(\) on Carbon\\CarbonImmutable\|string\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: app/Models/FarmVerification.php
 
 		-
 			message: '#^Cannot call method format\(\) on string\.$#'
@@ -625,24 +601,6 @@ parameters:
 			path: app/Services/TraceabilityJourney.php
 
 		-
-			message: '#^Access to an undefined property App\\Models\\TraceabilityLot\:\:\$total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
 			message: '#^Cannot call method format\(\) on string\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -657,24 +615,6 @@ parameters:
 		-
 			message: '#^Method App\\Services\\TraceabilitySummary\:\:recent\(\) should return list\<array\<string, mixed\>\> but returns array\<int, array\<string, mixed\>\>\.$#'
 			identifier: return.type
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
-			message: '#^Method App\\Services\\TraceabilitySummary\:\:scoped\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
-			message: '#^Method App\\Services\\TraceabilitySummary\:\:tracedLabel\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Services/TraceabilitySummary.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: string, Closure\(App\\Models\\TraceabilityLot\)\: string given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Services/TraceabilitySummary.php
 
