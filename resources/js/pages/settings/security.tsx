@@ -1,8 +1,10 @@
 import { Form, Head } from '@inertiajs/react';
+import { ShieldAlert } from 'lucide-react';
 import { useRef } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/security';
@@ -15,6 +17,7 @@ import ManageTwoFactor from '@/components/manage-two-factor';
 // oxfmt-ignore
 type Props = {
     passwordRules: string;
+    twoFactorSetupRequired?: boolean;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
 
@@ -29,6 +32,28 @@ export default function Security(props: Props) {
             <h1 className="sr-only">Security settings</h1>
 
             <div className="space-y-6">
+                {props.twoFactorSetupRequired && (
+                    <Alert variant="warning">
+                        <ShieldAlert />
+                        <AlertTitle>
+                            Two-factor authentication is required
+                        </AlertTitle>
+                        <AlertDescription>
+                            <p>
+                                Your administrator or operations account must
+                                enable and confirm two-factor authentication
+                                before you can open other SureFarm pages. Finish
+                                setup below to unlock workspace navigation.
+                            </p>
+                            <Button asChild size="sm" className="mt-3">
+                                <a href="#two-factor-settings">
+                                    Set up two-factor authentication
+                                </a>
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <Heading
                     variant="small"
                     title="Update password"
