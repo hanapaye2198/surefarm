@@ -252,6 +252,10 @@ final class FarmBoundaryOverlap
         $subjectBox = $this->box($subject);
         $otherBox = $this->box($other);
 
+        if ($subjectBox === null || $otherBox === null) {
+            return false;
+        }
+
         return $otherBox['max_x'] >= $subjectBox['min_x'] - $padding
             && $otherBox['min_x'] <= $subjectBox['max_x'] + $padding
             && $otherBox['max_y'] >= $subjectBox['min_y'] - $padding
@@ -260,18 +264,29 @@ final class FarmBoundaryOverlap
 
     /**
      * @param  list<array{0: float, 1: float}>  $ring
-     * @return array{min_x: float, max_x: float, min_y: float, max_y: float}
+     * @return array{min_x: float, max_x: float, min_y: float, max_y: float}|null
      */
-    private function box(array $ring): array
+    private function box(array $ring): ?array
     {
-        $xs = array_column($ring, 0);
-        $ys = array_column($ring, 1);
+        if ($ring === []) {
+            return null;
+        }
+
+        $minX = $maxX = $ring[0][0];
+        $minY = $maxY = $ring[0][1];
+
+        foreach ($ring as [$x, $y]) {
+            $minX = min($minX, $x);
+            $maxX = max($maxX, $x);
+            $minY = min($minY, $y);
+            $maxY = max($maxY, $y);
+        }
 
         return [
-            'min_x' => min($xs),
-            'max_x' => max($xs),
-            'min_y' => min($ys),
-            'max_y' => max($ys),
+            'min_x' => $minX,
+            'max_x' => $maxX,
+            'min_y' => $minY,
+            'max_y' => $maxY,
         ];
     }
 
@@ -282,6 +297,11 @@ final class FarmBoundaryOverlap
     private function sampledArea(array $subject, array $other, float $whole): float
     {
         $box = $this->box($subject);
+
+        if ($box === null) {
+            return 0.0;
+        }
+
         $steps = 80;
         $insideSubject = 0;
         $insideBoth = 0;

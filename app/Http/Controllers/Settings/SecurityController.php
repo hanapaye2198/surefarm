@@ -19,6 +19,9 @@ class SecurityController extends Controller
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
         $props = [
+            'twoFactorSetupRequired' => config('auth.require_two_factor')
+                && $request->user()->requiresConfirmedTwoFactor()
+                && ! $request->user()->hasConfirmedTwoFactor(),
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),
             'canManagePasskeys' => Features::canManagePasskeys(),
             'passkeys' => Features::canManagePasskeys()

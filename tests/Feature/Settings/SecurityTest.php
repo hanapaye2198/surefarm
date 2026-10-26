@@ -7,6 +7,7 @@ use Laravel\Fortify\Features;
 
 test('security page is displayed', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+    config(['auth.require_two_factor' => true]);
 
     Features::twoFactorAuthentication([
         'confirm' => true,
@@ -26,6 +27,7 @@ test('security page is displayed', function () {
             ->where('canManagePasskeys', true)
             ->where('passkeys', [])
             ->where('canManageTwoFactor', true)
+            ->where('twoFactorSetupRequired', true)
             ->where('twoFactorEnabled', false),
         );
 });
