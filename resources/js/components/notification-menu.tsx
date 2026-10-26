@@ -141,7 +141,7 @@ export function NotificationMenu() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative shrink-0 rounded-lg"
+                    className="relative size-8 shrink-0 rounded-sm border border-border bg-background"
                     aria-label={
                         unread > 0
                             ? `Notifications, ${unread} unread`
@@ -150,7 +150,7 @@ export function NotificationMenu() {
                 >
                     <Bell />
                     {unread > 0 && (
-                        <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center bg-foreground px-1 text-[10px] font-semibold text-background tabular-nums">
+                        <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center bg-foreground px-1 text-[10px] font-semibold text-background tabular-nums">
                             {unreadLabel}
                         </span>
                     )}

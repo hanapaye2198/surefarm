@@ -113,7 +113,7 @@ export function GlobalSearch({ autoFocus = false }: { autoFocus?: boolean }) {
                 aria-autocomplete="list"
                 placeholder="Search farmers, farms, locations..."
                 aria-label="Search farmers, farms, or locations"
-                className="h-10 rounded-full border-transparent bg-muted/80 pr-4 pl-10 shadow-none focus-visible:border-input focus-visible:bg-background md:text-sm"
+                className="h-9 rounded-sm border-border bg-muted/60 pr-3 pl-9 shadow-none focus-visible:border-ring focus-visible:bg-background md:text-sm"
                 onChange={(event) => {
                     setQuery(event.target.value);
                     setOpen(true);
@@ -156,7 +156,7 @@ export function GlobalSearch({ autoFocus = false }: { autoFocus?: boolean }) {
                 <div
                     id={listId}
                     role="listbox"
-                    className="absolute top-[calc(100%+0.35rem)] right-0 left-0 z-40 overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-md"
+                    className="absolute top-[calc(100%+0.35rem)] right-0 left-0 z-40 overflow-hidden rounded-sm border bg-popover text-popover-foreground shadow-md"
                 >
                     {query.trim().length < 2 && (
                         <p className="px-3 py-3 text-sm text-muted-foreground">

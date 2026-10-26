@@ -1,5 +1,21 @@
 import type { UserRole } from '@/types';
 
+const roleLabels: Record<UserRole, string> = {
+    admin: 'Administrator',
+    operations: 'Operations',
+    field_verifier: 'Field verifier',
+    cooperative_officer: 'Cooperative officer',
+    farmer: 'Farmer',
+};
+
+export function roleLabel(role: UserRole | undefined): string {
+    if (!role) {
+        return 'Signed in';
+    }
+
+    return roleLabels[role];
+}
+
 export function userCanAccess(
     role: UserRole | undefined,
     allowed?: UserRole[],

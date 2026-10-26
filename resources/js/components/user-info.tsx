@@ -6,11 +6,15 @@ import type { User } from '@/types';
 export function UserInfo({
     user,
     showEmail = false,
+    meta,
     detailsClassName,
+    metaClassName,
 }: {
     user: User;
     showEmail?: boolean;
+    meta?: string;
     detailsClassName?: string;
+    metaClassName?: string;
 }) {
     const getInitials = useInitials();
 
@@ -32,6 +36,16 @@ export function UserInfo({
                 {showEmail && (
                     <span className="truncate text-xs text-muted-foreground">
                         {user.email}
+                    </span>
+                )}
+                {meta && (
+                    <span
+                        className={cn(
+                            'truncate text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase',
+                            metaClassName,
+                        )}
+                    >
+                        {meta}
                     </span>
                 )}
             </div>

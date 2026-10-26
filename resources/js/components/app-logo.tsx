@@ -8,7 +8,7 @@ export default function AppLogo() {
         <img
             src={surefarmLogoSrc}
             alt={name}
-            className="h-8 w-auto max-w-[11rem] object-contain object-left group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:max-w-none group-data-[collapsible=icon]:object-cover group-data-[collapsible=icon]:px-0.5 group-data-[collapsible=icon]:py-0.5 dark:rounded-md dark:bg-white dark:px-1.5 dark:py-0.5"
+            className="h-8 w-auto max-w-[10.5rem] rounded-sm bg-white object-contain object-left px-1.5 py-0.5 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:max-w-none group-data-[collapsible=icon]:object-cover group-data-[collapsible=icon]:px-0.5 group-data-[collapsible=icon]:py-0.5"
         />
     );
 }

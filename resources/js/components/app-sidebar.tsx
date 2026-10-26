@@ -1,268 +1,244 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { ChevronRight, Search, X } from 'lucide-react';
 import {
-    BadgeCheck,
-    BarChart3,
-    Factory,
-    QrCode,
-    Handshake,
-    Landmark,
-    LayoutGrid,
-    Leaf,
-    ListChecks,
-    MapPinned,
-    Settings,
-    Shield,
-    Sprout,
-    Truck,
-    UserCog,
-    Users,
-    Warehouse,
-    Wheat,
-} from 'lucide-react';
+    useEffect,
+    useRef,
+    useState,
+    type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import AppLogo from '@/components/app-logo';
 import { NavUser } from '@/components/nav-user';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
+    SidebarGroupContent,
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
-import { userCanAccess } from '@/lib/access';
-import { dashboard } from '@/routes';
-import { index as farmersIndex } from '@/routes/farmers';
-import { index as activitiesIndex } from '@/routes/farm-activities';
-import { index as harvestIndex } from '@/routes/harvest';
 import {
-    index as inventoryIndex,
-    processing as processingIndex,
-} from '@/routes/inventory';
-import { index as traceabilityIndex } from '@/routes/traceability';
-import { index as financeIndex } from '@/routes/finance';
-import { index as insuranceIndex } from '@/routes/insurance';
-import { index as productionIndex } from '@/routes/production';
-import { index as farmVerificationIndex } from '@/routes/farm-verification';
-import { index as farmsIndex } from '@/routes/farms';
-import { index as cooperativesIndex } from '@/routes/cooperatives';
-import { show as showModule } from '@/routes/modules';
-import { index as activityTypesIndex } from '@/routes/activity-types';
-import { edit as editProfile } from '@/routes/profile';
-import { index as usersIndex } from '@/routes/users';
-import type { NavItem, UserRole } from '@/types';
+    visibleNavigation,
+    winningItem,
+    type SidebarLink,
+} from '@/lib/app-navigation';
+import { toUrl } from '@/lib/utils';
+import { dashboard } from '@/routes';
 
-type FeatureStatus = 'live' | 'partial' | 'planned';
-
-type SidebarLink = NavItem & {
-    roles?: UserRole[];
-    match?: 'exact' | 'parent' | 'settings';
-    status?: FeatureStatus;
-};
+const sectionStorageKey = 'surefarm-nav-sections';
 
 const itemClassName =
-    'h-10 rounded-lg px-2.5 text-sidebar-foreground/85 data-[active=true]:bg-sidebar-primary/15 data-[active=true]:text-sidebar-primary lg:h-9';
+    'relative h-9 rounded-sm px-2 text-[0.8125rem] text-sidebar-foreground/80 before:absolute before:top-1.5 before:bottom-1.5 before:left-0 before:w-0.5 before:bg-transparent hover:bg-sidebar-accent hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-primary data-[active=true]:before:bg-sidebar-primary';
 
-const groups: { label: string; items: SidebarLink[] }[] = [
-    {
-        label: 'Overview',
-        items: [
-            {
-                title: 'Dashboard',
-                href: dashboard(),
-                icon: LayoutGrid,
-                match: 'exact',
-            },
-        ],
-    },
-    {
-        label: 'Registry',
-        items: [
-            {
-                title: 'Farmers',
-                href: farmersIndex(),
-                icon: Users,
-                roles: ['operations', 'cooperative_officer'],
-                match: 'parent',
-            },
-            {
-                title: 'Farms & Map',
-                href: farmsIndex(),
-                icon: MapPinned,
-                roles: ['operations', 'cooperative_officer'],
-                match: 'parent',
-            },
-            {
-                title: 'Farm Verification',
-                href: farmVerificationIndex(),
-                icon: BadgeCheck,
-                roles: ['field_verifier'],
-                match: 'parent',
-            },
-            {
-                title: 'Cooperatives',
-                href: cooperativesIndex(),
-                icon: Handshake,
-                roles: ['operations', 'cooperative_officer'],
-                match: 'parent',
-            },
-        ],
-    },
-    {
-        label: 'Operations',
-        items: [
-            {
-                title: 'Crop Management',
-                href: showModule('crop-management'),
-                icon: Sprout,
-                roles: ['operations'],
-                status: 'planned',
-            },
-            {
-                title: 'Farm Activities',
-                href: activitiesIndex(),
-                icon: ListChecks,
-                roles: ['operations'],
-                match: 'parent',
-            },
-            {
-                title: 'Production',
-                href: productionIndex(),
-                icon: Leaf,
-                roles: ['operations'],
-                match: 'parent',
-            },
-            {
-                title: 'Harvest',
-                href: harvestIndex(),
-                icon: Wheat,
-                roles: ['operations'],
-                match: 'parent',
-            },
-        ],
-    },
-    {
-        label: 'Business',
-        items: [
-            {
-                title: 'Inventory',
-                href: inventoryIndex(),
-                icon: Warehouse,
-                roles: ['operations'],
-                match: 'parent',
-            },
-            {
-                title: 'Coffee Processing',
-                href: processingIndex(),
-                icon: Factory,
-                roles: ['operations'],
-            },
-            {
-                title: 'Traceability',
-                href: traceabilityIndex(),
-                icon: QrCode,
-                roles: ['operations'],
-                match: 'parent',
-            },
-            {
-                title: 'Finance',
-                href: financeIndex(),
-                icon: Landmark,
-                roles: ['operations'],
-                match: 'parent',
-                status: 'partial',
-            },
-            {
-                title: 'Crop Insurance',
-                href: insuranceIndex(),
-                icon: Shield,
-                roles: ['operations'],
-                match: 'parent',
-                status: 'partial',
-            },
-            {
-                title: 'Logistics & Export',
-                href: showModule('logistics-export'),
-                icon: Truck,
-                roles: ['operations'],
-                status: 'planned',
-            },
-        ],
-    },
-    {
-        label: 'System',
-        items: [
-            {
-                title: 'Reports & Analytics',
-                href: showModule('reports'),
-                icon: BarChart3,
-                roles: ['operations'],
-                status: 'planned',
-            },
-            {
-                title: 'Activity Types',
-                href: activityTypesIndex(),
-                icon: ListChecks,
-                roles: ['admin'],
-                match: 'parent',
-            },
-            {
-                title: 'User Management',
-                href: usersIndex(),
-                icon: UserCog,
-                roles: ['admin'],
-                match: 'parent',
-            },
-            {
-                title: 'Settings',
-                href: editProfile(),
-                icon: Settings,
-                match: 'settings',
-            },
-        ],
-    },
-];
+function readClosedSections(): string[] {
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    try {
+        const raw = window.localStorage.getItem(sectionStorageKey);
+        const parsed: unknown = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+
+        return parsed.filter((value): value is string => typeof value === 'string');
+    } catch {
+        return [];
+    }
+}
 
 export function AppSidebar() {
     const { auth } = usePage().props;
-    const { currentUrl, isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
+    const { currentUrl } = useCurrentUrl();
+    const { isMobile, openMobile, setOpen, setOpenMobile, state } =
+        useSidebar();
     const role = auth.user?.role;
-    const visibleGroups = groups
+    const filterRef = useRef<HTMLInputElement>(null);
+    const focusFilter = useRef(false);
+    const [query, setQuery] = useState('');
+    const [cursor, setCursor] = useState(0);
+    const [closed, setClosed] = useState<string[]>([]);
+    const [sectionsReady, setSectionsReady] = useState(false);
+    const visibleGroups = visibleNavigation(role);
+    const winner = winningItem(currentUrl, visibleGroups);
+    const activeGroup = visibleGroups.find((group) =>
+        group.items.some((item) => item === winner),
+    )?.label;
+    const filtering = query.trim() !== '';
+    const iconMode = !isMobile && state === 'collapsed';
+    const filteredGroups = visibleGroups
         .map((group) => ({
             ...group,
-            items: group.items.filter((item) =>
-                userCanAccess(role, item.roles),
-            ),
+            items: filtering
+                ? group.items.filter((item) => {
+                      const term = query.trim().toLowerCase();
+
+                      return (
+                          item.title.toLowerCase().includes(term) ||
+                          group.label.toLowerCase().includes(term)
+                      );
+                  })
+                : group.items,
         }))
         .filter((group) => group.items.length > 0);
+    const matches = filteredGroups.flatMap((group) => group.items);
+
+    useEffect(() => {
+        setClosed(
+            readClosedSections().filter((label) => label !== activeGroup),
+        );
+        setSectionsReady(true);
+    }, [activeGroup]);
+
+    useEffect(() => {
+        if (!sectionsReady) {
+            return;
+        }
+
+        try {
+            window.localStorage.setItem(
+                sectionStorageKey,
+                JSON.stringify(closed),
+            );
+        } catch {
+            // The rail still works if the browser blocks storage.
+        }
+    }, [closed, sectionsReady]);
+
+    useEffect(() => {
+        setCursor(0);
+    }, [query]);
+
+    useEffect(() => {
+        if (!focusFilter.current) {
+            return;
+        }
+
+        if (isMobile && !openMobile) {
+            return;
+        }
+
+        if (!isMobile && state === 'collapsed') {
+            return;
+        }
+
+        focusFilter.current = false;
+        filterRef.current?.focus();
+    }, [isMobile, openMobile, state]);
+
+    useEffect(() => {
+        function onKeyDown(event: KeyboardEvent) {
+            if (
+                event.key !== '/' ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey
+            ) {
+                return;
+            }
+
+            const target = event.target;
+
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.tagName === 'SELECT' ||
+                    target.isContentEditable)
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (isMobile) {
+                focusFilter.current = true;
+                setOpenMobile(true);
+            } else if (state === 'collapsed') {
+                focusFilter.current = true;
+                setOpen(true);
+            } else {
+                filterRef.current?.focus();
+            }
+        }
+
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isMobile, setOpen, setOpenMobile, state]);
 
     function active(item: SidebarLink): boolean {
-        if (item.match === 'settings') {
-            return (
-                currentUrl.startsWith('/settings') &&
-                !currentUrl.startsWith('/settings/activity-types')
+        return item === winner;
+    }
+
+    function sectionOpen(label: string): boolean {
+        return iconMode || filtering || !closed.includes(label);
+    }
+
+    function toggleSection(label: string, next: boolean) {
+        if (iconMode || filtering) {
+            return;
+        }
+
+        setClosed((current) =>
+            next
+                ? current.filter((item) => item !== label)
+                : [...current, label],
+        );
+    }
+
+    function onFilterKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+        if (event.key === 'Escape') {
+            setQuery('');
+            event.currentTarget.blur();
+
+            return;
+        }
+
+        if (!filtering || matches.length === 0) {
+            return;
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            setCursor((index) => (index + 1) % matches.length);
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setCursor(
+                (index) => (index - 1 + matches.length) % matches.length,
             );
         }
 
-        if (item.match === 'parent') {
-            return isCurrentOrParentUrl(item.href);
+        if (event.key === 'Enter' && matches[cursor]) {
+            event.preventDefault();
+            router.visit(toUrl(matches[cursor].href));
+            setQuery('');
         }
-
-        return isCurrentUrl(item.href);
     }
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
+        <Sidebar collapsible="icon" variant="sidebar">
+            <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-3">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             size="lg"
-                            className="h-auto rounded-xl py-1.5 hover:bg-sidebar-accent"
+                            className="h-auto rounded-sm px-1.5 py-1 hover:bg-sidebar-accent"
                             asChild
                         >
                             <Link href={dashboard()} prefetch>
@@ -271,55 +247,167 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <p className="px-1.5 text-[10px] font-semibold tracking-[0.18em] text-sidebar-foreground/45 uppercase group-data-[collapsible=icon]:hidden">
+                    Operations console
+                </p>
+                <div className="relative group-data-[collapsible=icon]:hidden">
+                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-sidebar-foreground/45" />
+                    <input
+                        ref={filterRef}
+                        value={query}
+                        type="search"
+                        spellCheck={false}
+                        autoComplete="off"
+                        placeholder="Find a page"
+                        aria-label="Find a page"
+                        aria-keyshortcuts="/"
+                        className="h-8 w-full rounded-sm border border-sidebar-border bg-black/20 pr-12 pl-8 text-xs text-sidebar-foreground outline-none placeholder:text-sidebar-foreground/40 focus-visible:border-sidebar-ring focus-visible:ring-2 focus-visible:ring-sidebar-ring/40 [&::-webkit-search-cancel-button]:hidden"
+                        onChange={(event) => setQuery(event.target.value)}
+                        onKeyDown={onFilterKeyDown}
+                    />
+                    {query === '' ? (
+                        <kbd className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 border border-sidebar-border px-1 text-[10px] font-medium text-sidebar-foreground/50">
+                            /
+                        </kbd>
+                    ) : (
+                        <button
+                            type="button"
+                            className="absolute top-1/2 right-1.5 flex size-5 -translate-y-1/2 items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                            aria-label="Clear page search"
+                            onClick={() => {
+                                setQuery('');
+                                filterRef.current?.focus();
+                            }}
+                        >
+                            <X className="size-3.5" />
+                        </button>
+                    )}
+                </div>
             </SidebarHeader>
 
-            <SidebarContent className="gap-1 py-2">
-                {visibleGroups.map((group) => (
-                    <SidebarGroup key={group.label} className="px-2 py-1">
-                        <SidebarGroupLabel className="h-7 px-2.5 text-[0.68rem] font-semibold tracking-wider text-sidebar-foreground/45 uppercase">
-                            {group.label}
-                        </SidebarGroupLabel>
-                        <SidebarMenu>
-                            {group.items.map((item) => {
-                                const statusLabel =
-                                    item.status === 'partial'
-                                        ? 'Partial'
-                                        : item.status === 'planned'
-                                          ? 'Planned'
-                                          : null;
+            <SidebarContent className="gap-0 py-2">
+                {filtering && (
+                    <p className="px-4 pb-1 text-[10px] font-semibold tracking-[0.16em] text-sidebar-foreground/45 uppercase group-data-[collapsible=icon]:hidden">
+                        {matches.length === 0
+                            ? 'No pages'
+                            : `${matches.length} ${matches.length === 1 ? 'page' : 'pages'}`}
+                    </p>
+                )}
+                {filteredGroups.length === 0 && (
+                    <p className="px-4 py-6 text-xs text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden">
+                        Nothing matches "{query.trim()}".
+                    </p>
+                )}
+                {filteredGroups.map((group) => {
+                    const code = String(
+                        visibleGroups.findIndex(
+                            (item) => item.label === group.label,
+                        ) + 1,
+                    ).padStart(2, '0');
+                    const open = sectionOpen(group.label);
 
-                                return (
-                                    <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={active(item)}
-                                            tooltip={{
-                                                children: statusLabel
-                                                    ? `${item.title} (${statusLabel})`
-                                                    : item.title,
-                                            }}
-                                            className={itemClassName}
-                                        >
-                                            <Link href={item.href} prefetch>
-                                                {item.icon && <item.icon />}
-                                                <span className="flex min-w-0 flex-1 items-center gap-2">
-                                                    <span className="truncate">
-                                                        {item.title}
-                                                    </span>
-                                                    {statusLabel && (
-                                                        <span className="shrink-0 text-[0.6rem] font-semibold tracking-wide text-sidebar-foreground/55 uppercase group-data-[collapsible=icon]:hidden">
-                                                            {statusLabel}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                );
-                            })}
-                        </SidebarMenu>
-                    </SidebarGroup>
-                ))}
+                    return (
+                        <Collapsible
+                            key={group.label}
+                            open={open}
+                            onOpenChange={(next) =>
+                                toggleSection(group.label, next)
+                            }
+                        >
+                            <SidebarGroup className="px-2 py-1">
+                                <SidebarGroupLabel
+                                    asChild
+                                    className="h-7 w-full cursor-pointer rounded-sm px-1.5 text-[0.65rem] font-semibold tracking-[0.16em] text-sidebar-foreground/50 uppercase hover:bg-sidebar-accent hover:text-sidebar-foreground data-[state=open]:[&>svg]:rotate-90"
+                                >
+                                    <CollapsibleTrigger>
+                                        <span className="text-sidebar-primary/80 tabular-nums">
+                                            {code}
+                                        </span>
+                                        <span className="truncate">
+                                            {group.label}
+                                        </span>
+                                        <span className="ml-auto text-[10px] font-medium text-sidebar-foreground/35 tabular-nums">
+                                            {group.items.length}
+                                        </span>
+                                        <ChevronRight className="text-sidebar-foreground/40 transition-transform" />
+                                    </CollapsibleTrigger>
+                                </SidebarGroupLabel>
+                                <CollapsibleContent>
+                                    <SidebarGroupContent>
+                                        <SidebarMenu className="gap-0.5">
+                                            {group.items.map((item) => {
+                                                const statusLabel =
+                                                    item.status === 'partial'
+                                                        ? 'Partial'
+                                                        : item.status ===
+                                                            'planned'
+                                                          ? 'Planned'
+                                                          : null;
+                                                const pointed =
+                                                    filtering &&
+                                                    matches[cursor] === item;
+
+                                                return (
+                                                    <SidebarMenuItem
+                                                        key={item.title}
+                                                    >
+                                                        <SidebarMenuButton
+                                                            asChild
+                                                            isActive={active(
+                                                                item,
+                                                            )}
+                                                            tooltip={{
+                                                                children:
+                                                                    statusLabel
+                                                                        ? `${item.title} (${statusLabel})`
+                                                                        : item.title,
+                                                            }}
+                                                            className={
+                                                                pointed
+                                                                    ? `${itemClassName} bg-sidebar-accent text-sidebar-foreground`
+                                                                    : itemClassName
+                                                            }
+                                                        >
+                                                            <Link
+                                                                href={item.href}
+                                                                prefetch
+                                                            >
+                                                                {item.icon && (
+                                                                    <item.icon />
+                                                                )}
+                                                                <span className="flex min-w-0 flex-1 items-center gap-2">
+                                                                    <span className="min-w-0 truncate">
+                                                                        {
+                                                                            item.title
+                                                                        }
+                                                                    </span>
+                                                                    {statusLabel && (
+                                                                        <span
+                                                                            className={
+                                                                                item.status ===
+                                                                                'partial'
+                                                                                    ? 'ml-auto shrink-0 bg-warning/20 px-1 py-px text-[9px] font-semibold tracking-wider text-warning uppercase group-data-[collapsible=icon]:hidden'
+                                                                                    : 'ml-auto shrink-0 bg-sidebar-foreground/10 px-1 py-px text-[9px] font-semibold tracking-wider text-sidebar-foreground/55 uppercase group-data-[collapsible=icon]:hidden'
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                statusLabel
+                                                                            }
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            </Link>
+                                                        </SidebarMenuButton>
+                                                    </SidebarMenuItem>
+                                                );
+                                            })}
+                                        </SidebarMenu>
+                                    </SidebarGroupContent>
+                                </CollapsibleContent>
+                            </SidebarGroup>
+                        </Collapsible>
+                    );
+                })}
             </SidebarContent>
 
             <SidebarFooter className="border-t border-sidebar-border pb-[max(0.5rem,env(safe-area-inset-bottom))]">
