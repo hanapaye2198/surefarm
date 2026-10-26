@@ -4,13 +4,13 @@ namespace App\Http\Middleware;
 
 use App\Models\Farm;
 use App\Models\FarmActivity;
+use App\Models\Farmer;
 use App\Models\FarmFinancing;
 use App\Models\FarmHarvest;
 use App\Models\FarmInsurance;
 use App\Models\FarmProduction;
 use App\Models\FarmVerification;
 use App\Models\FarmVerificationPhoto;
-use App\Models\Farmer;
 use App\Models\Inventory;
 use App\Models\InventoryMovement;
 use App\Models\TraceabilityLot;

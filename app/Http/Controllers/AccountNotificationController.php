@@ -52,7 +52,7 @@ class AccountNotificationController extends Controller
      */
     private function present(User $user, DatabaseNotification $notification): array
     {
-        $data = is_array($notification->data) ? $notification->data : [];
+        $data = $notification->data;
         $farmId = $data['farm_id'] ?? null;
         $href = null;
 

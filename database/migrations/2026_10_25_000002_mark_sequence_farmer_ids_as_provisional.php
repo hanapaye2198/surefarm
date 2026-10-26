@@ -20,7 +20,7 @@ return new class extends Migration
 
                     $provisionalId = $this->provisionalId($id);
                     if (DB::table('farmers')->where('farmer_id', $provisionalId)->where('id', '!=', $id)->exists()) {
-                        throw new \RuntimeException("Cannot mark farmer {$id} as provisional because its new ID is already in use.");
+                        throw new RuntimeException("Cannot mark farmer {$id} as provisional because its new ID is already in use.");
                     }
 
                     DB::table('farmers')->where('id', $id)->update(['farmer_id' => $provisionalId]);
@@ -43,7 +43,7 @@ return new class extends Migration
 
                     $legacyId = $this->legacyId($id);
                     if (DB::table('farmers')->where('farmer_id', $legacyId)->where('id', '!=', $id)->exists()) {
-                        throw new \RuntimeException("Cannot restore farmer {$id}'s previous ID because it is already in use.");
+                        throw new RuntimeException("Cannot restore farmer {$id}'s previous ID because it is already in use.");
                     }
 
                     DB::table('farmers')->where('id', $id)->update(['farmer_id' => $legacyId]);

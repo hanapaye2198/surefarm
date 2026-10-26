@@ -6,6 +6,7 @@ use App\Models\Farmer;
 use App\Models\FarmerBankAccount;
 use App\Models\User;
 use App\UserRole;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 function profileStaff(): User
@@ -31,6 +32,7 @@ function profileFarmerPayload(array $overrides = []): array
         'province' => 'Bukidnon',
         'mobile_number' => '09171234567',
         'email' => 'maria.santos@example.com',
+        'photo' => UploadedFile::fake()->image('maria.jpg'),
         'has_spouse' => false,
         ...$overrides,
     ];

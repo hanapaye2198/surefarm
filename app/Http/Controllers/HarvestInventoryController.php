@@ -35,7 +35,7 @@ class HarvestInventoryController extends Controller
         FarmHarvest $harvest,
         ReceiveHarvestIntoInventory $receive,
     ): RedirectResponse {
-        $inventory = $receive->handle($harvest, $request->validated(), $request->user()?->id);
+        $inventory = $receive->handle($harvest, $request->receiptData(), $request->user()?->id);
 
         Inertia::flash('toast', [
             'type' => 'success',

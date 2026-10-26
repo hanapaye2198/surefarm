@@ -231,7 +231,7 @@ class MobileFarmerController extends Controller
     public function storeActivity(StoreFarmerFarmActivityRequest $request, RecordFarmActivity $record): RedirectResponse
     {
         $farmer = $this->farmer($request);
-        $farm = $farmer->farms()->findOrFail($request->validated('farm_id'));
+        $farm = $farmer->farms()->whereKey($request->validated('farm_id'))->firstOrFail();
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 
@@ -248,7 +248,7 @@ class MobileFarmerController extends Controller
     public function storeHarvest(StoreFarmerHarvestRequest $request, RecordFarmHarvest $record): RedirectResponse
     {
         $farmer = $this->farmer($request);
-        $farm = $farmer->farms()->findOrFail($request->validated('farm_id'));
+        $farm = $farmer->farms()->whereKey($request->validated('farm_id'))->firstOrFail();
         $user = $request->user();
         abort_unless($user instanceof User, 403);
 

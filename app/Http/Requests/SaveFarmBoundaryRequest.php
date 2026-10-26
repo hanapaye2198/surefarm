@@ -11,6 +11,7 @@ use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 
 class SaveFarmBoundaryRequest extends FormRequest
 {
@@ -132,7 +133,7 @@ class SaveFarmBoundaryRequest extends FormRequest
                             // The timestamp is supplied by the field device.
                             // Keep it as metadata, but do not compare its clock
                             // to the server when accepting the boundary.
-                            \Illuminate\Support\Carbon::parse($timestamp);
+                            Carbon::parse($timestamp);
                         } catch (\Throwable) {
                             continue; // The date rule reports malformed values.
                         }

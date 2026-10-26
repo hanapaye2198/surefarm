@@ -18,6 +18,7 @@ use App\Services\FarmAreaComparison;
 use App\Services\RegistryScope;
 use App\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -44,7 +45,7 @@ class FarmVerificationController extends Controller
             ->with([
                 'farmer',
                 'boundary',
-                'verifications' => fn (Builder $query) => $query
+                'verifications' => fn (Relation $query) => $query
                     ->whereNull('result')
                     ->select([
                         'id',
@@ -156,7 +157,9 @@ class FarmVerificationController extends Controller
                 'capture_method' => $openVerification->boundary_capture_method,
                 'gps_measured_area_hectares' => (float) $openVerification->measured_area_hectares,
                 'captured_by' => $openVerification->boundaryCapturer?->name,
-                'captured_at' => $openVerification->boundary_captured_at?->format('M j, Y g:i A'),
+                'captured_at' => $openVerification->boundary_captured_at === null
+                    ? null
+                    : Carbon::parse($openVerification->boundary_captured_at)->format('M j, Y g:i A'),
                 'updated_by' => null,
                 'updated_at' => null,
                 'can_manage_boundary' => $canManageBoundary,

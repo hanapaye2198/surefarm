@@ -34,6 +34,7 @@ function farmerPayload(array $overrides = []): array
         'province' => 'Bukidnon',
         'mobile_number' => '09171234567',
         'email' => 'maria@example.com',
+        'photo' => UploadedFile::fake()->image('maria.jpg'),
         'has_spouse' => false,
         ...$overrides,
     ];
@@ -69,8 +70,8 @@ test('each farmer receives a unique id', function () {
 
     expect($ids)->toHaveCount(2)
         ->and($ids[0])->not->toBe($ids[1])
-        ->and($ids[0])->toBe('SF-000-000-000-001')
-        ->and($ids[1])->toBe('SF-000-000-000-002');
+        ->and($ids[0])->toBe(app(FarmerIdGenerator::class)->fromSequence(1))
+        ->and($ids[1])->toBe(app(FarmerIdGenerator::class)->fromSequence(2));
 });
 
 test('required farmer fields are validated', function () {

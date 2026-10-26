@@ -65,5 +65,4 @@ class StoreFarmerFarmActivityRequest extends FormRequest
             'remarks' => ['nullable', 'string', 'max:1000'],
         ];
     }
-
 }

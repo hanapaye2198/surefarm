@@ -27,8 +27,7 @@ class RegisterFarm
         array $data,
         ?UploadedFile $droneImage = null,
         ?User $actor = null,
-    ): Farm
-    {
+    ): Farm {
         $storedPath = null;
 
         try {

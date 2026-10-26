@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * A historical verification attempt. Declared area on this record is a
@@ -19,8 +20,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property FarmVerificationResult|null $result
  * @property array<string, mixed>|null $inspection_checklist
  * @property array<string, mixed>|null $boundary_geojson
+ * @property array<string, mixed>|null $previous_boundary_geojson
  * @property array<int, float|null>|null $gps_point_accuracies
  * @property array<int, string>|null $gps_point_captured_at
+ * @property array<int, float|null>|null $previous_gps_point_accuracies
+ * @property array<int, string>|null $previous_gps_point_captured_at
  * @property string|null $boundary_capture_method
  * @property bool $mobile_workflow
  */
@@ -129,7 +133,7 @@ class FarmVerification extends Model
         if (! ((int) $this->boundary_revision > 0
             && $this->boundary_captured_at !== null
             && $this->started_at !== null
-            && $this->boundary_captured_at->greaterThanOrEqualTo($this->started_at)
+            && Carbon::parse($this->boundary_captured_at)->greaterThanOrEqualTo(Carbon::parse($this->started_at))
             && $this->boundary_capture_method === 'device_gps')) {
             return false;
         }
@@ -149,15 +153,11 @@ class FarmVerification extends Model
 
         foreach ($timestamps as $timestamp) {
             try {
-                if (! is_string($timestamp)) {
-                    return false;
-                }
-
                 // Point times come from the verifier's device and can drift
                 // from the server clock. Parse them as reported metadata, but
                 // use the server-recorded boundary_captured_at above to decide
                 // whether this boundary belongs to the current attempt.
-                \Illuminate\Support\Carbon::parse($timestamp);
+                Carbon::parse($timestamp);
             } catch (\Throwable) {
                 return false;
             }
@@ -194,7 +194,7 @@ class FarmVerification extends Model
     {
         return [
             'id' => $this->id,
-            'date' => ($this->verified_at ?? $this->created_at)?->format('M j, Y') ?? '—',
+            'date' => Carbon::parse($this->verified_at ?? $this->created_at)->format('M j, Y'),
             'reference' => $this->verification_reference,
             'previous_status' => $this->previous_status?->value,
             'result' => $this->result?->value,
@@ -222,12 +222,18 @@ class FarmVerification extends Model
             'previous_gps_point_accuracies' => $this->previous_gps_point_accuracies,
             'previous_gps_point_captured_at' => $this->previous_gps_point_captured_at,
             'previous_boundary_capture_method' => $this->previous_boundary_capture_method,
-            'previous_boundary_captured_at' => $this->previous_boundary_captured_at?->toIso8601String(),
+            'previous_boundary_captured_at' => $this->previous_boundary_captured_at === null
+                ? null
+                : Carbon::parse($this->previous_boundary_captured_at)->toIso8601String(),
             'boundary_revision' => (int) $this->boundary_revision,
-            'boundary_captured_at' => $this->boundary_captured_at?->format('M j, Y g:i A'),
+            'boundary_captured_at' => $this->boundary_captured_at === null
+                ? null
+                : Carbon::parse($this->boundary_captured_at)->format('M j, Y g:i A'),
             'boundary_captured_by' => $this->boundaryCapturer?->name,
             'started_by' => $this->starter?->name,
-            'started_at' => $this->started_at?->format('M j, Y g:i A'),
+            'started_at' => $this->started_at === null
+                ? null
+                : Carbon::parse($this->started_at)->format('M j, Y g:i A'),
             'inspection_checklist' => $this->inspection_checklist ?? [],
             'photos' => $this->relationLoaded('photos')
                 ? $this->photos->map(fn (FarmVerificationPhoto $photo): array => $photo->present())->values()->all()

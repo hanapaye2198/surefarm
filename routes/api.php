@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\MobileAuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CooperativeController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmActivityController;
 use App\Http\Controllers\FarmBoundaryController;
 use App\Http\Controllers\FarmController;
@@ -24,6 +24,7 @@ use App\Http\Controllers\Settings\ActivityTypeController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\TraceabilityController;
+use App\Http\Middleware\EnsureMobileAccountIsUsable;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
@@ -42,7 +43,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
         'auth:sanctum',
         'verified',
         'abilities:mobile',
-        App\Http\Middleware\EnsureMobileAccountIsUsable::class,
+        EnsureMobileAccountIsUsable::class,
         'registry.scope',
     ])->group(function (): void {
         Route::get('me', [MobileAuthController::class, 'me']);

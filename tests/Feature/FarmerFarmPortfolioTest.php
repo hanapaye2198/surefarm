@@ -146,7 +146,7 @@ test('a farmer with no farms has an empty portfolio', function () {
             ->where('farmer.farm_summary.total_verified_hectares', 0));
 });
 
-test('updating farm reference data does not replace declared area or verification', function () {
+test('updating farm reference data preserves area history and requests reverification', function () {
     $farmer = Farmer::factory()->create();
     $farm = Farm::factory()->for($farmer)->create([
         'declared_area_hectares' => 2.84,
@@ -162,6 +162,8 @@ test('updating farm reference data does not replace declared area or verificatio
     $this->actingAs(portfolioStaff())
         ->put(route('farms.update', $farm), [
             'farm_name' => 'North Coffee Farm',
+            'municipality' => 'Malaybalay',
+            'province' => 'Bukidnon',
             'crop_type' => 'coffee',
             'declared_area_hectares' => '2.84',
             'status' => 'active',
@@ -178,7 +180,7 @@ test('updating farm reference data does not replace declared area or verificatio
 
     expect((float) $farm->declared_area_hectares)->toBe(2.84)
         ->and((float) $farm->verified_area_hectares)->toBe(2.79)
-        ->and($farm->verification_status)->toBe(FarmVerificationStatus::Verified)
+        ->and($farm->verification_status)->toBe(FarmVerificationStatus::NeedsReview)
         ->and($farm->status)->toBe(FarmStatus::Active)
         ->and($farm->current_stage)->toBe(FarmDevelopmentStage::Harvest)
         ->and($farm->number_of_hills)->toBe(12500)

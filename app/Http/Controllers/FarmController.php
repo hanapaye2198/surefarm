@@ -31,6 +31,7 @@ use App\Services\TraceabilitySummary;
 use App\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -305,7 +306,13 @@ class FarmController extends Controller
 
         $user = $request->user();
         $canManageCoverage = $user instanceof User && $user->canAccess(UserRole::Operations);
-        $canViewCoverage = $user instanceof User && $user->canAccess(UserRole::Operations, UserRole::FieldVerifier);
+        $isLinkedFarmer = $user instanceof User
+            && ! $user->isSuspended()
+            && $user->role === UserRole::Farmer
+            && (int) $farm->farmer->user_id === (int) $user->id;
+        $canViewCoverage = $user instanceof User
+            && ! $user->isSuspended()
+            && ($user->canAccess(UserRole::Operations, UserRole::FieldVerifier) || $isLinkedFarmer);
         $reference = $this->portfolio->card($farm, 1, $farm->farmer->fullName());
 
         if (! $canManageCoverage) {
@@ -359,7 +366,7 @@ class FarmController extends Controller
                         || ($user->hasRole(UserRole::FieldVerifier, UserRole::Admin)
                             && $request->is('api/mobile/*')
                             && $farm->verification_status === FarmVerificationStatus::InProgress
-                            && app(\App\Services\RegistryScope::class)->canViewFarm($user, $farm))
+                            && app(RegistryScope::class)->canViewFarm($user, $farm))
                     ),
                 'can_remove_boundary' => $user instanceof User
                     && $user->role === UserRole::Admin
@@ -582,7 +589,7 @@ class FarmController extends Controller
                     'label' => 'Verification photo',
                     'name' => is_string($name) && $name !== '' ? $name : 'Photo',
                     'href' => is_string($presented['url'] ?? null) ? $presented['url'] : route('farms.show', $farm),
-                    'recorded_at' => ($verification->verified_at ?? $verification->created_at)?->format('M j, Y'),
+                    'recorded_at' => Carbon::parse($verification->verified_at ?? $verification->created_at)->format('M j, Y'),
                 ];
             }
         }

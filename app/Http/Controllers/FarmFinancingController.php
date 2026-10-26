@@ -50,7 +50,7 @@ class FarmFinancingController extends Controller
             'title' => 'Finance',
             'description' => 'Financing is recorded on each farm. Open a farm to use the existing financing form.',
             'records' => $records,
-            'can_manage' => $user instanceof User && $user->canAccess(UserRole::Operations),
+            'can_manage' => $user->canAccess(UserRole::Operations),
         ]);
     }
 

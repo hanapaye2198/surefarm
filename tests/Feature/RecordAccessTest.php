@@ -70,13 +70,15 @@ test('a farmer cannot link an account or rewrite the farmer link', function () {
         ->assertForbidden();
 
     $this->actingAs($staff)
+        ->from(route('farmers.show', $farmer))
         ->put(route('farmers.update', $farmer), [
             'date_of_birth' => '1980-05-12',
             'government_id' => 'PH-ID-000124',
             'has_bank_account' => false,
             'user_id' => $account->id,
         ])
-        ->assertRedirect(route('farmers.show', $farmer));
+        ->assertRedirect(route('farmers.show', $farmer))
+        ->assertSessionHasErrors('user_id');
 
     expect($farmer->refresh()->user_id)->toBeNull();
 });
@@ -229,14 +231,14 @@ test('operations staff cannot read or submit a farmer outside their province', f
         ->assertNotFound();
 });
 
-test('an administrator without a platform grant cannot read the registry', function () {
+test('administrators can read the full registry without a platform grant', function () {
     $admin = User::factory()->create();
     $admin->registryGrants()->update(['revoked_at' => now()]);
     $farmer = Farmer::factory()->create();
 
     $this->actingAs($admin->fresh())
         ->get(route('farmers.show', $farmer))
-        ->assertNotFound();
+        ->assertOk();
 });
 
 test('a user cannot change their own role or another users role without permission', function () {

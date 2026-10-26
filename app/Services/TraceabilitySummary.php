@@ -84,6 +84,7 @@ class TraceabilitySummary
         ];
     }
 
+    /** @param Builder<TraceabilityLot> $query */
     private function tracedLabel(Builder $query): string
     {
         $totals = $query
@@ -100,13 +101,14 @@ class TraceabilitySummary
 
         if ($totals->count() > 1) {
             return $totals
-                ->map(fn (TraceabilityLot $row): string => $this->ledger->quantityLabel($row->total, $row->unit))
+                ->map(fn (TraceabilityLot $row): string => $this->ledger->quantityLabel(data_get($row, 'total', 0), $row->unit))
                 ->implode(' · ');
         }
 
-        return $this->ledger->quantityLabel($preferred->total, $preferred->unit);
+        return $this->ledger->quantityLabel(data_get($preferred, 'total', 0), $preferred->unit);
     }
 
+    /** @return Builder<TraceabilityLot> */
     private function scoped(?int $farmId, ?int $farmerId, ?User $viewer = null): Builder
     {
         $query = TraceabilityLot::query()

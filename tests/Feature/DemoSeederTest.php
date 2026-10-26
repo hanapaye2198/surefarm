@@ -3,6 +3,7 @@
 use App\FarmVerificationStatus;
 use App\Models\Farm;
 use App\Models\Farmer;
+use App\Models\FarmVerifierAssignment;
 use App\Models\Inventory;
 use App\Models\TraceabilityLot;
 use App\Models\User;
@@ -39,7 +40,11 @@ test('demo seeder fills a walkthrough and can run twice', function () {
         ->and($farm->harvests)->toHaveCount(2)
         ->and($farm->insurances)->toHaveCount(1)
         ->and($open->verification_status)->toBe(FarmVerificationStatus::InProgress)
-        ->and($open->assigned_verifier_id)->toBe($verifier->id);
+        ->and(FarmVerifierAssignment::query()
+            ->where('farm_id', $open->id)
+            ->where('user_id', $verifier->id)
+            ->whereNull('revoked_at')
+            ->exists())->toBeTrue();
 
     $lot = TraceabilityLot::query()->where('lot_code', 'SF-DEMO-000001')->first();
     $green = Inventory::query()

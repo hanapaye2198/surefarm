@@ -451,8 +451,8 @@ class AdminLandAnalytics
 
         return [
             'level' => $level,
-            'rows' => $rows->map(function ($row) use ($filters, $level): array {
-                $value = (string) $row->area_value;
+            'rows' => array_values($rows->map(function ($row) use ($filters, $level): array {
+                $value = (string) data_get($row, 'area_value', '');
                 $filterValue = $value === '' ? '__missing__' : $value;
                 $override = match ($level) {
                     'municipality' => ['municipality' => $filterValue, 'barangay' => null],
@@ -461,13 +461,13 @@ class AdminLandAnalytics
                 };
 
                 return [
-                    'label' => (string) $row->area_name,
-                    'farms' => (int) $row->farms,
-                    'declared_hectares' => round((float) $row->declared_hectares, 2),
-                    'verified_hectares' => round((float) ($row->verified_hectares ?? 0), 2),
+                    'label' => (string) data_get($row, 'area_name', ''),
+                    'farms' => (int) data_get($row, 'farms', 0),
+                    'declared_hectares' => round((float) data_get($row, 'declared_hectares', 0), 2),
+                    'verified_hectares' => round((float) data_get($row, 'verified_hectares', 0), 2),
                     'href' => $this->url($filters, $override),
                 ];
-            })->values()->all(),
+            })->all()),
         ];
     }
 
@@ -505,22 +505,22 @@ class AdminLandAnalytics
             ->get()
             ->keyBy('id');
 
-        return $rows->map(function ($row) use ($farmers, $filters): array {
+        return array_values($rows->map(function ($row) use ($farmers, $filters): array {
             $farmer = $farmers->get($row->farmer_id);
 
             return [
                 'farmer_id' => (int) $row->farmer_id,
                 'farmer_name' => $farmer?->fullName() ?? 'Unknown farmer',
-                'farmer_reference' => $farmer?->farmer_id ?? '',
-                'farms' => (int) $row->farm_count,
-                'declared_hectares' => round((float) $row->declared_hectares, 2),
-                'verified_hectares' => round((float) ($row->verified_hectares ?? 0), 2),
-                'verified_farms' => (int) $row->verified_farms,
-                'pending_farms' => (int) $row->pending_farms,
+                'farmer_reference' => $farmer === null ? '' : (string) $farmer->farmer_id,
+                'farms' => (int) data_get($row, 'farm_count', 0),
+                'declared_hectares' => round((float) data_get($row, 'declared_hectares', 0), 2),
+                'verified_hectares' => round((float) data_get($row, 'verified_hectares', 0), 2),
+                'verified_farms' => (int) data_get($row, 'verified_farms', 0),
+                'pending_farms' => (int) data_get($row, 'pending_farms', 0),
                 'profile_href' => $farmer === null ? null : route('farmers.show', $farmer),
                 'filter_href' => $this->url($filters, ['farmer' => (string) $row->farmer_id, 'farm' => null]),
             ];
-        })->values()->all();
+        })->all());
     }
 
     /**
@@ -541,17 +541,17 @@ class AdminLandAnalytics
             ->orderByDesc('declared_hectares')
             ->get();
 
-        return $rows->map(function ($row): array {
-            $crop = $row->crop_type instanceof CropType ? $row->crop_type : CropType::tryFrom((string) $row->crop_type);
+        return array_values($rows->map(function ($row): array {
+            $crop = $row->crop_type;
 
             return [
-                'crop' => $crop?->value ?? (string) $row->crop_type,
-                'label' => $crop?->label() ?? (string) $row->crop_type,
-                'farms' => (int) $row->farm_count,
-                'declared_hectares' => round((float) $row->declared_hectares, 2),
-                'verified_hectares' => round((float) ($row->verified_hectares ?? 0), 2),
+                'crop' => $crop->value,
+                'label' => $crop->label(),
+                'farms' => (int) data_get($row, 'farm_count', 0),
+                'declared_hectares' => round((float) data_get($row, 'declared_hectares', 0), 2),
+                'verified_hectares' => round((float) data_get($row, 'verified_hectares', 0), 2),
             ];
-        })->values()->all();
+        })->all());
     }
 
     /**
@@ -566,9 +566,7 @@ class AdminLandAnalytics
             ->selectRaw('sum(declared_area_hectares) as declared_hectares')
             ->groupBy('verification_status')
             ->get()
-            ->keyBy(fn ($row): string => $row->verification_status instanceof FarmVerificationStatus
-                ? $row->verification_status->value
-                : (string) $row->verification_status);
+            ->keyBy(fn ($row): string => $row->verification_status->value);
 
         return array_map(function (FarmVerificationStatus $status) use ($rows): array {
             $row = $rows->get($status->value);
@@ -682,7 +680,9 @@ class AdminLandAnalytics
     }
 
     /**
-     * @param  Builder<Model>  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      * @return array<string, int>
      */
     private function countedBuckets(Builder $query, string $column, bool $monthly, bool $distinctFarms): array
@@ -692,7 +692,7 @@ class AdminLandAnalytics
         $counts = [];
 
         foreach ($this->aggregate($query)->selectRaw("{$bucket} as bucket")->selectRaw($count)->groupByRaw($bucket)->get() as $row) {
-            $counts[(string) $row->bucket] = (int) $row->total;
+            $counts[(string) data_get($row, 'bucket', '')] = (int) data_get($row, 'total', 0);
         }
 
         return $counts;
@@ -712,19 +712,26 @@ class AdminLandAnalytics
         return $query;
     }
 
+    /** @return literal-string */
     private function bucketSql(string $column, bool $monthly): string
     {
         if (! in_array($column, ['created_at', 'verified_at'], true)) {
             throw new \InvalidArgumentException('Unsupported trend column.');
         }
 
-        $format = $monthly ? '%Y-%m' : '%Y-%m-%d';
+        $driver = DB::connection()->getDriverName();
 
-        if (DB::connection()->getDriverName() === 'sqlite') {
-            return "strftime('{$format}', {$column})";
-        }
-
-        return "DATE_FORMAT({$column}, '{$format}')";
+        return match ([$column, $monthly, $driver]) {
+            ['created_at', true, 'sqlite'] => "strftime('%Y-%m', created_at)",
+            ['created_at', false, 'sqlite'] => "strftime('%Y-%m-%d', created_at)",
+            ['verified_at', true, 'sqlite'] => "strftime('%Y-%m', verified_at)",
+            ['verified_at', false, 'sqlite'] => "strftime('%Y-%m-%d', verified_at)",
+            ['created_at', true, 'mysql'] => "DATE_FORMAT(created_at, '%Y-%m')",
+            ['created_at', false, 'mysql'] => "DATE_FORMAT(created_at, '%Y-%m-%d')",
+            ['verified_at', true, 'mysql'] => "DATE_FORMAT(verified_at, '%Y-%m')",
+            ['verified_at', false, 'mysql'] => "DATE_FORMAT(verified_at, '%Y-%m-%d')",
+            default => throw new \InvalidArgumentException('Unsupported database driver or trend bucket.'),
+        };
     }
 
     /**
@@ -813,7 +820,7 @@ class AdminLandAnalytics
             'farm_name' => $farm->displayName(),
             'farmer_id' => $farm->farmer_id,
             'farmer_name' => $farm->farmer?->fullName() ?? 'Unknown farmer',
-            'farmer_reference' => $farm->farmer?->farmer_id ?? '',
+            'farmer_reference' => $farm->farmer === null ? '' : (string) $farm->farmer->farmer_id,
             'province' => $farm->province,
             'municipality' => $farm->municipality,
             'barangay' => $farm->barangay,
@@ -826,7 +833,7 @@ class AdminLandAnalytics
             'status_label' => $farm->status->label(),
             'boundary_status' => $farm->boundary === null ? 'missing' : 'mapped',
             'tenure' => $farm->property_ownership?->label(),
-            'updated_at' => $farm->updated_at?->timezone((string) config('app.timezone'))->format('M j, Y'),
+            'updated_at' => $farm->updated_at->timezone((string) config('app.timezone'))->format('M j, Y'),
             'latitude' => $farm->latitude === null ? null : (float) $farm->latitude,
             'longitude' => $farm->longitude === null ? null : (float) $farm->longitude,
             'boundary' => $boundary,
@@ -876,7 +883,7 @@ class AdminLandAnalytics
                 'farm_name' => $farm->displayName(),
                 'farmer_id' => $farm->farmer_id,
                 'farmer_name' => $farm->farmer?->fullName() ?? 'Unknown farmer',
-                'farmer_reference' => $farm->farmer?->farmer_id ?? '',
+                'farmer_reference' => $farm->farmer === null ? '' : (string) $farm->farmer->farmer_id,
                 'province' => $farm->province,
                 'municipality' => $farm->municipality,
                 'barangay' => $farm->barangay,
@@ -887,7 +894,7 @@ class AdminLandAnalytics
                 'status' => $farm->status->value,
                 'boundary_status' => $farm->boundary === null ? 'missing' : 'mapped',
                 'tenure' => $farm->property_ownership?->label(),
-                'updated_at' => $farm->updated_at?->timezone((string) config('app.timezone'))->format('M j, Y'),
+                'updated_at' => $farm->updated_at->timezone((string) config('app.timezone'))->format('M j, Y'),
                 'farm_href' => route('farms.show', $farm),
                 'farmer_href' => route('farmers.show', $farm->farmer_id),
             ])->values()->all(),
@@ -958,13 +965,13 @@ class AdminLandAnalytics
      */
     private function farmersWithSeveralFarms(Builder $farms): int
     {
-        return $farms
+        $farmersWithMultipleFarms = $farms
             ->reorder()
             ->select('farmer_id')
             ->groupBy('farmer_id')
-            ->havingRaw('count(*) > 1')
-            ->get()
-            ->count();
+            ->havingRaw('count(*) > 1');
+
+        return DB::query()->fromSub($farmersWithMultipleFarms->toBase(), 'multiple_farmers')->count();
     }
 
     /**
@@ -1003,11 +1010,15 @@ class AdminLandAnalytics
                 ->latest('id')
                 ->limit(5)
                 ->get()
-                ->map(fn (AccessEvent $event): array => [
-                    'action' => $this->accessLabel($event->action),
-                    'actor' => $event->actor?->name ?? 'Unknown account',
-                    'at' => $event->created_at?->timezone((string) config('app.timezone'))->format('M j, Y g:i A'),
-                ])
+                ->map(function (AccessEvent $event): array {
+                    $actor = $event->getRelation('actor');
+
+                    return [
+                        'action' => $this->accessLabel($event->action),
+                        'actor' => $actor instanceof User ? $actor->name : 'Unknown account',
+                        'at' => $event->created_at->timezone((string) config('app.timezone'))->format('M j, Y g:i A'),
+                    ];
+                })
                 ->values()
                 ->all(),
         ];
@@ -1124,10 +1135,10 @@ class AdminLandAnalytics
             ->limit(200)
             ->pluck($column);
 
-        return $places->map(fn (mixed $place): array => [
+        return array_values($places->map(fn (mixed $place): array => [
             'value' => (string) $place,
             'label' => (string) $place,
-        ])->values()->all();
+        ])->all());
     }
 
     /**
@@ -1335,6 +1346,7 @@ class AdminLandAnalytics
             AccessEventAction::GrantCreated => 'Registry grant created',
             AccessEventAction::GrantRevoked => 'Registry grant revoked',
             AccessEventAction::AssignmentCreated => 'Verifier assigned',
+            AccessEventAction::AssignmentScheduled => 'Verifier assignment scheduled',
             AccessEventAction::AssignmentRevoked => 'Verifier assignment revoked',
             AccessEventAction::HarvestCorrected => 'Harvest corrected',
             AccessEventAction::InventoryReceived => 'Inventory received',

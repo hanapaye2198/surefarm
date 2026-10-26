@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\CropType;
 use App\HarvestStatus;
-use App\Models\FarmProduction;
 use App\Models\Farm;
 use App\Models\User;
 use App\UserRole;

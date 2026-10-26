@@ -184,14 +184,22 @@ final class FarmBoundaryGeometry
             || (abs($cdB) <= $epsilon && $this->onSegment($c, $d, $b, $epsilon));
     }
 
-    /** @param array{0: float, 1: float} $a @param array{0: float, 1: float} $b @param array{0: float, 1: float} $point */
+    /**
+     * @param  array{0: float, 1: float}  $a
+     * @param  array{0: float, 1: float}  $b
+     * @param  array{0: float, 1: float}  $point
+     */
     private function orientation(array $a, array $b, array $point): float
     {
         return ($b[0] - $a[0]) * ($point[1] - $a[1])
             - ($b[1] - $a[1]) * ($point[0] - $a[0]);
     }
 
-    /** @param array{0: float, 1: float} $a @param array{0: float, 1: float} $b @param array{0: float, 1: float} $point */
+    /**
+     * @param  array{0: float, 1: float}  $a
+     * @param  array{0: float, 1: float}  $b
+     * @param  array{0: float, 1: float}  $point
+     */
     private function onSegment(array $a, array $b, array $point, float $epsilon): bool
     {
         return $point[0] >= min($a[0], $b[0]) - $epsilon

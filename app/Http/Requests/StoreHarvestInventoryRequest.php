@@ -49,6 +49,47 @@ class StoreHarvestInventoryRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array{quantity: numeric-string|float|int, unit: string, processing_stage_id: int, location?: string|null, received_date: string, notes?: string|null, receipt_token?: string|null}
+     */
+    public function receiptData(): array
+    {
+        $data = $this->validated();
+        $quantity = $data['quantity'] ?? null;
+
+        if ((! is_string($quantity) && ! is_int($quantity) && ! is_float($quantity)) || ! is_numeric($quantity)) {
+            throw new \LogicException('Validated inventory quantity must be numeric.');
+        }
+
+        $unit = $data['unit'] ?? null;
+        $stageId = $data['processing_stage_id'] ?? null;
+        $receivedDate = $data['received_date'] ?? null;
+
+        if (! is_string($unit) || (! is_int($stageId) && ! (is_string($stageId) && ctype_digit($stageId))) || ! is_string($receivedDate)) {
+            throw new \LogicException('Validated inventory receipt fields have unexpected types.');
+        }
+
+        $location = $data['location'] ?? null;
+        $notes = $data['notes'] ?? null;
+        $receiptToken = $data['receipt_token'] ?? null;
+
+        if (($location !== null && ! is_string($location))
+            || ($notes !== null && ! is_string($notes))
+            || ($receiptToken !== null && ! is_string($receiptToken))) {
+            throw new \LogicException('Validated inventory optional fields must be strings or null.');
+        }
+
+        return [
+            'quantity' => $quantity,
+            'unit' => $unit,
+            'processing_stage_id' => (int) $stageId,
+            'location' => $location,
+            'received_date' => $receivedDate,
+            'notes' => $notes,
+            'receipt_token' => $receiptToken,
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $this->merge([
