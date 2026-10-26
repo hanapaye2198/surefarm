@@ -3938,7 +3938,7 @@ function DataPage(props: {
             hasFreshBoundary &&
             hasCompleteChecklist &&
             inspection?.photos?.some(
-                (photo) =>
+                (photo: { boundary_revision: number }) =>
                     photo.boundary_revision === inspection.boundary_revision,
             ),
         );
