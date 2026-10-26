@@ -42,6 +42,7 @@ class MobileFarmerController extends Controller
 
         return Inertia::render('mobile/farmer-farms', [
             'farmer_name' => $farmer->fullName(),
+            'google_maps_api_key' => config('services.google_maps.browser_api_key'),
             'farms' => $farmer->farms()->with('boundary')->latest('id')->get()
                 ->map(fn (Farm $farm): array => $this->farmRow($farm, $areas))
                 ->values()->all(),
@@ -176,6 +177,7 @@ class MobileFarmerController extends Controller
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->latest('activity_date')->latest('id')
             ->paginate(30, ['*'], 'activities_page')
+            ->withQueryString()
             ->through(fn (FarmActivity $activity): array => $activity->present());
 
         $harvests = FarmHarvest::query()
@@ -189,6 +191,7 @@ class MobileFarmerController extends Controller
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->latest('harvest_date')->latest('id')
             ->paginate(30, ['*'], 'harvests_page')
+            ->withQueryString()
             ->through(fn (FarmHarvest $harvest): array => $harvest->present());
 
         $productions = FarmProduction::query()
@@ -196,6 +199,7 @@ class MobileFarmerController extends Controller
             ->whereHas('farm', fn ($query) => $query->where('farmer_id', $farmer->id))
             ->latest('id')
             ->paginate(30, ['*'], 'productions_page')
+            ->withQueryString()
             ->through(fn (FarmProduction $production): array => $production->present());
 
         return Inertia::render('mobile/farmer-activities', [
@@ -266,20 +270,24 @@ class MobileFarmerController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $user->role === UserRole::Farmer, 403);
 
-        return Inertia::render('mobile/farmer-notifications', [
-            'notifications' => $user->notifications()->latest()
-                ->paginate(30, ['*'], 'notifications_page')
-                ->through(fn (DatabaseNotification $notification): array => [
-                    'id' => $notification->id,
-                    'title' => $notification->data['title'] ?? 'SureFarm update',
-                    'message' => $notification->data['message'] ?? '',
-                    'farm_name' => $notification->data['farm_name'] ?? null,
-                    'status' => $notification->data['status'] ?? null,
-                    'created_at' => $notification->created_at?->format('M j, Y g:i A'),
-                    'read' => $notification->read_at !== null,
-                    'kind' => $notification->data['kind'] ?? 'update',
-                ]),
-        ]);
+        return $this->notificationPage($user, 'mobile/farmer-notifications');
+    }
+
+    public function verifierNotifications(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        return $this->notificationPage($user, 'mobile/verifier-notifications');
+    }
+
+    public function markVerifierNotificationRead(Request $request, string $notification): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+        $user->notifications()->whereKey($notification)->firstOrFail()->markAsRead();
+
+        return $this->notificationPage($user, 'mobile/verifier-notifications');
     }
 
     public function markNotificationRead(Request $request, string $notification): Response
@@ -374,6 +382,25 @@ class MobileFarmerController extends Controller
         return Storage::disk('local')->response($farmer->photo_path);
     }
 
+    private function notificationPage(User $user, string $component): Response
+    {
+        return Inertia::render($component, [
+            'notifications' => $user->notifications()->latest()
+                ->paginate(30, ['*'], 'notifications_page')
+                ->withQueryString()
+                ->through(fn (DatabaseNotification $notification): array => [
+                    'id' => $notification->id,
+                    'title' => $notification->data['title'] ?? 'SureFarm update',
+                    'message' => $notification->data['message'] ?? '',
+                    'farm_name' => $notification->data['farm_name'] ?? null,
+                    'status' => $notification->data['status'] ?? null,
+                    'created_at' => $notification->created_at?->format('M j, Y g:i A'),
+                    'read' => $notification->read_at !== null,
+                    'kind' => $notification->data['kind'] ?? 'update',
+                ]),
+        ]);
+    }
+
     private function farmer(Request $request): Farmer
     {
         $user = $request->user();
@@ -397,6 +424,8 @@ class MobileFarmerController extends Controller
             'measured_area' => $comparison === null ? null : $areas->hectares($comparison['measured']),
             'verified_area' => $farm->verified_area_hectares === null ? null : $areas->hectares((float) $farm->verified_area_hectares),
             'verification_status' => $farm->verification_status->value,
+            'latitude' => $farm->latitude === null ? null : (float) $farm->latitude,
+            'longitude' => $farm->longitude === null ? null : (float) $farm->longitude,
             'geofence_status' => $farm->geofenceStatus(),
             'geofence_status_label' => $farm->geofenceStatusLabel(),
             'status' => $farm->status->value,

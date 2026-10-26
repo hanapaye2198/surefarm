@@ -143,6 +143,48 @@ test('an administrator sees scoped land analytics and keeps farms without a boun
             ->has('registry.charts.crops', 0));
 });
 
+test('the admin map uses saved geometry and keeps area measurements separate', function () {
+    $admin = User::factory()->create();
+    $farmer = Farmer::factory()->create();
+    $verified = Farm::factory()->for($farmer)->create([
+        'farm_id' => 'FARM-000701',
+        'declared_area_hectares' => 4,
+        'verified_area_hectares' => 2.79,
+        'verification_status' => FarmVerificationStatus::Verified,
+        'latitude' => 8.15,
+        'longitude' => 125.12,
+    ]);
+    FarmBoundary::factory()->create([
+        'farm_id' => $verified->id,
+    ]);
+    Farm::factory()->for($farmer)->create([
+        'farm_id' => 'FARM-000702',
+        'verification_status' => FarmVerificationStatus::Pending,
+        'latitude' => 8.16,
+        'longitude' => 125.13,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin-dashboard')
+            ->where('registry.map.features.0.farm_id', 'FARM-000701')
+            ->where('registry.map.features.0.verification_status', 'verified')
+            ->where('registry.map.features.0.declared_area_hectares', 4)
+            ->where('registry.map.features.0.measured_area_hectares', 1.23)
+            ->where('registry.map.features.0.verified_area_hectares', 2.79)
+            ->where('registry.map.features.0.boundary.type', 'Polygon')
+            ->where('registry.map.features.1.farm_id', 'FARM-000702')
+            ->where('registry.map.features.1.verification_status', 'pending')
+            ->where('registry.map.features.1.boundary', null)
+            ->where('registry.map.features.1.measured_area_hectares', null)
+            ->where('registry.operations.harvest.has_records', false)
+            ->where('registry.operations.activities', [])
+            ->has('registry.operations.registrations', 2)
+            ->where('registry.charts.statuses.0.href', route('dashboard', ['verification_status' => 'pending'])));
+});
+
 test('registry filters search sort paginate and use the registration date', function () {
     $admin = User::factory()->create();
     $farmer = Farmer::factory()->create([
@@ -219,6 +261,9 @@ test('an empty authorized registry renders zero without inventing land', functio
             ->where('registry.metrics.3.display', '0.00 ha')
             ->where('registry.farms.data', [])
             ->where('registry.map.features', [])
+            ->where('registry.operations.harvest.has_records', false)
+            ->where('registry.operations.activities', [])
+            ->where('registry.operations.registrations', [])
             ->where('registry.insights', [])
             ->where('registry.charts.trend.monthly', false)
             ->has('registry.charts.trend.points', 30));

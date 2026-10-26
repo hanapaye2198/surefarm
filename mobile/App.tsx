@@ -416,7 +416,7 @@ function TextInput(props: ComponentProps<typeof NativeTextInput>) {
 }
 
 const TOKEN_KEY = 'surefarm.mobile.access-token';
-const LOGO_URL = `${SITE_URL}/surefarm-logo.png`;
+const LOGO_URL = `${SITE_URL}/surefarm%20logo.png`;
 
 const getStoredToken = async (): Promise<string | null> => {
     if (Platform.OS === 'web') {
@@ -471,42 +471,10 @@ function AppIcon({
 const SECTIONS: Section[] = [
     {
         key: 'dashboard',
-        title: 'Dashboard',
-        description: 'Farm program overview and recent activity',
+        title: 'Home',
+        description: 'Your farms, visits, and recent updates',
         path: '/dashboard',
-        icon: 'dashboard',
-    },
-    {
-        key: 'farmers',
-        title: 'Farmers',
-        description: 'Farmer registry and farm portfolios',
-        path: '/farmers',
-        roles: ['operations', 'field_verifier'],
-        icon: 'farmers',
-    },
-    {
-        key: 'farmer-farms',
-        title: 'My farms',
-        description: 'Farm status, GPS area, and verification progress',
-        path: '/farmer/farms',
-        roles: ['farmer'],
-        icon: 'farms',
-    },
-    {
-        key: 'farmer-activities',
-        title: 'Activities & harvest',
-        description: 'Recent farm work and harvest records',
-        path: '/farmer/activities',
-        roles: ['farmer'],
-        icon: 'activities',
-    },
-    {
-        key: 'farmer-notifications',
-        title: 'Notifications',
-        description: 'Updates about your farm verification',
-        path: '/farmer/notifications',
-        roles: ['farmer'],
-        icon: 'pending',
+        icon: 'home',
     },
     {
         key: 'farmer-profile',
@@ -517,121 +485,130 @@ const SECTIONS: Section[] = [
         icon: 'account',
     },
     {
-        key: 'farms',
-        title: 'Farms & map',
-        description: 'Farm records, coordinates, and boundaries',
-        path: '/farms',
-        roles: ['operations', 'field_verifier'],
+        key: 'farmer-farms',
+        title: 'My farms',
+        description: 'Only the farms linked to your account',
+        path: '/farmer/farms',
+        roles: ['farmer'],
         icon: 'farms',
     },
     {
-        key: 'farm-verification',
-        title: 'Farm verification',
-        description: 'Review and record field results',
-        path: '/farm-verification',
+        key: 'farmer-map',
+        title: 'Farm map',
+        description: 'Saved locations and boundaries for your farms',
+        path: '/farmer/farms?view=map',
+        roles: ['farmer'],
+        icon: 'location',
+    },
+    {
+        key: 'farmer-activities',
+        title: 'Farm activities',
+        description: 'Work recorded on your farms',
+        path: '/farmer/activities?view=activities',
+        roles: ['farmer'],
+        icon: 'activities',
+    },
+    {
+        key: 'farmer-harvest',
+        title: 'My harvest',
+        description: 'Harvest records for your farms',
+        path: '/farmer/activities?view=harvest',
+        roles: ['farmer'],
+        icon: 'harvest',
+    },
+    {
+        key: 'farmer-verification',
+        title: 'Verification status',
+        description: 'Declared, measured, and verified area for each farm',
+        path: '/farmer/farms?view=verification',
+        roles: ['farmer'],
+        icon: 'verification',
+    },
+    {
+        key: 'farmer-notifications',
+        title: 'Notifications',
+        description: 'Updates about your farms and verification',
+        path: '/farmer/notifications',
+        roles: ['farmer'],
+        icon: 'pending',
+    },
+    {
+        key: 'verifier-assignments',
+        title: 'My assignments',
+        description: 'Farms assigned for a field visit',
+        path: '/farm-verification?queue=assignments',
         roles: ['field_verifier'],
         icon: 'verification',
     },
     {
-        key: 'farm-activities',
-        title: 'Farm activities',
-        description: 'Field work, costs, and history',
-        path: '/farm-activities',
-        roles: ['operations', 'field_verifier'],
-        icon: 'activities',
+        key: 'verifier-details',
+        title: 'Farm details',
+        description: 'Open an assignment to see the farmer and farm',
+        path: '/farm-verification?queue=assignments&step=details',
+        roles: ['field_verifier'],
+        icon: 'farms',
     },
     {
-        key: 'production',
-        title: 'Production',
-        description: 'Expected output and production periods',
-        path: '/production',
-        roles: ['operations', 'field_verifier'],
-        icon: 'production',
+        key: 'verifier-gps',
+        title: 'GPS boundary capture',
+        description: 'Capture the perimeter with this device’s GPS',
+        path: '/farm-verification?queue=assignments&step=gps',
+        roles: ['field_verifier'],
+        icon: 'location',
     },
     {
-        key: 'harvest',
-        title: 'Harvest',
-        description: 'Actual harvest records and receiving',
-        path: '/harvest',
-        roles: ['operations', 'field_verifier'],
-        icon: 'harvest',
+        key: 'verifier-evidence',
+        title: 'Evidence & inspection',
+        description: 'Photos, checklist answers, and field notes',
+        path: '/farm-verification?queue=assignments&step=evidence',
+        roles: ['field_verifier'],
+        icon: 'shield',
     },
     {
-        key: 'inventory',
-        title: 'Inventory',
-        description: 'Coffee stock and inventory movements',
-        path: '/inventory',
-        roles: ['operations', 'field_verifier'],
-        icon: 'inventory',
+        key: 'verifier-submit',
+        title: 'Submit verification',
+        description: 'Send a completed inspection after GPS and evidence are saved',
+        path: '/farm-verification?queue=assignments&step=submit',
+        roles: ['field_verifier'],
+        icon: 'verified',
     },
     {
-        key: 'processing',
-        title: 'Coffee processing',
-        description: 'Processing stages and movements',
-        path: '/inventory/processing',
-        roles: ['operations', 'field_verifier'],
-        icon: 'processing',
+        key: 'verifier-history',
+        title: 'Verification history',
+        description: 'Submitted and completed inspections',
+        path: '/farm-verification?queue=history',
+        roles: ['field_verifier'],
+        icon: 'needsReview',
     },
     {
-        key: 'traceability',
-        title: 'Traceability',
-        description: 'Coffee lots and journey history',
-        path: '/traceability',
-        roles: ['operations', 'field_verifier'],
-        icon: 'traceability',
-    },
-    {
-        key: 'cooperatives',
-        title: 'Cooperatives',
-        description: 'Cooperative directory',
-        path: '/cooperatives',
-        roles: ['operations', 'cooperative_officer'],
-        icon: 'cooperatives',
-    },
-    {
-        key: 'crop-management',
-        title: 'Crop management',
-        description: 'Crop program workspace',
-        path: '/modules/crop-management',
-        icon: 'cropManagement',
-    },
-    {
-        key: 'finance',
-        title: 'Finance',
-        description: 'Farm financing workspace',
-        path: '/modules/finance',
-        icon: 'finance',
-    },
-    {
-        key: 'insurance',
-        title: 'Insurance',
-        description: 'Farm insurance workspace',
-        path: '/modules/insurance',
-        icon: 'insurance',
-    },
-    {
-        key: 'logistics-export',
-        title: 'Logistics & export',
-        description: 'Logistics workspace',
-        path: '/modules/logistics-export',
-        icon: 'logistics',
-    },
-    {
-        key: 'reports',
-        title: 'Reports',
-        description: 'Program reporting workspace',
-        path: '/modules/reports',
-        icon: 'reports',
-    },
-    {
-        key: 'activity-types',
-        title: 'Activity types',
-        description: 'Configure farm activities',
-        path: '/settings/activity-types',
-        roles: ['admin'],
-        icon: 'activityTypes',
+        key: 'verifier-notifications',
+        title: 'Notifications',
+        description: 'Updates about your assigned inspections',
+        path: '/verifier/notifications',
+        roles: ['field_verifier'],
+        icon: 'pending',
     },
 ];
+
+function mobileWorkspacePath(role: Role, path: string): boolean {
+    if (path.startsWith('local:')) return true;
+
+    const clean = path.split('?')[0];
+    if (clean === '/dashboard' || clean.startsWith('/settings/')) return true;
+    if (role === 'farmer') return clean.startsWith('/farmer/');
+    if (role === 'field_verifier') {
+        return (
+            clean.startsWith('/farm-verification') ||
+            clean.startsWith('/verifier/')
+        );
+    }
+
+    return false;
+}
+
+function pathParam(path: string, key: string): string | null {
+    return new URLSearchParams(path.split('?')[1] ?? '').get(key);
+}
 
 const ROLE_LABEL: Record<Role, string> = {
     admin: 'Administrator',
@@ -780,7 +757,7 @@ function SureFarmApp() {
     const [authError, setAuthError] = useState('');
     const [busy, setBusy] = useState(false);
     const [stack, setStack] = useState<Screen[]>([
-        { path: '/dashboard', title: 'Dashboard' },
+        { path: '/dashboard', title: 'Home' },
     ]);
     const [panel, setPanel] = useState<'page' | 'features'>('page');
     const [page, setPage] = useState<Page | null>(null);
@@ -797,25 +774,21 @@ function SureFarmApp() {
     const sections = useMemo(
         () =>
             SECTIONS.filter((item) => {
-                if (user?.role === 'farmer')
+                if (!user) return false;
+                if (item.key === 'dashboard') return true;
+                if (user.role === 'farmer') {
                     return (
-                        item.key === 'dashboard' ||
-                        (user.farmer_profile_linked === true &&
-                            item.roles?.includes('farmer') === true)
+                        user.farmer_profile_linked === true &&
+                        item.roles?.includes('farmer') === true
                     );
-                if (user?.role === 'field_verifier')
-                    return ['dashboard', 'farm-verification'].includes(
-                        item.key,
-                    );
-                if (user?.role === 'cooperative_officer')
-                    return ['dashboard', 'cooperatives'].includes(item.key);
-                return (
-                    !item.roles ||
-                    user?.role === 'admin' ||
-                    (user && item.roles.includes(user.role))
-                );
+                }
+                if (user.role === 'field_verifier') {
+                    return item.roles?.includes('field_verifier') === true;
+                }
+
+                return false;
             }),
-        [user?.role],
+        [user],
     );
     const isOperations = user?.role === 'admin' || user?.role === 'operations';
 
@@ -1537,6 +1510,22 @@ function SureFarmApp() {
                     onOpen={(item) => void navigate(item.path, item.title)}
                     onLocalForm={openLocalForm}
                 />
+            ) : page && !mobileWorkspacePath(user.role, current.path) ? (
+                <ScrollView
+                    style={styles.page}
+                    contentContainerStyle={styles.content}
+                >
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>
+                            Open this on the website
+                        </Text>
+                        <Text style={styles.muted}>
+                            Administration, reports, and registry management
+                            stay in the SureFarm web application. This app
+                            shows farmer and field-verifier work only.
+                        </Text>
+                    </View>
+                </ScrollView>
             ) : page ? (
                 <DataPage
                     page={page}
@@ -1569,22 +1558,42 @@ function SureFarmApp() {
                     icon="home"
                     onPress={() => {
                         setPanel('page');
-                        setStack([{ path: '/dashboard', title: 'Dashboard' }]);
+                        setStack([{ path: '/dashboard', title: 'Home' }]);
                         void loadPage('/dashboard');
                     }}
                 />
                 {user.role === 'farmer' && user.farmer_profile_linked ? (
                     <BottomItem
-                        label="My farms"
+                        label="Farms"
                         active={
-                            panel === 'page' && current.path === '/farmer/farms'
+                            panel === 'page' &&
+                            current.path.startsWith('/farmer/farms') &&
+                            pathParam(current.path, 'view') !== 'verification'
                         }
                         icon="farms"
                         onPress={() =>
                             void navigate('/farmer/farms', 'My farms')
                         }
                     />
-                ) : user.role === 'farmer' ? (
+                ) : null}
+                {user.role === 'field_verifier' ? (
+                    <BottomItem
+                        label="Visits"
+                        active={
+                            panel === 'page' &&
+                            current.path.startsWith('/farm-verification') &&
+                            pathParam(current.path, 'queue') !== 'history'
+                        }
+                        icon="verification"
+                        onPress={() =>
+                            void navigate(
+                                '/farm-verification?queue=assignments',
+                                'My assignments',
+                            )
+                        }
+                    />
+                ) : null}
+                {user.role === 'farmer' && !user.farmer_profile_linked ? (
                     <BottomItem
                         label="Security"
                         active={
@@ -1599,14 +1608,47 @@ function SureFarmApp() {
                             )
                         }
                     />
-                ) : (
+                ) : null}
+                {sections.length > 1 ? (
                     <BottomItem
-                        label="Features"
+                        label="Menu"
                         active={panel === 'features'}
                         icon="features"
                         onPress={() => setPanel('features')}
                     />
-                )}
+                ) : null}
+                {user.role === 'farmer' && user.farmer_profile_linked ? (
+                    <BottomItem
+                        label="Alerts"
+                        active={
+                            panel === 'page' &&
+                            current.path.startsWith('/farmer/notifications')
+                        }
+                        icon="pending"
+                        onPress={() =>
+                            void navigate(
+                                '/farmer/notifications',
+                                'Notifications',
+                            )
+                        }
+                    />
+                ) : null}
+                {user.role === 'field_verifier' ? (
+                    <BottomItem
+                        label="Alerts"
+                        active={
+                            panel === 'page' &&
+                            current.path.startsWith('/verifier/notifications')
+                        }
+                        icon="pending"
+                        onPress={() =>
+                            void navigate(
+                                '/verifier/notifications',
+                                'Notifications',
+                            )
+                        }
+                    />
+                ) : null}
                 <BottomItem
                     label="Account"
                     active={
@@ -2008,8 +2050,49 @@ function Dashboard({
                 )}
                 {activitySection && (
                     <Secondary
-                        title="Activities & harvest"
+                        title="Farm activities"
                         onPress={() => onOpen(activitySection)}
+                    />
+                )}
+                {sections.find((section) => section.key === 'farmer-harvest') && (
+                    <Secondary
+                        title="My harvest"
+                        onPress={() =>
+                            onOpen(
+                                sections.find(
+                                    (section) =>
+                                        section.key === 'farmer-harvest',
+                                ) as Section,
+                            )
+                        }
+                    />
+                )}
+            </ScrollView>
+        );
+    }
+
+    if (user && user.role !== 'farmer' && user.role !== 'field_verifier') {
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                <View style={styles.welcome}>
+                    <View style={styles.welcomeOrb} />
+                    <Text style={styles.eyebrow}>SUREFARM</Text>
+                    <Text style={styles.welcomeTitle}>
+                        Management stays on the website
+                    </Text>
+                    <Text style={styles.welcomeBody}>
+                        This app is for farmers and field verifiers. Farmer
+                        records, maps, inventory, reports, and user
+                        administration stay in the SureFarm web application.
+                    </Text>
+                </View>
+                {(user.role === 'admin' || user.role === 'operations') && (
+                    <Primary
+                        title="Publish farmer announcement"
+                        onPress={() => onLocalForm('announcements/create', {})}
                     />
                 )}
             </ScrollView>
@@ -2029,6 +2112,10 @@ function Dashboard({
         },
         { icon: 'farms', label: 'Farms', value: summary.registered_farms ?? 0 },
     ];
+    const submittedInspections =
+        Number(summary.verified_farms ?? 0) +
+        Number(summary.needs_review ?? 0) +
+        Number(summary.failed ?? 0);
     const verifierStats: {
         icon: IconName;
         label: string;
@@ -2036,23 +2123,23 @@ function Dashboard({
     }[] = [
         {
             icon: 'farms',
-            label: 'Assigned farms',
+            label: 'Assigned inspections',
             value: summary.assigned_farms ?? 0,
         },
         {
-            icon: 'calendar',
-            label: 'Scheduled today',
-            value: summary.scheduled_today ?? 0,
+            icon: 'pending',
+            label: 'Pending visits',
+            value: summary.pending_verification ?? 0,
+        },
+        {
+            icon: 'inProgress',
+            label: 'Open inspections',
+            value: summary.in_progress ?? 0,
         },
         {
             icon: 'verified',
-            label: 'Completed',
-            value: summary.completed_farms ?? 0,
-        },
-        {
-            icon: 'verified',
-            label: 'Verified today',
-            value: summary.verified_today ?? 0,
+            label: 'Submitted',
+            value: submittedInspections,
         },
     ];
     const stats =
@@ -2108,7 +2195,7 @@ function Dashboard({
               ? 'Good afternoon'
               : 'Good evening';
     const verificationWorkspace = sections.find(
-        (section) => section.key === 'farm-verification',
+        (section) => section.key === 'verifier-assignments',
     );
     const today = new Date().toLocaleDateString(undefined, {
         weekday: 'long',
@@ -2129,7 +2216,7 @@ function Dashboard({
                 </Text>
                 <Text style={styles.welcomeBody}>
                     {user?.role === 'field_verifier'
-                        ? 'Review current farm verification records, saved boundaries, and the progress of each farm.'
+                        ? 'Open an assigned farm, capture its GPS boundary on this device, add inspection evidence, then submit the result.'
                         : 'Your live overview of farmer registrations, farm verification, and harvest activity.'}
                 </Text>
                 {verificationWorkspace && (
@@ -2142,7 +2229,7 @@ function Dashboard({
                         ]}
                     >
                         <Text style={styles.heroActionText}>
-                            Review farm verification
+                            Open my assignments
                         </Text>
                         <AppIcon name="arrowRight" size={17} color={GREEN} />
                     </Pressable>
@@ -2167,7 +2254,7 @@ function Dashboard({
                 <View>
                     <Text style={styles.dashboardTitle}>
                         {user?.role === 'field_verifier'
-                            ? 'Farm verification'
+                            ? 'Field visits'
                             : 'Program overview'}
                     </Text>
                     <Text style={styles.dashboardDate}>{today}</Text>
@@ -2542,8 +2629,13 @@ function FeatureList({
     return (
         <ScrollView style={styles.page} contentContainerStyle={styles.content}>
             <Text style={styles.muted}>
-                Open a SureFarm workspace. Available actions depend on your
-                account role.
+                {sections.some((item) => item.roles?.includes('farmer'))
+                    ? 'Your farms, map, activities, harvest, and verification updates.'
+                    : sections.some((item) =>
+                            item.roles?.includes('field_verifier'),
+                        )
+                      ? 'Assigned visits, GPS capture, inspection evidence, and submission history.'
+                      : 'Choose a screen for this account.'}
             </Text>
             <View style={{ gap: 9, marginTop: 14 }}>
                 {sections.map((item) => (
@@ -2766,6 +2858,152 @@ function DataPage(props: {
 
     if (page.component === 'mobile/farmer-farms') {
         const farms: any[] = page.data.farms ?? [];
+        const farmView = pathParam(props.path, 'view');
+        const openFarm = (farm: { id: number; farm_name: string }) =>
+            props.onOpen(`/farmer/farms/${farm.id}`, farm.farm_name);
+        if (farmView === 'map') {
+            const pins: FarmPin[] = farms
+                .filter(
+                    (farm) =>
+                        Number.isFinite(Number(farm.latitude)) &&
+                        Number.isFinite(Number(farm.longitude)),
+                )
+                .map((farm) => ({
+                    id: farm.id,
+                    farm_id: String(farm.farm_id ?? ''),
+                    farm_name: String(farm.farm_name ?? 'Farm'),
+                    farmer_name: null,
+                    location: String(farm.location ?? ''),
+                    latitude: Number(farm.latitude),
+                    longitude: Number(farm.longitude),
+                    verification_status: String(
+                        farm.verification_status ?? 'pending',
+                    ),
+                }));
+            const unmapped = farms.filter(
+                (farm) =>
+                    !Number.isFinite(Number(farm.latitude)) ||
+                    !Number.isFinite(Number(farm.longitude)),
+            );
+
+            return (
+                <ScrollView
+                    style={styles.page}
+                    contentContainerStyle={styles.content}
+                >
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Farm map</Text>
+                        <Text style={styles.mutedSmall}>
+                            Pins use the coordinates saved on your farms.
+                            Boundaries appear when you open a farm.
+                        </Text>
+                    </View>
+                    {pins.length === 0 ? (
+                        <EmptyState
+                            title="No mapped farms yet"
+                            message="A farm appears on this map after its location is saved."
+                        />
+                    ) : (
+                        <View style={styles.card}>
+                            <FarmAssignmentMap
+                                farms={pins}
+                                apiKey={page.data.google_maps_api_key}
+                                onSelect={(farm) => openFarm(farm)}
+                            />
+                        </View>
+                    )}
+                    {pins.map((farm) => (
+                        <Pressable
+                            key={farm.id}
+                            onPress={() => openFarm(farm)}
+                            style={({ pressed }) => [
+                                styles.card,
+                                pressed && styles.pressed,
+                            ]}
+                        >
+                            <Text style={styles.recordTitle}>
+                                {farm.farm_name}
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                {farm.farm_id} · {farm.location}
+                            </Text>
+                        </Pressable>
+                    ))}
+                    {unmapped.map((farm) => (
+                        <Pressable
+                            key={farm.id}
+                            onPress={() => openFarm(farm)}
+                            style={({ pressed }) => [
+                                styles.card,
+                                pressed && styles.pressed,
+                            ]}
+                        >
+                            <Text style={styles.recordTitle}>
+                                {farm.farm_name}
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                Location is not saved for this farm yet.
+                            </Text>
+                        </Pressable>
+                    ))}
+                </ScrollView>
+            );
+        }
+        if (farmView === 'verification') {
+            return (
+                <ScrollView
+                    style={styles.page}
+                    contentContainerStyle={styles.content}
+                >
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Verification status</Text>
+                        <Text style={styles.mutedSmall}>
+                            Declared area, GPS measured area, and verified area
+                            stay separate.
+                        </Text>
+                    </View>
+                    {farms.length === 0 ? (
+                        <EmptyState
+                            title="No farms linked yet"
+                            message="Verification status appears here after a farm is linked to your account."
+                        />
+                    ) : (
+                        farms.map((farm) => (
+                            <Pressable
+                                key={farm.id}
+                                onPress={() => openFarm(farm)}
+                                style={({ pressed }) => [
+                                    styles.card,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text style={styles.recordTitle}>
+                                    {farm.farm_name}
+                                </Text>
+                                <Text style={styles.recordCode}>
+                                    {farm.farm_id}
+                                </Text>
+                                <VerificationProgress
+                                    status={farm.verification_status}
+                                />
+                                <SummaryRow
+                                    label="Declared"
+                                    value={farm.declared_area}
+                                />
+                                <SummaryRow
+                                    label="GPS measured"
+                                    value={farm.measured_area ?? 'Not measured'}
+                                />
+                                <SummaryRow
+                                    label="Verified area"
+                                    value={farm.verified_area ?? 'Not verified'}
+                                />
+                            </Pressable>
+                        ))
+                    )}
+                </ScrollView>
+            );
+        }
         return (
             <ScrollView
                 style={styles.page}
@@ -3109,6 +3347,10 @@ function DataPage(props: {
     }
 
     if (page.component === 'mobile/farmer-activities') {
+        const activityView = pathParam(props.path, 'view');
+        const showActivities = activityView !== 'harvest';
+        const showHarvest = activityView !== 'activities';
+        const showProduction = activityView === null;
         const activitiesPage = page.data.activities;
         const harvestsPage = page.data.harvests;
         const productionsPage = page.data.productions;
@@ -3120,40 +3362,50 @@ function DataPage(props: {
                 style={styles.page}
                 contentContainerStyle={styles.content}
             >
-                <Text style={styles.cardTitle}>Farm activities</Text>
+                {showActivities ? (
+                    <Text style={styles.cardTitle}>Farm activities</Text>
+                ) : null}
+                {showHarvest && !showActivities ? (
+                    <Text style={styles.cardTitle}>My harvest</Text>
+                ) : null}
                 {page.data.farms?.length > 0 && (
                     <View style={styles.card}>
                         <Text style={styles.mutedSmall}>
                             Keep your farm records up to date.
                         </Text>
-                        <Primary
-                            title="Record an activity"
-                            onPress={() =>
-                                props.onLocalForm('farmer/activity', {
-                                    farms: page.data.farms,
-                                    activityTypes: page.data.activityTypes ?? [],
-                                    activityStatuses:
-                                        page.data.activityStatuses ?? [],
-                                    units: page.data.units ?? [],
-                                    today: page.data.today,
-                                })
-                            }
-                        />
-                        <Secondary
-                            title="Record a harvest"
-                            onPress={() =>
-                                props.onLocalForm('farmer/harvest', {
-                                    farms: page.data.farms,
-                                    harvestStatuses:
-                                        page.data.harvestStatuses ?? [],
-                                    units: page.data.units ?? [],
-                                    today: page.data.today,
-                                })
-                            }
-                        />
+                        {showActivities ? (
+                            <Primary
+                                title="Record an activity"
+                                onPress={() =>
+                                    props.onLocalForm('farmer/activity', {
+                                        farms: page.data.farms,
+                                        activityTypes:
+                                            page.data.activityTypes ?? [],
+                                        activityStatuses:
+                                            page.data.activityStatuses ?? [],
+                                        units: page.data.units ?? [],
+                                        today: page.data.today,
+                                    })
+                                }
+                            />
+                        ) : null}
+                        {showHarvest ? (
+                            <Secondary
+                                title="Record a harvest"
+                                onPress={() =>
+                                    props.onLocalForm('farmer/harvest', {
+                                        farms: page.data.farms,
+                                        harvestStatuses:
+                                            page.data.harvestStatuses ?? [],
+                                        units: page.data.units ?? [],
+                                        today: page.data.today,
+                                    })
+                                }
+                            />
+                        ) : null}
                     </View>
                 )}
-                {activities.length ? (
+                {showActivities && activities.length ? (
                     activities.map((item) => (
                         <View key={`activity-${item.id}`} style={styles.card}>
                             <Text style={styles.recordTitle}>
@@ -3169,13 +3421,13 @@ function DataPage(props: {
                             </Text>
                         </View>
                     ))
-                ) : (
+                ) : showActivities ? (
                     <EmptyState
                         title="No activities yet"
                         message="Farm activity records will appear here."
                     />
-                )}
-                {activitiesPage?.next_page_url && (
+                ) : null}
+                {showActivities && activitiesPage?.next_page_url && (
                     <Secondary
                         title={props.busy ? 'Loading…' : 'Load more activities'}
                         onPress={() =>
@@ -3187,10 +3439,12 @@ function DataPage(props: {
                         }
                     />
                 )}
-                <Text style={[styles.cardTitle, { marginTop: 12 }]}>
-                    Harvest
-                </Text>
-                {harvests.length ? (
+                {showHarvest && showActivities ? (
+                    <Text style={[styles.cardTitle, { marginTop: 12 }]}>
+                        Harvest
+                    </Text>
+                ) : null}
+                {showHarvest && harvests.length ? (
                     harvests.map((item) => (
                         <View key={`harvest-${item.id}`} style={styles.card}>
                             <Text style={styles.recordTitle}>
@@ -3235,13 +3489,13 @@ function DataPage(props: {
                             )}
                         </View>
                     ))
-                ) : (
+                ) : showHarvest ? (
                     <EmptyState
                         title="No harvest records yet"
                         message="Harvest records will appear here."
                     />
-                )}
-                {harvestsPage?.next_page_url && (
+                ) : null}
+                {showHarvest && harvestsPage?.next_page_url && (
                     <Secondary
                         title={props.busy ? 'Loading…' : 'Load more harvests'}
                         onPress={() =>
@@ -3253,10 +3507,12 @@ function DataPage(props: {
                         }
                     />
                 )}
-                <Text style={[styles.cardTitle, { marginTop: 12 }]}>
-                    Production
-                </Text>
-                {productions.length ? (
+                {showProduction ? (
+                    <Text style={[styles.cardTitle, { marginTop: 12 }]}>
+                        Production
+                    </Text>
+                ) : null}
+                {showProduction && productions.length ? (
                     productions.map((item) => (
                         <View key={`production-${item.id}`} style={styles.card}>
                             <Text style={styles.recordTitle}>
@@ -3282,13 +3538,13 @@ function DataPage(props: {
                             </Text>
                         </View>
                     ))
-                ) : (
+                ) : showProduction ? (
                     <EmptyState
                         title="No production records yet"
                         message="Expected production and season records will appear here."
                     />
-                )}
-                {productionsPage?.next_page_url && (
+                ) : null}
+                {showProduction && productionsPage?.next_page_url && (
                     <Secondary
                         title={props.busy ? 'Loading…' : 'Load more production'}
                         onPress={() =>
@@ -3304,7 +3560,14 @@ function DataPage(props: {
         );
     }
 
-    if (page.component === 'mobile/farmer-notifications') {
+    if (
+        page.component === 'mobile/farmer-notifications' ||
+        page.component === 'mobile/verifier-notifications'
+    ) {
+        const notificationRoot =
+            page.component === 'mobile/verifier-notifications'
+                ? '/verifier/notifications'
+                : '/farmer/notifications';
         const notificationsPage = page.data.notifications;
         const notifications: any[] = collectionRows(notificationsPage);
         return (
@@ -3319,12 +3582,12 @@ function DataPage(props: {
                             onPress={async () => {
                                 if (item.read) return;
                                 await apiRequest(
-                                    `/farmer/notifications/${item.id}/read`,
+                                    `${notificationRoot}/${item.id}/read`,
                                     props.token,
                                     { method: 'POST' },
                                 );
                                 props.onOpen(
-                                    '/farmer/notifications',
+                                    notificationRoot,
                                     'Notifications',
                                 );
                             }}
@@ -3511,6 +3774,27 @@ function DataPage(props: {
             'inventory/processing': '/inventory/process/create',
         };
         const createPath = createPaths[page.component];
+        const queue = pathParam(props.path, 'queue');
+        const step = pathParam(props.path, 'step');
+        const collectionTitle =
+            page.component === 'farm-verification/index' && queue === 'history'
+                ? 'Verification history'
+                : page.component === 'farm-verification/index' &&
+                    queue === 'assignments'
+                  ? 'My assignments'
+                  : (TITLES[page.component] ?? 'Records');
+        const stepNotice =
+            page.component === 'farm-verification/index'
+                ? step === 'gps'
+                    ? 'Choose an assigned farm, then capture its perimeter with this device’s GPS. A draft stays on this phone until you save it.'
+                    : step === 'evidence'
+                      ? 'Choose an assigned farm, then add inspection photos, checklist answers, and field notes.'
+                      : step === 'submit'
+                        ? 'Choose an assigned farm. You can submit after its GPS boundary and inspection evidence are saved.'
+                        : step === 'details'
+                          ? 'Choose an assigned farm to see the farmer, location, and saved boundary.'
+                          : null
+                : null;
         return (
             <ScrollView
                 style={styles.page}
@@ -3527,13 +3811,19 @@ function DataPage(props: {
                     </View>
                     <View style={styles.flex}>
                         <Text style={styles.collectionTitle}>
-                            {TITLES[page.component] ?? 'Records'}
+                            {collectionTitle}
                         </Text>
                         <Text style={styles.mutedSmall}>
                             {collectionDescription(page.component)}
                         </Text>
                     </View>
                 </View>
+                {stepNotice ? (
+                    <View style={styles.noticeCard}>
+                        <AppIcon name="info" size={18} color={GREEN} />
+                        <Text style={styles.mutedSmall}>{stepNotice}</Text>
+                    </View>
+                ) : null}
                 {page.data.summary && (
                     <View style={styles.summaryStrip}>
                         {Object.entries(page.data.summary)
@@ -3674,7 +3964,7 @@ function DataPage(props: {
                     />
                 ) : (
                     rows.map((row, index) => {
-                        const path = rowPath(page.component, row);
+                        const path = rowPath(page.component, row, props.path);
                         return (
                             <Pressable
                                 key={row.id ?? index}
@@ -3799,10 +4089,21 @@ function DataPage(props: {
             hasFreshBoundary &&
                 hasCompleteChecklist &&
                 inspection?.photos?.some(
-                    (photo) =>
+                    (photo: { boundary_revision?: number }) =>
                         photo.boundary_revision === inspection.boundary_revision,
                 ),
         );
+        const step = pathParam(props.path, 'step');
+        const stepNotice =
+            step === 'gps'
+                ? 'Capture the perimeter with this device’s GPS. Coordinates come from the phone and are not typed in.'
+                : step === 'evidence'
+                  ? 'Add inspection photos, checklist answers, and field notes for this visit.'
+                  : step === 'submit'
+                    ? 'Submit the result after the GPS boundary and inspection evidence are saved.'
+                    : step === 'details'
+                      ? 'Farmer and farm details for this assigned visit. Declared area is separate from GPS measured area and verified area.'
+                      : null;
         return (
             <ScrollView
                 style={styles.page}
@@ -3812,6 +4113,12 @@ function DataPage(props: {
                     data={farm}
                     title={farm.farm_name ?? 'Farm verification'}
                 />
+                {stepNotice ? (
+                    <View style={styles.noticeCard}>
+                        <AppIcon name="location" size={18} color={GREEN} />
+                        <Text style={styles.mutedSmall}>{stepNotice}</Text>
+                    </View>
+                ) : null}
                 <FarmLocationCard farm={farm} />
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Verification progress</Text>
@@ -6903,6 +7210,10 @@ function withCollectionQuery(
 ) {
     const clean = path.split('?')[0];
     const query = new URLSearchParams();
+    for (const key of ['queue', 'step', 'view']) {
+        const value = pathParam(path, key);
+        if (value) query.set(key, value);
+    }
     if (search.trim()) query.set('search', search.trim());
     Object.entries(filters).forEach(([key, value]) => {
         if (
@@ -6968,7 +7279,11 @@ function toImageApiUrl(url: string) {
         return url;
     }
 }
-function rowPath(component: string, row: Record<string, any>) {
+function rowPath(
+    component: string,
+    row: Record<string, any>,
+    sourcePath = '',
+) {
     const id = row.id;
     if (id === undefined || id === null) return null;
     const routes: Record<string, string> = {
@@ -6983,7 +7298,10 @@ function rowPath(component: string, row: Record<string, any>) {
         'traceability/index': `/traceability/${id}`,
         'activity-types/index': `/settings/activity-types/${id}/edit`,
     };
-    return routes[component] ?? null;
+    const base = routes[component];
+    if (!base) return null;
+    const step = pathParam(sourcePath, 'step');
+    return step ? `${base}?step=${encodeURIComponent(step)}` : base;
 }
 function detailTitle(component: string) {
     return (

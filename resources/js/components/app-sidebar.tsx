@@ -86,14 +86,14 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Farmers',
                 href: farmersIndex(),
                 icon: Users,
-                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
+                roles: ['operations', 'cooperative_officer'],
                 match: 'parent',
             },
             {
                 title: 'Farms & Map',
                 href: farmsIndex(),
                 icon: MapPinned,
-                roles: ['operations', 'field_verifier', 'farmer', 'cooperative_officer'],
+                roles: ['operations', 'cooperative_officer'],
                 match: 'parent',
             },
             {
@@ -119,27 +119,28 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Crop Management',
                 href: showModule('crop-management'),
                 icon: Sprout,
+                roles: ['operations'],
                 status: 'planned',
             },
             {
                 title: 'Farm Activities',
                 href: activitiesIndex(),
                 icon: ListChecks,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
                 match: 'parent',
             },
             {
                 title: 'Production',
                 href: productionIndex(),
                 icon: Leaf,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
                 match: 'parent',
             },
             {
                 title: 'Harvest',
                 href: harvestIndex(),
                 icon: Wheat,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
                 match: 'parent',
             },
         ],
@@ -151,35 +152,35 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Inventory',
                 href: inventoryIndex(),
                 icon: Warehouse,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
                 match: 'parent',
             },
             {
                 title: 'Coffee Processing',
                 href: processingIndex(),
                 icon: Factory,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
             },
             {
                 title: 'Traceability',
                 href: traceabilityIndex(),
                 icon: QrCode,
-                roles: ['operations', 'field_verifier', 'farmer'],
+                roles: ['operations'],
                 match: 'parent',
             },
             {
                 title: 'Finance',
                 href: financeIndex(),
                 icon: Landmark,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations'],
                 match: 'parent',
                 status: 'partial',
             },
             {
-                title: 'Insurance',
+                title: 'Crop Insurance',
                 href: insuranceIndex(),
                 icon: Shield,
-                roles: ['operations', 'field_verifier'],
+                roles: ['operations'],
                 match: 'parent',
                 status: 'partial',
             },
@@ -187,6 +188,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 title: 'Logistics & Export',
                 href: showModule('logistics-export'),
                 icon: Truck,
+                roles: ['operations'],
                 status: 'planned',
             },
         ],
@@ -195,9 +197,10 @@ const groups: { label: string; items: SidebarLink[] }[] = [
         label: 'System',
         items: [
             {
-                title: 'Reports',
+                title: 'Reports & Analytics',
                 href: showModule('reports'),
                 icon: BarChart3,
+                roles: ['operations'],
                 status: 'planned',
             },
             {
@@ -208,7 +211,7 @@ const groups: { label: string; items: SidebarLink[] }[] = [
                 match: 'parent',
             },
             {
-                title: 'Users',
+                title: 'User Management',
                 href: usersIndex(),
                 icon: UserCog,
                 roles: ['admin'],
@@ -228,6 +231,12 @@ export function AppSidebar() {
     const { auth } = usePage().props;
     const { currentUrl, isCurrentUrl, isCurrentOrParentUrl } = useCurrentUrl();
     const role = auth.user?.role;
+    const visibleGroups = groups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => userCanAccess(role, item.roles)),
+        }))
+        .filter((group) => group.items.length > 0);
 
     function active(item: SidebarLink): boolean {
         if (item.match === 'settings') {
@@ -263,17 +272,13 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="gap-1 py-2">
-                {groups.map((group) => (
+                {visibleGroups.map((group) => (
                     <SidebarGroup key={group.label} className="px-2 py-1">
                         <SidebarGroupLabel className="h-7 px-2.5 text-[0.68rem] font-semibold tracking-wider text-sidebar-foreground/45 uppercase">
                             {group.label}
                         </SidebarGroupLabel>
                         <SidebarMenu>
                             {group.items.map((item) => {
-                                if (!userCanAccess(role, item.roles)) {
-                                    return null;
-                                }
-
                                 const statusLabel =
                                     item.status === 'partial'
                                         ? 'Partial'

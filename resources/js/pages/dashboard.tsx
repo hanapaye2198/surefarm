@@ -290,7 +290,7 @@ function VerifierDashboard({
             <div className="flex flex-col gap-5 sm:gap-6">
                 <PageHeader
                     title="Field verification"
-                    description="These farms are assigned to your verifier account."
+                    description="Review the farms assigned to you. GPS boundaries and inspection photos are captured in the SureFarm mobile app."
                     actions={
                         <Button asChild>
                             <Link href={verificationIndex()}>
@@ -449,7 +449,7 @@ function FarmerDashboard({
             <div className="flex flex-col gap-5 sm:gap-6">
                 <PageHeader
                     title={`Welcome, ${farmer?.name ?? 'farmer'}`}
-                    description={`Your farms and their latest verification status${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}.`}
+                    description={`Your farm summary${farmer?.farmer_id ? ` · ${farmer.farmer_id}` : ''}. Day-to-day updates, maps, and harvest records are in the SureFarm mobile app.`}
                 />
                 <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
                     <StatCard

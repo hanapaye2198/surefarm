@@ -14,6 +14,7 @@ import type {
 } from '@/components/farm-mm-data';
 import { FarmBoundaryMap } from '@/components/farm-boundary-map';
 import type { BoundaryGeoJson } from '@/components/farm-boundary-map';
+import type { FieldReview } from '@/components/field-boundary-review';
 import { InventoryStageBars } from '@/components/inventory-stage-bars';
 import type { InventorySummary } from '@/components/inventory-stage-bars';
 import { FarmVerificationHistory } from '@/components/farm-verification-history';
@@ -83,6 +84,7 @@ type FarmProfile = {
     } | null;
     can_manage_boundary: boolean;
     can_remove_boundary: boolean;
+    boundary_review: FieldReview;
     verifications: VerificationHistoryRow[];
     area_declarations: {
         id: number;
@@ -644,6 +646,7 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                 active={tab === 'Map'}
                                 farm={{
                                     id: farm.id,
+                                    farm_id: farm.farm_id,
                                     farm_name: farm.farm_name,
                                     declared_area_hectares:
                                         farm.declared_area_hectares,
@@ -657,6 +660,7 @@ export default function FarmProfilePage({ farm }: { farm: FarmProfile }) {
                                     can_remove_boundary:
                                         farm.can_remove_boundary,
                                 }}
+                                review={farm.boundary_review}
                                 boundary={farm.boundary}
                             />
                         </div>

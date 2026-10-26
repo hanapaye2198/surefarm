@@ -23,6 +23,7 @@ use App\Models\FarmProduction;
 use App\Models\FarmVerification;
 use App\Models\User;
 use App\Services\FarmAreaComparison;
+use App\Services\FarmFieldMap;
 use App\Services\FarmPortfolio;
 use App\Services\InventoryStock;
 use App\Services\ProductionLedger;
@@ -288,7 +289,7 @@ class FarmController extends Controller
         return to_route('farms.show', $farm);
     }
 
-    public function show(Request $request, Farm $farm, InventoryStock $stock, TraceabilitySummary $traceability): Response
+    public function show(Request $request, Farm $farm, InventoryStock $stock, TraceabilitySummary $traceability, FarmFieldMap $fieldMap): Response
     {
         $farm->load([
             'farmer',
@@ -359,12 +360,13 @@ class FarmController extends Controller
                         || ($user->hasRole(UserRole::FieldVerifier, UserRole::Admin)
                             && $request->is('api/mobile/*')
                             && $farm->verification_status === FarmVerificationStatus::InProgress
-                            && app(\App\Services\RegistryScope::class)->canViewFarm($user, $farm))
+                            && app(RegistryScope::class)->canViewFarm($user, $farm))
                     ),
                 'can_remove_boundary' => $user instanceof User
                     && $user->role === UserRole::Admin
                     && $farm->verification_status !== FarmVerificationStatus::InProgress
                     && ! $this->hasVerifiedBoundary($farm),
+                'boundary_review' => $fieldMap->review($farm, $user instanceof User ? $user : null),
                 'purok_sitio' => $farm->purok_sitio,
                 'barangay' => $farm->barangay,
                 'municipality' => $farm->municipality,

@@ -40,11 +40,14 @@ class FarmVerificationController extends Controller
         $crop = $request->string('crop')->trim()->toString();
         $province = $request->string('province')->trim()->toString();
         $municipality = $request->string('municipality')->trim()->toString();
+        $mobileQueue = $request->is('api/mobile/*')
+            ? $request->string('queue')->trim()->toString()
+            : '';
         $farms = $this->visibleFarms()
             ->with([
                 'farmer',
                 'boundary',
-                'verifications' => fn (Builder $query) => $query
+                'verifications' => fn ($query) => $query
                     ->whereNull('result')
                     ->select([
                         'id',
@@ -84,6 +87,15 @@ class FarmVerificationController extends Controller
                 FarmVerificationStatus::tryFrom($verificationStatus),
                 fn ($query, FarmVerificationStatus $verificationStatus) => $query->where('verification_status', $verificationStatus),
             )
+            ->when($mobileQueue === 'assignments', fn ($query) => $query->whereIn('verification_status', [
+                FarmVerificationStatus::Pending,
+                FarmVerificationStatus::InProgress,
+            ]))
+            ->when($mobileQueue === 'history', fn ($query) => $query->whereIn('verification_status', [
+                FarmVerificationStatus::Verified,
+                FarmVerificationStatus::Failed,
+                FarmVerificationStatus::NeedsReview,
+            ]))
             ->when(
                 CropType::tryFrom($crop),
                 fn ($query, CropType $crop) => $query->where('crop_type', $crop),

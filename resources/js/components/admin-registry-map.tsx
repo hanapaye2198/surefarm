@@ -10,28 +10,8 @@ import {
     type GoogleMapType,
     type GoogleOverlay,
 } from '@/lib/google-maps';
+import { farmFieldColor, farmStatusLegend } from '@/lib/farm-status-colors';
 import type { MapFeature, RegistryPayload } from '@/types/admin-dashboard';
-
-const polygonPalette = [
-    '#f5c518',
-    '#38bdf8',
-    '#fb7185',
-    '#f97316',
-    '#c084fc',
-    '#22d3ee',
-    '#f43f5e',
-    '#facc15',
-    '#818cf8',
-    '#fb923c',
-    '#e879f9',
-    '#fbbf24',
-];
-
-function polygonColor(id: number): string {
-    const index = Math.abs(id) % polygonPalette.length;
-
-    return polygonPalette[index];
-}
 
 function positions(feature: MapFeature): [number, number][] {
     const ring = feature.boundary?.coordinates[0] ?? [];
@@ -45,7 +25,7 @@ function toLatLng([latitude, longitude]: [number, number]): GoogleLatLng {
 
 function featurePosition(feature: MapFeature, layer: string): GoogleLatLng | null {
     const ring = positions(feature);
-    const pointsOnly = layer === 'locations' || layer === 'missing';
+    const pointsOnly = layer === 'missing';
 
     if (!pointsOnly && ring.length > 2) {
         const first = ring[0];
@@ -89,17 +69,22 @@ function escapeHtml(value: string): string {
         .replaceAll("'", '&#39;');
 }
 
-function bubbleMarkup(feature: MapFeature): string {
-    const verified =
-        feature.verified_area_hectares === null
-            ? ''
-            : `<p style="margin:2px 0 0">Verified: ${feature.verified_area_hectares.toFixed(2)} ha</p>`;
+function hectares(value: number | null): string {
+    return value === null ? 'Not recorded' : `${value.toFixed(2)} ha`;
+}
 
-    return `<div style="padding:2px 0;line-height:1.4;color:#1c1917">
+function bubbleMarkup(feature: MapFeature): string {
+    const place = [feature.barangay, feature.municipality, feature.province].filter(Boolean).join(', ');
+
+    return `<div style="padding:2px 0;line-height:1.45;color:#1c1917">
         <p style="margin:0;font-weight:600">${escapeHtml(feature.farm_name)}</p>
+        <p style="margin:4px 0 0">${escapeHtml(feature.farm_id)}</p>
         <p style="margin:4px 0 0">Farmer: ${escapeHtml(feature.farmer_name)}</p>
-        <p style="margin:2px 0 0">Area: ${feature.declared_area_hectares.toFixed(2)} ha</p>
-        ${verified}
+        <p style="margin:2px 0 0">Location: ${escapeHtml(place || 'Not recorded')}</p>
+        <p style="margin:2px 0 0">Declared: ${hectares(feature.declared_area_hectares)}</p>
+        <p style="margin:2px 0 0">GPS measured: ${hectares(feature.measured_area_hectares)}</p>
+        <p style="margin:2px 0 0">Verified: ${hectares(feature.verified_area_hectares)}</p>
+        <p style="margin:2px 0 0">Status: ${escapeHtml(feature.verification_label)}</p>
     </div>`;
 }
 
@@ -118,14 +103,14 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
     const drawable = useMemo(() => map.features.filter((feature) => {
         const hasRing = (feature.boundary?.coordinates[0]?.length ?? 0) > 2;
         const hasPoint = feature.latitude !== null && feature.longitude !== null;
-        const pointsOnly = map.layer === 'locations' || map.layer === 'missing';
+        const pointsOnly = map.layer === 'missing';
 
         return pointsOnly ? hasPoint : hasRing || hasPoint;
     }), [map.features, map.layer]);
     const focus = useMemo(() => drawable.flatMap((feature) => {
         const ring = positions(feature);
 
-        if (ring.length > 0 && map.layer !== 'locations' && map.layer !== 'missing') {
+        if (ring.length > 0 && map.layer !== 'missing') {
             return ring;
         }
 
@@ -207,9 +192,9 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
         }
 
         drawable.forEach((feature) => {
-            const color = polygonColor(feature.id);
+            const color = farmFieldColor(feature.id);
             const ring = positions(feature);
-            const showPolygon = ring.length > 2 && map.layer !== 'locations' && map.layer !== 'missing';
+            const showPolygon = ring.length > 2 && map.layer !== 'missing';
 
             if (showPolygon) {
                 const path = ring.map(toLatLng);
@@ -218,9 +203,9 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     paths: path,
                     strokeColor: '#ffffff',
                     strokeOpacity: feature.status === 'inactive' ? 0 : 1,
-                    strokeWeight: 2,
+                    strokeWeight: 3,
                     fillColor: color,
-                    fillOpacity: 0.45,
+                    fillOpacity: 0.62,
                     clickable: true,
                 });
                 polygon.addListener('click', (event) => {
@@ -234,6 +219,29 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     setSelectedId(feature.id);
                 });
                 overlays.current.push(polygon);
+                const labelAt = featurePosition(feature, map.layer);
+
+                if (labelAt !== null) {
+                    overlays.current.push(new maps.Marker({
+                        map: instance,
+                        position: labelAt,
+                        clickable: false,
+                        label: {
+                            text: feature.farm_name,
+                            color: '#ffffff',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                        },
+                        icon: {
+                            path: maps.SymbolPath.CIRCLE,
+                            scale: 0,
+                            fillColor: color,
+                            fillOpacity: 0,
+                            strokeColor: color,
+                            strokeWeight: 0,
+                        },
+                    }));
+                }
 
                 if (feature.status === 'inactive') {
                     overlays.current.push(new maps.Polyline({
@@ -356,16 +364,44 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     </button>
                 ))}
             </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Verification status on the map">
+                <button
+                    type="button"
+                    aria-pressed={filters.verification_status === ''}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${filters.verification_status === '' ? 'border-primary bg-primary text-primary-foreground' : 'bg-background'}`}
+                    onClick={() => visitRegistry(filters, { verification_status: '' })}
+                >
+                    All statuses
+                </button>
+                {farmStatusLegend.map((item) => (
+                    <button
+                        key={item.status}
+                        type="button"
+                        aria-pressed={filters.verification_status === item.status}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${filters.verification_status === item.status ? 'border-primary bg-primary text-primary-foreground' : 'bg-background'}`}
+                        onClick={() => visitRegistry(filters, { verification_status: item.status })}
+                    >
+                        {item.label}
+                    </button>
+                ))}
+            </div>
+            <ul aria-label="Map legend" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                {map.features.filter((feature) => feature.boundary !== null).map((feature) => (
+                    <li key={feature.id} className="flex items-center gap-2">
+                        <span className="size-2.5 rounded-sm" style={{ backgroundColor: farmFieldColor(feature.id) }} />
+                        <span>{feature.farm_name}</span>
+                        <span>{feature.verification_label}</span>
+                    </li>
+                ))}
+                <li>Dashed outline: inactive farm</li>
+            </ul>
             <p className="text-xs text-muted-foreground">
-                Each farm has its own color so neighboring boundaries stay separate on the satellite image. Click a boundary or point to see the farmer and hectares.
-            </p>
-            <p className="text-xs text-muted-foreground">
-                {map.drawn} of {map.matched} farms in this layer are loaded.
+                Each farm polygon has its own color. {map.drawn} of {map.matched} farms in this layer are loaded.
                 {map.truncated ? ' Narrow the filters to see more than the first 400.' : ''}
                 {map.undrawn > 0 ? ` ${map.undrawn} filtered farms are outside this layer and remain in the table.` : ''}
             </p>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-                <div className="relative h-80 overflow-hidden rounded-xl border sm:h-[28rem]">
+                <div className="relative h-[28rem] overflow-hidden rounded-xl border sm:h-[36rem]">
                     <div ref={mapHost} className="h-full w-full" />
                     {mapStatus === 'missing' && (
                         <p className="absolute inset-0 flex items-center justify-center bg-background px-6 text-center text-sm text-muted-foreground">
@@ -416,7 +452,7 @@ function FarmPanel({
                             <button type="button" className="flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted/60" onClick={() => onSelect(item.id)}>
                                 <span
                                     className="mt-1 size-2.5 shrink-0 rounded-full"
-                                    style={{ backgroundColor: polygonColor(item.id) }}
+                                    style={{ backgroundColor: farmFieldColor(item.id) }}
                                 />
                                 <span className="min-w-0">
                                     <span className="block font-medium">{item.farm_name}</span>
@@ -439,7 +475,7 @@ function FarmPanel({
             <div className="flex items-start gap-2">
                 <span
                     className="mt-1 size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: polygonColor(feature.id) }}
+                    style={{ backgroundColor: farmFieldColor(feature.id) }}
                 />
                 <div>
                     <p className="text-sm font-medium">{feature.farm_name}</p>
@@ -450,6 +486,7 @@ function FarmPanel({
                 <Detail label="Registered farmer" value={`${feature.farmer_name} (${feature.farmer_reference})`} />
                 <Detail label="Location" value={place || 'Not recorded'} />
                 <Detail label="Declared area" value={`${feature.declared_area_hectares.toFixed(2)} ha`} />
+                <Detail label="GPS measured area" value={feature.measured_area_hectares === null ? 'Not recorded' : `${feature.measured_area_hectares.toFixed(2)} ha`} />
                 <Detail label="Verified area" value={feature.verified_area_hectares === null ? 'Not recorded' : `${feature.verified_area_hectares.toFixed(2)} ha`} />
                 <Detail label="Verification" value={feature.verification_label} />
                 <Detail label="Farm status" value={feature.status_label} />

@@ -11,6 +11,7 @@ use App\FarmVerificationStatus;
 use App\Models\AccessEvent;
 use App\Models\Cooperative;
 use App\Models\Farm;
+use App\Models\FarmActivity;
 use App\Models\Farmer;
 use App\Models\FarmVerification;
 use App\Models\RegistryGrant;
@@ -40,7 +41,11 @@ class AdminLandAnalytics
 {
     private const MAP_LIMIT = 400;
 
-    public function __construct(private RegistryScope $scope) {}
+    public function __construct(
+        private RegistryScope $scope,
+        private ProductionLedger $ledger,
+        private InventoryStock $stock,
+    ) {}
 
     public function render(User $user, Request $request): Response
     {
@@ -64,6 +69,7 @@ class AdminLandAnalytics
                 'map' => $this->map($filters, clone $farms),
                 'farms' => $this->table(clone $farms, $filters),
                 'insights' => $this->insights($filters, clone $farms),
+                'operations' => $this->operations($user),
                 'administration' => $this->administration(),
                 'notes' => $this->notes(),
             ],
@@ -410,7 +416,7 @@ class AdminLandAnalytics
             'geography' => $this->geography($filters, clone $farms),
             'owners' => $this->owners($filters, clone $farms),
             'crops' => $this->crops(clone $farms),
-            'statuses' => $this->statuses(clone $farms),
+            'statuses' => $this->statuses($filters, clone $farms),
             'trend' => $this->trend($user, $filters, $trendFarms),
         ];
     }
@@ -555,10 +561,11 @@ class AdminLandAnalytics
     }
 
     /**
+     * @param  array<string, mixed>  $filters
      * @param  Builder<Farm>  $farms
-     * @return list<array{status: string, label: string, farms: int, declared_hectares: float}>
+     * @return list<array{status: string, label: string, farms: int, declared_hectares: float, href: string}>
      */
-    private function statuses(Builder $farms): array
+    private function statuses(array $filters, Builder $farms): array
     {
         $rows = $this->aggregate($farms)
             ->select('verification_status')
@@ -570,7 +577,7 @@ class AdminLandAnalytics
                 ? $row->verification_status->value
                 : (string) $row->verification_status);
 
-        return array_map(function (FarmVerificationStatus $status) use ($rows): array {
+        return array_map(function (FarmVerificationStatus $status) use ($filters, $rows): array {
             $row = $rows->get($status->value);
 
             return [
@@ -578,6 +585,7 @@ class AdminLandAnalytics
                 'label' => $this->verificationLabel($status),
                 'farms' => (int) ($row->farm_count ?? 0),
                 'declared_hectares' => round((float) ($row->declared_hectares ?? 0), 2),
+                'href' => $this->url($filters, ['verification_status' => $status->value]),
             ];
         }, FarmVerificationStatus::cases());
     }
@@ -758,7 +766,7 @@ class AdminLandAnalytics
         $features = (clone $matched)
             ->with([
                 'farmer:id,farmer_id,first_name,middle_name,last_name',
-                'boundary:id,farm_id,boundary_geojson',
+                'boundary:id,farm_id,boundary_geojson,gps_measured_area_hectares',
             ])
             ->orderByRaw('case when exists (select 1 from farm_boundaries where farm_boundaries.farm_id = farms.id) or farms.latitude is not null then 0 else 1 end')
             ->orderBy('farm_id')
@@ -795,7 +803,11 @@ class AdminLandAnalytics
             ]),
             'review' => $farms->where('verification_status', FarmVerificationStatus::NeedsReview),
             'missing' => $farms->whereDoesntHave('boundary'),
-            default => $farms->whereNotNull('latitude')->whereNotNull('longitude'),
+            default => $farms->where(function (Builder $query): void {
+                $query->where(function (Builder $query): void {
+                    $query->whereNotNull('latitude')->whereNotNull('longitude');
+                })->orWhereHas('boundary');
+            }),
         };
     }
 
@@ -804,8 +816,9 @@ class AdminLandAnalytics
      */
     private function mapFeature(Farm $farm, string $layer): array
     {
-        $includePolygon = in_array($layer, ['boundaries', 'verified', 'pending', 'review'], true);
+        $includePolygon = $layer !== 'missing';
         $boundary = $includePolygon ? $farm->boundary?->boundary_geojson : null;
+        $measured = $farm->boundary?->gps_measured_area_hectares;
 
         return [
             'id' => $farm->id,
@@ -819,6 +832,7 @@ class AdminLandAnalytics
             'barangay' => $farm->barangay,
             'crop_label' => $farm->crop_type->label(),
             'declared_area_hectares' => round((float) $farm->declared_area_hectares, 2),
+            'measured_area_hectares' => $measured === null ? null : round((float) $measured, 2),
             'verified_area_hectares' => $farm->verified_area_hectares === null ? null : round((float) $farm->verified_area_hectares, 2),
             'verification_status' => $farm->verification_status->value,
             'verification_label' => $this->verificationLabel($farm->verification_status),
@@ -965,6 +979,58 @@ class AdminLandAnalytics
             ->havingRaw('count(*) > 1')
             ->get()
             ->count();
+    }
+
+    /**
+     * Production, inventory, and recent records for the signed-in
+     * administrator. These follow registry access and ignore the
+     * temporary registry filters above the map.
+     *
+     * @return array<string, mixed>
+     */
+    private function operations(User $user): array
+    {
+        $activities = FarmActivity::query()
+            ->visibleTo($user)
+            ->with(['farm:id,farm_name', 'activityType:id,name'])
+            ->orderByDesc('activity_date')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->map(function (FarmActivity $activity): array {
+                $row = $activity->summaryRow();
+                $row['href'] = route('farm-activities.show', $activity);
+
+                return $row;
+            })
+            ->values()
+            ->all();
+
+        $registrations = Farm::query()
+            ->visibleTo($user)
+            ->with('farmer:id,farmer_id,first_name,middle_name,last_name')
+            ->latest('id')
+            ->limit(5)
+            ->get()
+            ->map(fn (Farm $farm): array => [
+                'id' => $farm->id,
+                'farm_id' => $farm->farm_id,
+                'farm_name' => $farm->displayName(),
+                'farmer_name' => $farm->farmer?->fullName() ?? 'Unknown farmer',
+                'verification_status' => $farm->verification_status->value,
+                'verification_label' => $this->verificationLabel($farm->verification_status),
+                'registered_at' => $farm->created_at?->timezone((string) config('app.timezone'))->format('M j, Y'),
+                'href' => route('farms.show', $farm),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'harvest' => $this->ledger->dashboardSummary($user),
+            'inventory' => $this->stock->balances(viewer: $user),
+            'activities' => $activities,
+            'registrations' => $registrations,
+        ];
     }
 
     /**
@@ -1362,7 +1428,7 @@ class AdminLandAnalytics
             'The person shown is the registered farmer on the farm record. Recorded tenure is a separate field and is not proof of legal title.',
             'Each farm stores one crop type. Crop charts count that farm’s area once.',
             'Trends count new records and verified decisions. The registry does not keep historical hectare snapshots.',
-            'Map polygons are saved boundaries only. Farms without a polygon are shown as a point when coordinates exist, and only on layers that use points.',
+            'Map polygons are the saved boundary geometry. A farm with coordinates and no polygon is shown as a point. Declared area, GPS-measured area, and verified area stay separate.',
             'Dates use the application timezone.',
         ];
     }

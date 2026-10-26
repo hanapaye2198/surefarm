@@ -82,6 +82,12 @@ type GoogleMarkerOptions = {
     map: GoogleMapInstance;
     position: GoogleLatLng;
     clickable?: boolean;
+    label?: {
+        text: string;
+        color?: string;
+        fontSize?: string;
+        fontWeight?: string;
+    };
     icon?: {
         path: number;
         scale: number;

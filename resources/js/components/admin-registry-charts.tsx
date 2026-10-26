@@ -6,6 +6,7 @@ import type {
     StatusRow,
     TrendPoint,
 } from '@/types/admin-dashboard';
+import { farmStatusColor } from '@/lib/farm-status-colors';
 
 const area = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
@@ -190,20 +191,26 @@ export function StatusChart({ rows }: { rows: StatusRow[] }) {
     return (
         <div className="grid gap-3">
             {rows.map((row) => (
-                <div key={row.status} className="grid gap-1">
+                <Link key={row.status} href={row.href} preserveScroll className="grid gap-1 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                     <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span>{row.label}</span>
+                        <span className="flex items-center gap-2">
+                            <span className="size-2.5 rounded-full" style={{ backgroundColor: farmStatusColor(row.status) }} />
+                            {row.label}
+                        </span>
                         <span className="tabular-nums text-muted-foreground">
                             {row.farms} · {area.format(row.declared_hectares)} ha declared
                         </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">
                         <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${(row.farms / max) * 100}%` }}
+                            className="h-full rounded-full"
+                            style={{
+                                width: `${(row.farms / max) * 100}%`,
+                                backgroundColor: farmStatusColor(row.status),
+                            }}
                         />
                     </div>
-                </div>
+                </Link>
             ))}
         </div>
     );

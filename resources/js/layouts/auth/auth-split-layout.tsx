@@ -47,14 +47,9 @@ export default function AuthSplitLayout({
                         <div>
                             <Link
                                 href={home()}
-                                className="inline-flex items-center gap-3 rounded-xl focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+                                className="inline-flex rounded-xl focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
                             >
-                                <span className="flex size-10 items-center justify-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm sm:size-11">
-                                    <AppLogoIcon className="size-5 fill-current sm:size-6" />
-                                </span>
-                                <span className="text-lg font-semibold tracking-tight">
-                                    {name}
-                                </span>
+                                <AppLogoIcon className="h-12" alt={name} />
                             </Link>
 
                             <h2 className="mt-4 max-w-md text-xl font-semibold tracking-tight text-balance sm:mt-6 sm:text-2xl lg:mt-8 lg:text-4xl">

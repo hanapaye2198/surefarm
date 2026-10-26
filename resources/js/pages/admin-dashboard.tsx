@@ -1,22 +1,87 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import {
+    BadgeCheck,
+    Clock,
+    LandPlot,
+    MapPinned,
+    OctagonAlert,
+    Ruler,
+    Sprout,
+    TriangleAlert,
+    Users,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { AdminDashboardBoard } from '@/components/admin-dashboard-board';
 import { AdminRegistryCharts } from '@/components/admin-registry-charts-section';
 import { AdminRegistryFilters } from '@/components/admin-registry-filters';
-import { AdminRegistryMap } from '@/components/admin-registry-map';
+import { AdminRegistryOperations } from '@/components/admin-registry-operations';
 import { AdminRegistryTable } from '@/components/admin-registry-table';
-import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { farmStatusColor } from '@/lib/farm-status-colors';
 import { dashboard } from '@/routes';
-import type { RegistryPayload } from '@/types/admin-dashboard';
+import { index as activitiesIndex } from '@/routes/farm-activities';
+import { index as farmVerificationIndex } from '@/routes/farm-verification';
+import { create as createFarmer } from '@/routes/farmers';
+import { index as harvestIndex } from '@/routes/harvest';
+import { index as inventoryIndex } from '@/routes/inventory';
+import type { RegistryMetric, RegistryPayload } from '@/types/admin-dashboard';
 
 const sections = [
-    ['overview', 'Overview'],
+    ['board', 'Overview'],
+    ['overview', 'Figures'],
     ['distribution', 'Distribution'],
     ['ownership', 'Ownership'],
-    ['map', 'Map'],
     ['registry', 'Registry'],
+    ['operations', 'Operations'],
     ['administration', 'Administration'],
 ] as const;
+
+const registryMetricKeys = ['farmers', 'farms', 'declared', 'verified', 'unverified', 'active'];
+const landMetricKeys = ['mapped', 'missing'];
+
+const metricPresentation: Record<string, { icon: LucideIcon; tone: 'neutral' | 'positive' | 'warning' | 'critical'; accent?: string }> = {
+    farmers: { icon: Users, tone: 'positive' },
+    farms: { icon: LandPlot, tone: 'positive' },
+    declared: { icon: Ruler, tone: 'neutral', accent: '#6b4f3a' },
+    verified: { icon: BadgeCheck, tone: 'positive' },
+    unverified: { icon: Ruler, tone: 'warning', accent: '#8a6a45' },
+    active: { icon: Sprout, tone: 'positive' },
+    pending: { icon: Clock, tone: 'warning', accent: farmStatusColor('pending') },
+    review: { icon: TriangleAlert, tone: 'warning', accent: farmStatusColor('needs_review') },
+    mapped: { icon: MapPinned, tone: 'positive' },
+    missing: { icon: MapPinned, tone: 'critical' },
+};
+
+const countLabels: Record<string, { label: string; icon: LucideIcon }> = {
+    in_progress: { label: 'In-progress verification', icon: Clock },
+    verified: { label: 'Verified farms', icon: BadgeCheck },
+    failed: { label: 'Failed verification', icon: OctagonAlert },
+};
+
+function registryDate(timeZone: string): string {
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    };
+
+    try {
+        return new Intl.DateTimeFormat('en-US', { ...options, timeZone }).format(new Date());
+    } catch {
+        return new Intl.DateTimeFormat('en-US', options).format(new Date());
+    }
+}
+
+function metricsByKey(metrics: RegistryMetric[], keys: string[]): RegistryMetric[] {
+    return keys.flatMap((key) => {
+        const metric = metrics.find((item) => item.key === key);
+
+        return metric === undefined ? [] : [metric];
+    });
+}
 
 export default function AdminDashboard({ registry }: { registry: RegistryPayload }) {
     const errors = (usePage().props.errors ?? {}) as Record<string, string | undefined>;
@@ -26,15 +91,34 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
 
     return (
         <>
-            <Head title="Registry intelligence" />
-            <div className="flex flex-col gap-5 sm:gap-6">
-                <PageHeader
-                    title="Registry intelligence"
-                    description={`${registry.scope}. Figures use ${registry.timezone} and the filters below. Declared and verified hectares are separate measurements.`}
-                />
+            <Head title="Admin Dashboard" />
+            <div className="-m-4 flex min-h-full flex-col gap-5 bg-canvas px-4 py-5 sm:-m-6 sm:gap-6 sm:px-6 sm:py-6 lg:-m-8 lg:px-8 lg:py-8">
+                <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {registryDate(registry.timezone)}
+                            {' · '}
+                            {registry.scope}
+                        </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={createFarmer()}>Register farmer</Link>
+                        </Button>
+                        <Button size="sm" asChild>
+                            <Link href={farmVerificationIndex.url({ query: { verification_status: 'pending' } })}>
+                                Review pending verifications
+                            </Link>
+                        </Button>
+                    </div>
+                </header>
+                <div id="board" className="scroll-mt-24">
+                    <AdminDashboardBoard registry={registry} />
+                </div>
                 <nav aria-label="Dashboard sections" className="flex gap-2 overflow-x-auto">
                     {sections.map(([id, label]) => (
-                        <a key={id} href={`#${id}`} className="rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap">
+                        <a key={id} href={`#${id}`} className="rounded-full border bg-card px-3 py-1 text-xs font-medium whitespace-nowrap">
                             {label}
                         </a>
                     ))}
@@ -44,7 +128,6 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
                         {errorList.join(' ')}
                     </div>
                 )}
-                <AdminRegistryFilters registry={registry} />
                 {registry.active_filters.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                         {registry.active_filters.map((filter) => (
@@ -54,16 +137,20 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
                         ))}
                     </div>
                 )}
-                <section id="overview" className="grid scroll-mt-24 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-                    {registry.metrics.map((metric) => (
-                        <StatCard
-                            key={metric.key}
-                            label={metric.label}
-                            value={metric.display}
-                            detail={metric.detail}
-                            href={metric.href ?? undefined}
-                        />
-                    ))}
+                <section id="overview" className="grid scroll-mt-24 gap-5">
+                    <MetricGroup title="Farmer and farm registry" metrics={metricsByKey(registry.metrics, registryMetricKeys)} />
+                    <div className="grid gap-3">
+                        <h2 className="text-lg font-semibold">Verification</h2>
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+                            <MetricCards metrics={metricsByKey(registry.metrics, ['pending'])} />
+                            {(['in_progress', 'verified'] as const).map((status) => (
+                                <StatusCount key={status} registry={registry} status={status} />
+                            ))}
+                            <MetricCards metrics={metricsByKey(registry.metrics, ['review'])} />
+                            <StatusCount registry={registry} status="failed" />
+                        </div>
+                    </div>
+                    <MetricGroup title="Boundaries" metrics={metricsByKey(registry.metrics, landMetricKeys)} />
                 </section>
                 <section className="grid gap-3">
                     <h2 className="text-lg font-semibold">Needs attention</h2>
@@ -88,20 +175,17 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
                         </ul>
                     )}
                 </section>
+                <details
+                    key={registry.active_filters.map((filter) => filter.label).join('|') || 'none'}
+                    className="rounded-xl border bg-card px-4 py-3"
+                    defaultOpen={registry.active_filters.length > 0}
+                >
+                    <summary className="cursor-pointer text-sm font-medium">Filter the registry</summary>
+                    <div className="pt-3">
+                        <AdminRegistryFilters registry={registry} />
+                    </div>
+                </details>
                 <AdminRegistryCharts registry={registry} />
-                <section id="map" className="scroll-mt-24">
-                    <Card className="shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Farm map</CardTitle>
-                            <CardDescription>
-                                Points use saved coordinates. Polygons use saved boundaries. Missing geometry is not invented.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <AdminRegistryMap registry={registry} />
-                        </CardContent>
-                    </Card>
-                </section>
                 <section id="registry" className="scroll-mt-24">
                     <Card className="shadow-sm">
                         <CardHeader>
@@ -115,6 +199,12 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
                         </CardContent>
                     </Card>
                 </section>
+                <AdminRegistryOperations
+                    registry={registry}
+                    harvestHref={harvestIndex.url()}
+                    inventoryHref={inventoryIndex.url()}
+                    activitiesHref={activitiesIndex.url()}
+                />
                 <section id="administration" className="scroll-mt-24 grid gap-4 lg:grid-cols-2">
                     <Card className="shadow-sm">
                         <CardHeader>
@@ -182,6 +272,60 @@ export default function AdminDashboard({ registry }: { registry: RegistryPayload
                 </details>
             </div>
         </>
+    );
+}
+
+function MetricGroup({ title, metrics }: { title: string; metrics: RegistryMetric[] }) {
+    return (
+        <div className="grid gap-3">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                <MetricCards metrics={metrics} />
+            </div>
+        </div>
+    );
+}
+
+function MetricCards({ metrics }: { metrics: RegistryMetric[] }) {
+    return (
+        <>
+            {metrics.map((metric) => {
+                const presentation = metricPresentation[metric.key];
+
+                return (
+                    <StatCard
+                        key={metric.key}
+                        label={metric.label}
+                        value={metric.display}
+                        detail={metric.detail}
+                        href={metric.href ?? undefined}
+                        icon={presentation?.icon}
+                        tone={presentation?.tone ?? 'neutral'}
+                        accent={presentation?.accent}
+                    />
+                );
+            })}
+        </>
+    );
+}
+
+function StatusCount({ registry, status }: { registry: RegistryPayload; status: string }) {
+    const row = registry.charts.statuses.find((item) => item.status === status);
+    const presentation = countLabels[status];
+
+    if (row === undefined || presentation === undefined) {
+        return null;
+    }
+
+    return (
+        <StatCard
+            label={presentation.label}
+            value={String(row.farms)}
+            detail="Farms in the current filters."
+            href={row.href}
+            icon={presentation.icon}
+            accent={farmStatusColor(status)}
+        />
     );
 }
 

@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     CircleMarker,
     MapContainer,
@@ -10,6 +10,11 @@ import {
     useMap,
     useMapEvents,
 } from 'react-leaflet';
+import {
+    FieldBoundaryReview,
+    type FieldLayer,
+    type FieldReview,
+} from '@/components/field-boundary-review';
 import { GoogleBasemap } from '@/components/google-basemap';
 import { StatusBadge } from '@/components/status-badge';
 import type { FarmStatus } from '@/components/status-badge';
@@ -25,6 +30,7 @@ import {
 import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
 import { sphericalPolygonHectares } from '@/lib/spherical-polygon-area';
 import { destroy, store, update } from '@/routes/farms/boundary';
+import { show as showFarm } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -117,15 +123,18 @@ function MapViewport({
     active,
     drawing,
     fitKey,
+    focusRequest,
     positions,
 }: {
     active: boolean;
     drawing: boolean;
     fitKey: string;
+    focusRequest: number;
     positions: [number, number][];
 }) {
     const map = useMap();
     const fitted = useRef('');
+    const focusSeen = useRef(0);
 
     useEffect(() => {
         if (!active) {
@@ -133,6 +142,13 @@ function MapViewport({
         }
 
         map.invalidateSize();
+
+        if (focusRequest !== focusSeen.current && positions.length > 1) {
+            focusSeen.current = focusRequest;
+            map.fitBounds(positions, { padding: [48, 48], maxZoom: 18 });
+
+            return;
+        }
 
         if (
             fitKey === '' ||
@@ -143,8 +159,8 @@ function MapViewport({
         }
 
         fitted.current = fitKey;
-        map.fitBounds(positions, { padding: [28, 28] });
-    }, [active, fitKey, map, positions]);
+        map.fitBounds(positions, { padding: [48, 48], maxZoom: 18 });
+    }, [active, fitKey, focusRequest, map, positions]);
 
     useEffect(() => {
         map.getContainer().style.cursor = drawing ? 'crosshair' : '';
@@ -177,14 +193,45 @@ function DrawClicks({
     return null;
 }
 
+function fieldLabel(farmId: string): L.DivIcon {
+    const safe = farmId
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    return L.divIcon({
+        className: '',
+        iconSize: [96, 28],
+        iconAnchor: [48, 14],
+        html: `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:72px;height:28px;padding:0 10px;border-radius:8px;background:#fff;color:#1c1917;font:600 12px/1 ui-sans-serif,system-ui,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.28)">${safe}</span>`,
+    });
+}
+
+function ringCenter(geojson: BoundaryGeoJson): [number, number] | null {
+    const ring = openRing(geojson);
+
+    if (ring.length === 0) {
+        return null;
+    }
+
+    return [
+        ring.reduce((sum, point) => sum + point.latitude, 0) / ring.length,
+        ring.reduce((sum, point) => sum + point.longitude, 0) / ring.length,
+    ];
+}
+
 export function FarmBoundaryMap({
     farm,
     boundary,
+    review,
     active,
     inspection = false,
 }: {
     farm: {
         id: number;
+        farm_id?: string;
         farm_name: string;
         declared_area_hectares: number;
         verification_status: FarmStatus;
@@ -195,12 +242,16 @@ export function FarmBoundaryMap({
         can_remove_boundary: boolean;
     };
     boundary: SavedBoundary | null;
+    review?: FieldReview;
     active: boolean;
     inspection?: boolean;
 }) {
     const [mode, setMode] = useState<Mode>('view');
     const [points, setPoints] = useState<MapPoint[]>([]);
     const [confirmRemove, setConfirmRemove] = useState(false);
+    const [layer, setLayer] = useState<FieldLayer>('both');
+    const [panel, setPanel] = useState<'size' | 'info' | 'history'>('size');
+    const [focusRequest, setFocusRequest] = useState(0);
     const [mapType, setMapType] = useState<GoogleMapType>('hybrid');
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
@@ -258,6 +309,17 @@ export function FarmBoundaryMap({
     );
     const showPolygon = workingPoints.length >= 3 && mode !== 'draw';
     const center = location ?? DEFAULT_VIEW;
+    const showNeighbors = review !== undefined && mode === 'view' && layer !== 'active';
+    const overlapsActive = (review?.overlaps.length ?? 0) > 0;
+    const activeCenter =
+        polygonPositions.length > 0
+            ? ([
+                  polygonPositions.reduce((sum, point) => sum + point[0], 0) /
+                      polygonPositions.length,
+                  polygonPositions.reduce((sum, point) => sum + point[1], 0) /
+                      polygonPositions.length,
+              ] as [number, number])
+            : null;
 
     function beginDraw() {
         setPoints([]);
@@ -329,10 +391,43 @@ export function FarmBoundaryMap({
             className={
                 inspection
                     ? undefined
-                    : 'grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]'
+                    : review
+                      ? 'grid overflow-hidden rounded-xl border bg-card lg:h-[calc(100vh-14rem)] lg:min-h-[36rem] lg:grid-cols-[22rem_minmax(0,1fr)]'
+                      : 'grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]'
             }
         >
-            {!inspection && (
+            {!inspection && review && (
+                <FieldBoundaryReview
+                    review={review}
+                    farmId={farm.farm_id ?? farm.farm_name}
+                    farmName={farm.farm_name}
+                    farmerName={farm.farmer_name}
+                    declaredHectares={farm.declared_area_hectares}
+                    measuredHectares={measuredHectares}
+                    boundary={boundary}
+                    mode={mode}
+                    layer={layer}
+                    panel={panel}
+                    canManage={farm.can_manage_boundary}
+                    canRemove={farm.can_remove_boundary}
+                    saving={form.processing}
+                    pointCount={points.length}
+                    formError={form.errors.boundary_geojson}
+                    showPreviewNote={previewHectares !== null && mode !== 'view'}
+                    onLayer={setLayer}
+                    onPanel={setPanel}
+                    onCentre={() => setFocusRequest((current) => current + 1)}
+                    onDraw={beginDraw}
+                    onEdit={beginEdit}
+                    onCancel={cancelEditing}
+                    onFinish={finishDrawing}
+                    onClearPoints={() => setPoints([])}
+                    onSave={saveBoundary}
+                    onRedraw={beginDraw}
+                    onRemove={() => setConfirmRemove(true)}
+                />
+            )}
+            {!inspection && !review && (
                 <aside className="flex flex-col gap-4 rounded-xl border bg-card p-4">
                     <div>
                         <h2 className="text-base font-semibold">Farm Map</h2>
@@ -568,7 +663,13 @@ export function FarmBoundaryMap({
                 </aside>
             )}
 
-            <div className="farm-boundary-map relative min-h-96 overflow-hidden rounded-xl border">
+            <div
+                className={
+                    review
+                        ? 'farm-boundary-map relative min-h-96 overflow-hidden lg:h-full'
+                        : 'farm-boundary-map relative min-h-96 overflow-hidden rounded-xl border'
+                }
+            >
                 {!hasLocation && (
                     <p className="border-b bg-muted/40 px-4 py-2 text-sm text-muted-foreground">
                         Farm location has not been recorded yet. The map view is
@@ -593,7 +694,13 @@ export function FarmBoundaryMap({
                         </button>
                     </div>
                 )}
-                <div className="relative h-[32rem]">
+                <div
+                    className={
+                        review
+                            ? 'relative h-full min-h-[28rem]'
+                            : 'relative h-[32rem]'
+                    }
+                >
                     <div
                         ref={googleHost}
                         className="pointer-events-none absolute inset-0 z-0"
@@ -626,6 +733,7 @@ export function FarmBoundaryMap({
                         <MapViewport
                             active={active}
                             drawing={mode === 'draw'}
+                            focusRequest={focusRequest}
                             fitKey={
                                 mode === 'view' && boundary
                                     ? JSON.stringify(
@@ -665,17 +773,102 @@ export function FarmBoundaryMap({
                                 pathOptions={{ color: '#2f6b45', weight: 2 }}
                             />
                         )}
+                        {showNeighbors &&
+                            review.neighbors.map((neighbor) => {
+                                const positions = openRing(neighbor.geojson).map(
+                                    (point) =>
+                                        [point.latitude, point.longitude] as [
+                                            number,
+                                            number,
+                                        ],
+                                );
+                                const labelAt = ringCenter(neighbor.geojson);
+                                const overlapping =
+                                    neighbor.overlap_percent !== null;
+
+                                if (positions.length < 3 || labelAt === null) {
+                                    return null;
+                                }
+
+                                return (
+                                    <Fragment key={neighbor.id}>
+                                        <Polygon
+                                            positions={positions}
+                                            pathOptions={{
+                                                color: '#0891b2',
+                                                fillColor: overlapping
+                                                    ? '#e11d48'
+                                                    : '#22d3ee',
+                                                fillOpacity: overlapping
+                                                    ? 0.38
+                                                    : 0.08,
+                                                weight: 2,
+                                            }}
+                                        />
+                                        <Marker
+                                            position={labelAt}
+                                            icon={fieldLabel(neighbor.farm_id)}
+                                            eventHandlers={{
+                                                click: () => {
+                                                    router.visit(
+                                                        showFarm.url(
+                                                            neighbor.id,
+                                                            {
+                                                                query: {
+                                                                    tab: 'map',
+                                                                },
+                                                            },
+                                                        ),
+                                                    );
+                                                },
+                                            }}
+                                        />
+                                    </Fragment>
+                                );
+                            })}
                         {showPolygon && (
                             <Polygon
                                 positions={polygonPositions}
-                                pathOptions={{
-                                    color: '#2f6b45',
-                                    fillColor: '#2f6b45',
-                                    fillOpacity: 0.28,
-                                    weight: 2,
-                                }}
+                                pathOptions={
+                                    review && mode === 'view'
+                                        ? layer === 'neighbors'
+                                            ? {
+                                                  color: '#0891b2',
+                                                  fillColor: '#22d3ee',
+                                                  fillOpacity: 0,
+                                                  weight: 2,
+                                              }
+                                            : overlapsActive
+                                              ? {
+                                                    color: '#be123c',
+                                                    fillColor: '#e11d48',
+                                                    fillOpacity: 0.45,
+                                                    weight: 2,
+                                                }
+                                              : {
+                                                    color: '#0891b2',
+                                                    fillColor: '#22d3ee',
+                                                    fillOpacity: 0.2,
+                                                    weight: 2,
+                                                }
+                                        : {
+                                              color: '#2f6b45',
+                                              fillColor: '#2f6b45',
+                                              fillOpacity: 0.28,
+                                              weight: 2,
+                                          }
+                                }
                             />
                         )}
+                        {showPolygon &&
+                            review &&
+                            mode === 'view' &&
+                            activeCenter && (
+                                <Marker
+                                    position={activeCenter}
+                                    icon={fieldLabel(farm.farm_id ?? farm.farm_name)}
+                                />
+                            )}
                         {mode === 'draw' &&
                             polygonPositions.map((position, index) => (
                                 <CircleMarker

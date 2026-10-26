@@ -13,7 +13,10 @@ export default function AppLogoIcon({
             {...props}
             src={surefarmLogoSrc}
             alt={alt}
-            className={cn('h-8 w-auto object-contain object-left', className)}
+            className={cn(
+                'h-8 w-auto object-contain object-left dark:rounded-md dark:bg-white dark:px-1.5 dark:py-0.5',
+                className,
+            )}
         />
     );
 }

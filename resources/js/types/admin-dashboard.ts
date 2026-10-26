@@ -73,6 +73,7 @@ export type StatusRow = {
     label: string;
     farms: number;
     declared_hectares: number;
+    href: string;
 };
 
 export type TrendPoint = {
@@ -94,6 +95,7 @@ export type MapFeature = {
     barangay: string | null;
     crop_label: string;
     declared_area_hectares: number;
+    measured_area_hectares: number | null;
     verified_area_hectares: number | null;
     verification_status: string;
     verification_label: string;
@@ -194,6 +196,57 @@ export type RegistryPayload = {
         count: number;
         href: string;
     }[];
+    operations: {
+        harvest: {
+            expected_label: string;
+            actual_label: string;
+            remaining_label: string;
+            exceeds: boolean;
+            message: string | null;
+            progress: number | null;
+            has_records: boolean;
+            harvesting_farms: number;
+        };
+        inventory: {
+            stages: {
+                id: number;
+                name: string;
+                code: string;
+                sequence: number;
+                quantity: number;
+                unit: string;
+                label: string;
+            }[];
+            total_label: string;
+            has_records: boolean;
+            chart: {
+                name: string;
+                quantity: number;
+                unit: string;
+                share: number;
+            }[];
+        };
+        activities: {
+            id: number;
+            activity_date: string | null;
+            farm_id: number;
+            farm_name: string;
+            activity: string | null;
+            status: string;
+            status_label: string;
+            href: string;
+        }[];
+        registrations: {
+            id: number;
+            farm_id: string;
+            farm_name: string;
+            farmer_name: string;
+            verification_status: string;
+            verification_label: string;
+            registered_at: string | null;
+            href: string;
+        }[];
+    };
     administration: {
         users: { role: string; label: string; count: number }[];
         suspended_users: number;
