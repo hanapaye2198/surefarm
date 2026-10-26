@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { visitRegistry } from '@/components/admin-registry-filters';
 import {
     loadGoogleMaps,
+    useGoogleMapsApiKey,
     type GoogleInfoWindow,
     type GoogleLatLng,
     type GoogleMapInstance,
@@ -111,7 +112,7 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
     const bubbleAnchor = useRef<{ id: number; position: GoogleLatLng } | null>(
         null,
     );
-    const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+    const googleApiKey = useGoogleMapsApiKey();
     const selected =
         map.features.find((feature) => feature.id === selectedId) ?? null;
     const drawable = useMemo(
