@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { visitRegistry } from '@/components/admin-registry-filters';
+import { HectareAreaLegend } from '@/components/hectare-area-legend';
 import {
     loadGoogleMaps,
     useGoogleMapsApiKey,
@@ -11,8 +12,19 @@ import {
     type GoogleMapType,
     type GoogleOverlay,
 } from '@/lib/google-maps';
-import { farmFieldColor, farmStatusLegend } from '@/lib/farm-status-colors';
+import { farmStatusLegend } from '@/lib/farm-status-colors';
+import { areaSquarePositions, hectareColor } from '@/lib/hectare-area';
 import type { MapFeature, RegistryPayload } from '@/types/admin-dashboard';
+
+function featureHectares(feature: MapFeature): number {
+    const hasRing = (feature.boundary?.coordinates[0]?.length ?? 0) > 2;
+
+    if (hasRing && feature.measured_area_hectares !== null) {
+        return feature.measured_area_hectares;
+    }
+
+    return feature.declared_area_hectares;
+}
 
 function positions(feature: MapFeature): [number, number][] {
     const ring = feature.boundary?.coordinates[0] ?? [];
@@ -137,6 +149,18 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     return ring;
                 }
 
+                if (
+                    feature.latitude !== null &&
+                    feature.longitude !== null &&
+                    map.layer !== 'missing'
+                ) {
+                    return areaSquarePositions(
+                        feature.latitude,
+                        feature.longitude,
+                        feature.declared_area_hectares,
+                    );
+                }
+
                 if (feature.latitude !== null && feature.longitude !== null) {
                     return [
                         [feature.latitude, feature.longitude] as [
@@ -226,9 +250,11 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
         }
 
         drawable.forEach((feature) => {
-            const color = farmFieldColor(feature.id);
+            const color = hectareColor(featureHectares(feature));
             const ring = positions(feature);
             const showPolygon = ring.length > 2 && map.layer !== 'missing';
+            const hasPoint =
+                feature.latitude !== null && feature.longitude !== null;
 
             if (showPolygon) {
                 const path = ring.map(toLatLng);
@@ -303,8 +329,52 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                         }),
                     );
                 }
-
-                return;
+            } else if (hasPoint && map.layer !== 'missing') {
+                const square = areaSquarePositions(
+                    feature.latitude as number,
+                    feature.longitude as number,
+                    feature.declared_area_hectares,
+                );
+                const path = square.map(toLatLng);
+                const polygon = new maps.Polygon({
+                    map: instance,
+                    paths: path,
+                    strokeOpacity: 0,
+                    strokeWeight: 0,
+                    fillColor: color,
+                    fillOpacity: 0.35,
+                    clickable: true,
+                });
+                polygon.addListener('click', (event) => {
+                    const position = eventPosition(event) ?? {
+                        lat: feature.latitude as number,
+                        lng: feature.longitude as number,
+                    };
+                    bubbleAnchor.current = { id: feature.id, position };
+                    openFarmBubble(feature, position);
+                    setSelectedId(feature.id);
+                });
+                overlays.current.push(polygon);
+                overlays.current.push(
+                    new maps.Polyline({
+                        map: instance,
+                        path,
+                        strokeOpacity: 0,
+                        icons: [
+                            {
+                                icon: {
+                                    path: 'M 0,-1 0,1',
+                                    strokeOpacity: 1,
+                                    strokeColor: color,
+                                    scale: 2,
+                                },
+                                offset: '0',
+                                repeat: '8px',
+                            },
+                        ],
+                        clickable: false,
+                    }),
+                );
             }
 
             const latitude = feature.latitude;
@@ -322,8 +392,8 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     path: maps.SymbolPath.CIRCLE,
                     scale: 7,
                     fillColor: color,
-                    fillOpacity: 0.9,
-                    strokeColor: color,
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
                     strokeWeight: 2,
                 },
             });
@@ -449,31 +519,16 @@ export function AdminRegistryMap({ registry }: { registry: RegistryPayload }) {
                     </button>
                 ))}
             </div>
-            <ul
-                aria-label="Map legend"
-                className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground"
-            >
-                {map.features
-                    .filter((feature) => feature.boundary !== null)
-                    .map((feature) => (
-                        <li
-                            key={feature.id}
-                            className="flex items-center gap-2"
-                        >
-                            <span
-                                className="size-2.5 rounded-sm"
-                                style={{
-                                    backgroundColor: farmFieldColor(feature.id),
-                                }}
-                            />
-                            <span>{feature.farm_name}</span>
-                            <span>{feature.verification_label}</span>
-                        </li>
-                    ))}
-                <li>Dashed outline: inactive farm</li>
-            </ul>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <HectareAreaLegend />
+                <p className="text-xs text-muted-foreground">
+                    Dashed outline: inactive farm, or area estimated from
+                    declared hectares when no boundary is saved. Location
+                    markers stay on recorded coordinates.
+                </p>
+            </div>
             <p className="text-xs text-muted-foreground">
-                Each farm polygon has its own color. {map.drawn} of{' '}
+                Polygon color follows area in hectares. {map.drawn} of{' '}
                 {map.matched} farms in this layer are loaded.
                 {map.truncated
                     ? ' Narrow the filters to see more than the first 400.'
@@ -553,8 +608,8 @@ function FarmPanel({
                                 <span
                                     className="mt-1 size-2.5 shrink-0 rounded-full"
                                     style={{
-                                        backgroundColor: farmFieldColor(
-                                            item.id,
+                                        backgroundColor: hectareColor(
+                                            featureHectares(item),
                                         ),
                                     }}
                                 />
@@ -587,7 +642,9 @@ function FarmPanel({
             <div className="flex items-start gap-2">
                 <span
                     className="mt-1 size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: farmFieldColor(feature.id) }}
+                    style={{
+                        backgroundColor: hectareColor(featureHectares(feature)),
+                    }}
                 />
                 <div>
                     <p className="text-sm font-medium">{feature.farm_name}</p>

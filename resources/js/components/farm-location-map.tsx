@@ -4,22 +4,27 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     CircleMarker,
     MapContainer,
+    Polygon,
     TileLayer,
     Tooltip,
     useMap,
 } from 'react-leaflet';
 import { EmptyState } from '@/components/empty-state';
+import { HectareAreaLegend } from '@/components/hectare-area-legend';
 import { Button } from '@/components/ui/button';
 import { FarmerStatusBadge, StatusBadge } from '@/components/status-badge';
 import type { FarmStatus, FarmerRecordStatus } from '@/components/status-badge';
 import { userCanAccess } from '@/lib/access';
 import {
     loadGoogleMaps,
-    useGoogleMapsApiKey,
     type GoogleMapInstance,
     type GoogleMapType,
     type GoogleMarker,
+    type GoogleOverlay,
+    type GooglePolygon,
+    useGoogleMapsApiKey,
 } from '@/lib/google-maps';
+import { areaSquarePositions, hectareColor } from '@/lib/hectare-area';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 
@@ -34,7 +39,43 @@ export type FarmLocation = {
     status: FarmerRecordStatus;
     latitude: number;
     longitude: number;
+    measured_area_hectares?: number | null;
+    boundary?: {
+        type: string;
+        coordinates: [number, number][][];
+    } | null;
 };
+
+function locationArea(location: FarmLocation): {
+    positions: [number, number][];
+    hectares: number;
+    estimated: boolean;
+} {
+    const ring = location.boundary?.coordinates[0] ?? [];
+
+    if (ring.length >= 4) {
+        return {
+            positions: ring.map(([longitude, latitude]) => [
+                latitude,
+                longitude,
+            ]),
+            hectares:
+                location.measured_area_hectares ??
+                location.declared_area_hectares,
+            estimated: false,
+        };
+    }
+
+    return {
+        positions: areaSquarePositions(
+            location.latitude,
+            location.longitude,
+            location.declared_area_hectares,
+        ),
+        hectares: location.declared_area_hectares,
+        estimated: true,
+    };
+}
 
 const markerColors: Record<FarmStatus, string> = {
     pending: '#737373',
@@ -134,6 +175,8 @@ function GoogleFarmLocationsMap({
     const host = useRef<HTMLDivElement>(null);
     const map = useRef<GoogleMapInstance | null>(null);
     const markers = useRef(new Map<number, GoogleMarker>());
+    const polygons = useRef(new Map<number, GooglePolygon>());
+    const overlays = useRef<GoogleOverlay[]>([]);
 
     useEffect(() => {
         const element = host.current;
@@ -182,6 +225,9 @@ function GoogleFarmLocationsMap({
             observer?.disconnect();
             markers.current.forEach((marker) => marker.setMap(null));
             markers.current.clear();
+            overlays.current.forEach((overlay) => overlay.setMap(null));
+            overlays.current = [];
+            polygons.current.clear();
             map.current = null;
         };
     }, [apiKey, onError, onReady]);
@@ -200,14 +246,59 @@ function GoogleFarmLocationsMap({
 
         markers.current.forEach((marker) => marker.setMap(null));
         markers.current.clear();
+        overlays.current.forEach((overlay) => overlay.setMap(null));
+        overlays.current = [];
+        polygons.current.clear();
 
         const bounds = new maps.LatLngBounds();
 
         locations.forEach((location) => {
+            const area = locationArea(location);
+            const color = hectareColor(area.hectares);
             const position = {
                 lat: location.latitude,
                 lng: location.longitude,
             };
+            const polygon = new maps.Polygon({
+                map: instance,
+                paths: area.positions.map(([lat, lng]) => ({ lat, lng })),
+                strokeColor: color,
+                strokeOpacity: 1,
+                strokeWeight: 2,
+                fillColor: color,
+                fillOpacity: 0.28,
+                clickable: true,
+            });
+            polygon.addListener('click', () => onSelect(location.id));
+            polygons.current.set(location.id, polygon);
+            overlays.current.push(polygon);
+
+            if (area.estimated) {
+                overlays.current.push(
+                    new maps.Polyline({
+                        map: instance,
+                        path: area.positions.map(([lat, lng]) => ({
+                            lat,
+                            lng,
+                        })),
+                        strokeOpacity: 0,
+                        icons: [
+                            {
+                                icon: {
+                                    path: 'M 0,-1 0,1',
+                                    strokeOpacity: 1,
+                                    strokeColor: color,
+                                    scale: 2,
+                                },
+                                offset: '0',
+                                repeat: '10px',
+                            },
+                        ],
+                        clickable: false,
+                    }),
+                );
+            }
+
             const marker = new maps.Marker({
                 map: instance,
                 position,
@@ -225,6 +316,7 @@ function GoogleFarmLocationsMap({
             marker.addListener('click', () => onSelect(location.id));
             markers.current.set(location.id, marker);
             bounds.extend(position);
+            area.positions.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
         });
 
         if (locations.length === 1) {
@@ -260,6 +352,13 @@ function GoogleFarmLocationsMap({
                 fillOpacity: 1,
                 strokeColor: '#ffffff',
                 strokeWeight: id === selectedId ? 3 : 2,
+            });
+        });
+
+        polygons.current.forEach((polygon, id) => {
+            polygon.setOptions({
+                strokeWeight: id === selectedId ? 3 : 2,
+                fillOpacity: id === selectedId ? 0.45 : 0.28,
             });
         });
     }, [locations, ready, selectedId]);
@@ -310,18 +409,25 @@ export function FarmLocationMap({
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
     const positions = useMemo(
         () =>
-            locations.map(
-                (location) =>
-                    [location.latitude, location.longitude] as [number, number],
-            ),
+            locations.flatMap((location) => [
+                [location.latitude, location.longitude] as [number, number],
+                ...locationArea(location).positions,
+            ]),
         [locations],
     );
     const focusKey = useMemo(
         () =>
             locations
                 .map(
-                    ({ id, latitude, longitude }) =>
-                        `${id}:${latitude}:${longitude}`,
+                    ({ id, latitude, longitude, boundary }) =>
+                        `${id}:${latitude}:${longitude}:${
+                            boundary?.coordinates[0]
+                                ?.map(
+                                    ([ringLongitude, ringLatitude]) =>
+                                        `${ringLatitude},${ringLongitude}`,
+                                )
+                                .join(';') ?? ''
+                        }`,
                 )
                 .join('|'),
         [locations],
@@ -412,6 +518,47 @@ export function FarmLocationMap({
                                     request={focusRequest}
                                 />
                                 {locations.map((location) => {
+                                    const area = locationArea(location);
+                                    const color = hectareColor(area.hectares);
+                                    const active = location.id === selected.id;
+
+                                    return (
+                                        <Polygon
+                                            key={`${location.id}-area`}
+                                            positions={area.positions}
+                                            eventHandlers={{
+                                                click: () =>
+                                                    selectLocation(location.id),
+                                            }}
+                                            pathOptions={{
+                                                color,
+                                                weight: active ? 3 : 2,
+                                                fillColor: color,
+                                                fillOpacity: active
+                                                    ? 0.45
+                                                    : 0.28,
+                                                dashArray: area.estimated
+                                                    ? '6 4'
+                                                    : undefined,
+                                            }}
+                                        >
+                                            <Tooltip direction="top">
+                                                <span className="font-medium">
+                                                    {location.farm_name}
+                                                </span>
+                                                <br />
+                                                {areaFormatter.format(
+                                                    area.hectares,
+                                                )}{' '}
+                                                ha
+                                                {area.estimated
+                                                    ? ' estimated'
+                                                    : ' mapped'}
+                                            </Tooltip>
+                                        </Polygon>
+                                    );
+                                })}
+                                {locations.map((location) => {
                                     const active = location.id === selected.id;
 
                                     return (
@@ -455,8 +602,9 @@ export function FarmLocationMap({
                     )}
                 </div>
                 <p className="absolute right-3 bottom-3 left-3 z-[2] max-w-md rounded-md border bg-background/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
-                    Markers use recorded farm coordinates. Location does not
-                    indicate verification.
+                    Markers stay on the recorded coordinates. Polygon color
+                    follows area in hectares. A dashed polygon is estimated from
+                    the declared area when no boundary is saved.
                 </p>
             </div>
 
@@ -488,11 +636,22 @@ export function FarmLocationMap({
                         <dt className="text-xs text-muted-foreground">
                             Declared area
                         </dt>
-                        <dd>
+                        <dd className="flex items-center gap-2">
+                            <span
+                                className="size-2.5 rounded-sm"
+                                style={{
+                                    backgroundColor: hectareColor(
+                                        locationArea(selected).hectares,
+                                    ),
+                                }}
+                            />
                             {areaFormatter.format(
                                 selected.declared_area_hectares,
                             )}{' '}
                             ha
+                            {locationArea(selected).estimated
+                                ? ' · estimated polygon'
+                                : ' · saved boundary'}
                         </dd>
                     </div>
                     <div>
@@ -533,6 +692,14 @@ export function FarmLocationMap({
                                                 ],
                                         }}
                                     />
+                                    <span
+                                        className="size-2.5 shrink-0 rounded-sm"
+                                        style={{
+                                            backgroundColor: hectareColor(
+                                                locationArea(location).hectares,
+                                            ),
+                                        }}
+                                    />
                                     <span className="min-w-0 truncate">
                                         {location.farm_name}
                                     </span>
@@ -541,11 +708,14 @@ export function FarmLocationMap({
                         ))}
                     </ul>
                 </div>
-                <div className="flex flex-wrap gap-2 border-t pt-3">
-                    <StatusBadge status="pending" />
-                    <StatusBadge status="verified" />
-                    <StatusBadge status="needs_review" />
-                    <StatusBadge status="failed" />
+                <div className="grid gap-2 border-t pt-3">
+                    <HectareAreaLegend />
+                    <div className="flex flex-wrap gap-2">
+                        <StatusBadge status="pending" />
+                        <StatusBadge status="verified" />
+                        <StatusBadge status="needs_review" />
+                        <StatusBadge status="failed" />
+                    </div>
                 </div>
             </div>
         </div>

@@ -23,6 +23,7 @@ import {
     type FieldReview,
 } from '@/components/field-boundary-review';
 import { GoogleBasemap } from '@/components/google-basemap';
+import { HectareAreaLegend } from '@/components/hectare-area-legend';
 import { StatusBadge } from '@/components/status-badge';
 import type { FarmStatus } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
+import { areaSquarePositions, hectareColor } from '@/lib/hectare-area';
 import { sphericalPolygonHectares } from '@/lib/spherical-polygon-area';
 import { destroy, store, update } from '@/routes/farms/boundary';
 import { show as showFarm } from '@/routes/farms';
@@ -317,6 +319,16 @@ export function FarmBoundaryMap({
         (point) => [point.latitude, point.longitude] as [number, number],
     );
     const showPolygon = workingPoints.length >= 3 && mode !== 'draw';
+    const areaHectares = measuredHectares ?? farm.declared_area_hectares;
+    const areaColor = hectareColor(areaHectares);
+    const estimatedPositions =
+        location !== null && mode === 'view' && !showPolygon
+            ? areaSquarePositions(
+                  location.latitude,
+                  location.longitude,
+                  farm.declared_area_hectares,
+              )
+            : [];
     const center = location ?? DEFAULT_VIEW;
     const showNeighbors =
         review !== undefined && mode === 'view' && layer !== 'active';
@@ -527,6 +539,13 @@ export function FarmBoundaryMap({
                                 ? 'Boundary Captured'
                                 : 'No farm boundary has been captured yet.'}
                         </p>
+                        {boundary === null && location && (
+                            <p className="text-xs text-muted-foreground">
+                                The dashed polygon estimates the declared area
+                                around the location marker. It is not a captured
+                                boundary.
+                            </p>
+                        )}
                         {boundary && mode === 'view' && (
                             <>
                                 <p className="mt-2 text-xs text-muted-foreground">
@@ -756,9 +775,15 @@ export function FarmBoundaryMap({
                                     ? JSON.stringify(
                                           boundary.geojson.coordinates,
                                       )
-                                    : ''
+                                    : estimatedPositions.length > 0
+                                      ? JSON.stringify(estimatedPositions)
+                                      : ''
                             }
-                            positions={polygonPositions}
+                            positions={
+                                polygonPositions.length > 0
+                                    ? polygonPositions
+                                    : estimatedPositions
+                            }
                         />
                         <DrawClicks
                             enabled={mode === 'draw'}
@@ -809,18 +834,24 @@ export function FarmBoundaryMap({
                                     return null;
                                 }
 
+                                const neighborColor = hectareColor(
+                                    neighbor.hectares,
+                                );
+
                                 return (
                                     <Fragment key={neighbor.id}>
                                         <Polygon
                                             positions={positions}
                                             pathOptions={{
-                                                color: '#0891b2',
+                                                color: overlapping
+                                                    ? '#e11d48'
+                                                    : neighborColor,
                                                 fillColor: overlapping
                                                     ? '#e11d48'
-                                                    : '#22d3ee',
+                                                    : neighborColor,
                                                 fillOpacity: overlapping
                                                     ? 0.38
-                                                    : 0.08,
+                                                    : 0.28,
                                                 weight: 2,
                                             }}
                                         />
@@ -845,6 +876,18 @@ export function FarmBoundaryMap({
                                     </Fragment>
                                 );
                             })}
+                        {estimatedPositions.length > 0 && (
+                            <Polygon
+                                positions={estimatedPositions}
+                                pathOptions={{
+                                    color: areaColor,
+                                    fillColor: areaColor,
+                                    fillOpacity: 0.28,
+                                    weight: 2,
+                                    dashArray: '6 4',
+                                }}
+                            />
+                        )}
                         {showPolygon && (
                             <Polygon
                                 positions={polygonPositions}
@@ -865,14 +908,14 @@ export function FarmBoundaryMap({
                                                     weight: 2,
                                                 }
                                               : {
-                                                    color: '#0891b2',
-                                                    fillColor: '#22d3ee',
-                                                    fillOpacity: 0.2,
+                                                    color: areaColor,
+                                                    fillColor: areaColor,
+                                                    fillOpacity: 0.28,
                                                     weight: 2,
                                                 }
                                         : {
-                                              color: '#2f6b45',
-                                              fillColor: '#2f6b45',
+                                              color: areaColor,
+                                              fillColor: areaColor,
                                               fillOpacity: 0.28,
                                               weight: 2,
                                           }
@@ -938,6 +981,9 @@ export function FarmBoundaryMap({
                                 />
                             ))}
                     </MapContainer>
+                    <div className="absolute bottom-3 left-3 z-[2] max-w-xs rounded-md border bg-background/95 px-3 py-2 shadow-sm">
+                        <HectareAreaLegend />
+                    </div>
                 </div>
             </div>
 

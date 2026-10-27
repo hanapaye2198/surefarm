@@ -47,7 +47,10 @@ class DashboardController extends Controller
                     'verification_status' => $farm->verification_status->value,
                 ])->values()->all();
             $assignedMapFarms = (clone $assignedFarms)
-                ->with('farmer')
+                ->with([
+                    'farmer',
+                    'boundary:id,farm_id,boundary_geojson,gps_measured_area_hectares',
+                ])
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
                 ->latest('id')
@@ -60,10 +63,14 @@ class DashboardController extends Controller
                     'location' => $farm->locationLabel(),
                     'crop_label' => $farm->crop_type->label(),
                     'declared_area_hectares' => (float) $farm->declared_area_hectares,
+                    'measured_area_hectares' => $farm->boundary?->gps_measured_area_hectares === null
+                        ? null
+                        : (float) $farm->boundary->gps_measured_area_hectares,
                     'status' => $farm->status->value,
                     'latitude' => (float) $farm->latitude,
                     'longitude' => (float) $farm->longitude,
                     'verification_status' => $farm->verification_status->value,
+                    'boundary' => $farm->boundary?->boundary_geojson,
                 ])->values()->all();
             $declared = (float) (clone $assignedFarms)->sum('declared_area_hectares');
             $coffee = (float) (clone $assignedFarms)
@@ -456,7 +463,9 @@ class DashboardController extends Controller
      *     verification_status: string,
      *     status: string,
      *     latitude: float,
-     *     longitude: float
+     *     longitude: float,
+     *     measured_area_hectares: float|null,
+     *     boundary: array<string, mixed>|null
      * }>
      */
     private function locations(): array
@@ -475,7 +484,10 @@ class DashboardController extends Controller
                 'latitude',
                 'longitude',
             ])
-            ->with('farmer:id,first_name,middle_name,last_name')
+            ->with([
+                'farmer:id,first_name,middle_name,last_name',
+                'boundary:id,farm_id,boundary_geojson,gps_measured_area_hectares',
+            ])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderBy('farm_id')
@@ -487,10 +499,14 @@ class DashboardController extends Controller
                 'farmer_name' => $farm->farmer->fullName(),
                 'crop_label' => $farm->crop_type->label(),
                 'declared_area_hectares' => (float) $farm->declared_area_hectares,
+                'measured_area_hectares' => $farm->boundary?->gps_measured_area_hectares === null
+                    ? null
+                    : (float) $farm->boundary->gps_measured_area_hectares,
                 'verification_status' => $farm->verification_status->value,
                 'status' => $farm->status->value,
                 'latitude' => (float) $farm->latitude,
                 'longitude' => (float) $farm->longitude,
+                'boundary' => $farm->boundary?->boundary_geojson,
             ])
             ->all();
 

@@ -54,6 +54,13 @@ export type GoogleMarker = GoogleOverlay & {
     setIcon: (icon: GoogleMarkerIcon) => void;
 };
 
+export type GooglePolygon = GoogleOverlay & {
+    setOptions: (options: {
+        strokeWeight?: number;
+        fillOpacity?: number;
+    }) => void;
+};
+
 type GoogleMapOptions = {
     center: GoogleLatLng;
     zoom: number;
@@ -110,7 +117,7 @@ type GoogleMapsNamespace = {
         element: HTMLElement,
         options: GoogleMapOptions,
     ) => GoogleMapInstance;
-    Polygon: new (options: GoogleShapeOptions) => GoogleOverlay;
+    Polygon: new (options: GoogleShapeOptions) => GooglePolygon;
     Polyline: new (options: GoogleShapeOptions) => GoogleOverlay;
     Marker: new (options: GoogleMarkerOptions) => GoogleMarker;
     InfoWindow: new (options?: {
