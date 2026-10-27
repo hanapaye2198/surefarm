@@ -19,6 +19,7 @@ use App\Http\Controllers\InventoryDamageController;
 use App\Http\Controllers\InventoryProcessingController;
 use App\Http\Controllers\MobileAnnouncementController;
 use App\Http\Controllers\MobileFarmerController;
+use App\Http\Controllers\MobileWalletController;
 use App\Http\Controllers\ModulePlaceholderController;
 use App\Http\Controllers\Settings\ActivityTypeController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -69,7 +70,11 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             });
 
             Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
-                Route::get('wallet', [MobileFarmerController::class, 'wallet'])->name('farmer.wallet');
+                Route::get('wallet', [MobileWalletController::class, 'show'])->name('farmer.wallet');
+                Route::post('wallet/bill-payment-requests', [MobileWalletController::class, 'requestBillPayment'])
+                    ->name('farmer.wallet.bill-payment-requests.store');
+                Route::post('wallet/cashout-requests', [MobileWalletController::class, 'requestCashout'])
+                    ->name('farmer.wallet.cashout-requests.store');
                 Route::get('farms', [MobileFarmerController::class, 'farms']);
                 Route::get('farms/{farm}', [MobileFarmerController::class, 'showFarm']);
                 Route::post('farms/{farm}/boundary-update-request', [MobileFarmerController::class, 'requestBoundaryUpdate']);
@@ -82,6 +87,14 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
                 Route::post('profile/photo', [MobileFarmerController::class, 'updatePhoto']);
                 Route::get('profile/photo', [MobileFarmerController::class, 'photo'])
                     ->name('farmer.profile.photo');
+            });
+
+            Route::middleware('role:admin,operations')->prefix('wallet-requests')->group(function (): void {
+                Route::get('/', [MobileWalletController::class, 'operationsIndex'])->name('wallet-requests.index');
+                Route::post('{walletRequest}/complete', [MobileWalletController::class, 'complete'])
+                    ->name('wallet-requests.complete');
+                Route::post('{walletRequest}/reject', [MobileWalletController::class, 'reject'])
+                    ->name('wallet-requests.reject');
             });
 
             Route::middleware(['role:operations', 'registry.scope'])->group(function (): void {

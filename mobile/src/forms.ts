@@ -62,6 +62,85 @@ export function formForPage(component: string, data: Data): FormSpec | null {
         data.activityType?.id;
 
     switch (component) {
+        case 'farmer-wallet/bill-payment':
+            return {
+                title: 'Request a bill payment',
+                method: 'POST',
+                path: '/farmer/wallet/bill-payment-requests',
+                fields: [
+                    text('amount', 'Bill amount (PHP)', {
+                        kind: 'number',
+                        required: true,
+                    }),
+                    text('biller_name', 'Biller / service', {
+                        required: true,
+                        hint: 'SureFarm operations will review and pay this bill request.',
+                    }),
+                    text('account_name', 'Account holder name', {
+                        required: true,
+                    }),
+                    text('account_reference', 'Account / subscriber number', {
+                        required: true,
+                    }),
+                ],
+            };
+        case 'farmer-wallet/cashout':
+            return {
+                title: 'Request an e-wallet cash-out',
+                method: 'POST',
+                path: '/farmer/wallet/cashout-requests',
+                fields: [
+                    text('amount', 'Cash-out amount (PHP)', {
+                        kind: 'number',
+                        required: true,
+                    }),
+                    {
+                        key: 'provider',
+                        label: 'E-wallet provider',
+                        kind: 'select',
+                        required: true,
+                        options: [
+                            { value: '', label: 'Choose a provider' },
+                            { value: 'GCash', label: 'GCash' },
+                            { value: 'Maya', label: 'Maya' },
+                        ],
+                    },
+                    text('account_name', 'Recipient name', { required: true }),
+                    text('account_reference', 'Recipient mobile number', {
+                        kind: 'phone',
+                        required: true,
+                        hint: 'Use a 10 to 16 digit GCash or Maya number.',
+                    }),
+                ],
+            };
+        case 'wallet-request/complete':
+            return {
+                title: 'Record completed payment',
+                method: 'POST',
+                path: `/wallet-requests/${data.requestId}/complete`,
+                fields: [
+                    text(
+                        'provider_reference',
+                        'Transfer / bill receipt reference',
+                        {
+                            required: true,
+                            hint: 'Enter the receipt reference after the payment has actually been sent.',
+                        },
+                    ),
+                ],
+            };
+        case 'wallet-request/reject':
+            return {
+                title: 'Reject wallet request',
+                method: 'POST',
+                path: `/wallet-requests/${data.requestId}/reject`,
+                fields: [
+                    text('review_notes', 'Reason for rejection', {
+                        required: true,
+                        multiline: true,
+                    }),
+                ],
+            };
         case 'announcements/create':
             return {
                 title: 'Publish farmer announcement',

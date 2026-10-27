@@ -15,7 +15,6 @@ use App\Models\Farm;
 use App\Models\FarmActivity;
 use App\Models\FarmBoundaryUpdateRequest;
 use App\Models\Farmer;
-use App\Models\FarmerWalletTransaction;
 use App\Models\FarmHarvest;
 use App\Models\FarmProduction;
 use App\Models\User;
@@ -335,49 +334,6 @@ class MobileFarmerController extends Controller
                 'cooperative' => $farmer->cooperative?->name,
                 'spouse' => $farmer->spouse?->fullName(),
             ],
-        ]);
-    }
-
-    public function wallet(Request $request): Response
-    {
-        $farmer = $this->farmer($request);
-        $postedTransactions = $farmer->walletTransactions()
-            ->where('status', 'completed');
-        $credits = (int) (clone $postedTransactions)->where('direction', 'credit')->sum('amount_minor');
-        $debits = (int) (clone $postedTransactions)->where('direction', 'debit')->sum('amount_minor');
-        $balanceMinor = max(0, $credits - $debits);
-
-        $transactions = $farmer->walletTransactions()
-            ->latest('id')
-            ->limit(50)
-            ->get()
-            ->map(fn (FarmerWalletTransaction $transaction): array => [
-                'id' => $transaction->id,
-                'direction' => $transaction->direction,
-                'amount_label' => ($transaction->direction === 'credit' ? '+ ' : '− ')
-                    .'₱'.number_format($transaction->amount_minor / 100, 2),
-                'description' => $transaction->description,
-                'reference' => $transaction->reference,
-                'status_label' => match ($transaction->status) {
-                    'completed' => 'Completed',
-                    'pending' => 'Pending',
-                    'failed' => 'Failed',
-                    'reversed' => 'Reversed',
-                    default => 'Unknown',
-                },
-                'created_at' => $transaction->created_at?->format('M j, Y g:i A'),
-            ])
-            ->values()
-            ->all();
-
-        return Inertia::render('mobile/farmer-wallet', [
-            'wallet' => [
-                'balance_minor' => $balanceMinor,
-                'balance_label' => '₱'.number_format($balanceMinor / 100, 2),
-                'currency' => 'PHP',
-                'account_label' => 'SureFarm E-wallet',
-            ],
-            'transactions' => $transactions,
         ]);
     }
 

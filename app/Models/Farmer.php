@@ -84,6 +84,14 @@ class Farmer extends Model
     }
 
     /**
+     * @return HasMany<FarmerWalletRequest, $this>
+     */
+    public function walletRequests(): HasMany
+    {
+        return $this->hasMany(FarmerWalletRequest::class);
+    }
+
+    /**
      * @return BelongsTo<Cooperative, $this>
      */
     public function cooperative(): BelongsTo

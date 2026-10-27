@@ -509,9 +509,17 @@ const SECTIONS: Section[] = [
     {
         key: 'farmer-wallet',
         title: 'E-wallet',
-        description: 'Your balance and transaction history',
+        description: 'Balance, bills, cash-out, and transactions',
         path: '/farmer/wallet',
         roles: ['farmer'],
+        icon: 'wallet',
+    },
+    {
+        key: 'wallet-requests',
+        title: 'Wallet requests',
+        description: 'Review farmer bill and cash-out requests',
+        path: '/wallet-requests',
+        roles: ['admin', 'operations'],
         icon: 'wallet',
     },
     {
@@ -627,6 +635,9 @@ function mobileWorkspacePath(role: Role, path: string): boolean {
     const clean = path.split('?')[0];
     if (clean === '/dashboard' || clean.startsWith('/settings/')) return true;
     if (role === 'farmer') return clean.startsWith('/farmer/');
+    if (role === 'admin' || role === 'operations') {
+        return clean === '/wallet-requests';
+    }
     if (role === 'field_verifier') {
         return (
             clean.startsWith('/farm-verification') ||
@@ -818,6 +829,9 @@ function SureFarmApp() {
                 }
                 if (user.role === 'field_verifier') {
                     return item.roles?.includes('field_verifier') === true;
+                }
+                if (user.role === 'admin' || user.role === 'operations') {
+                    return item.roles?.includes(user.role) === true;
                 }
 
                 return false;
@@ -2836,6 +2850,44 @@ function DataPage(props: {
                     </Text>
                 </View>
 
+                <View style={styles.walletActions}>
+                    <Pressable
+                        accessibilityRole="button"
+                        style={styles.walletActionButton}
+                        onPress={() =>
+                            props.onLocalForm('farmer-wallet/bill-payment', {})
+                        }
+                    >
+                        <AppIcon name="finance" size={19} color={API_FOREST} />
+                        <Text style={styles.walletActionText}>Pay bills</Text>
+                    </Pressable>
+                    <Pressable
+                        accessibilityRole="button"
+                        style={[
+                            styles.walletActionButton,
+                            styles.walletActionDark,
+                        ]}
+                        onPress={() =>
+                            props.onLocalForm('farmer-wallet/cashout', {})
+                        }
+                    >
+                        <AppIcon name="wallet" size={19} color="#ffffff" />
+                        <Text
+                            style={[
+                                styles.walletActionText,
+                                styles.walletActionTextLight,
+                            ]}
+                        >
+                            Cash out
+                        </Text>
+                    </Pressable>
+                </View>
+                <Text style={styles.walletRequestNote}>
+                    Requests are reviewed by SureFarm operations. Pending
+                    requests reserve {wallet.reserved_label ?? '₱0.00'} from
+                    your available balance.
+                </Text>
+
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Transaction history</Text>
                     {transactions.length === 0 ? (
@@ -2881,6 +2933,124 @@ function DataPage(props: {
                         ))
                     )}
                 </View>
+            </ScrollView>
+        );
+    }
+
+    if (page.component === 'mobile/wallet-requests') {
+        const requests: any[] = Array.isArray(page.data.requests)
+            ? page.data.requests
+            : [];
+
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                {requests.length === 0 ? (
+                    <View style={styles.card}>
+                        <Text style={styles.cardTitle}>Wallet requests</Text>
+                        <Text style={styles.mutedSmall}>
+                            No bill payment or cash-out requests have been
+                            submitted.
+                        </Text>
+                    </View>
+                ) : (
+                    requests.map((walletRequest) => (
+                        <View key={walletRequest.id} style={styles.card}>
+                            <View style={styles.walletRequestHeading}>
+                                <View style={styles.flex}>
+                                    <Text style={styles.cardTitle}>
+                                        {walletRequest.kind_label} -{' '}
+                                        {walletRequest.amount_label}
+                                    </Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {walletRequest.farmer_name} (
+                                        {walletRequest.farmer_id})
+                                    </Text>
+                                </View>
+                                <Text style={styles.walletRequestStatus}>
+                                    {walletRequest.status_label}
+                                </Text>
+                            </View>
+                            <SummaryRow
+                                label="Request"
+                                value={walletRequest.reference}
+                            />
+                            <SummaryRow
+                                label="Provider / biller"
+                                value={walletRequest.provider}
+                            />
+                            <SummaryRow
+                                label="Account name"
+                                value={
+                                    walletRequest.account_name ?? 'Not provided'
+                                }
+                            />
+                            <SummaryRow
+                                label="Destination / account"
+                                value={
+                                    walletRequest.account_reference ??
+                                    'Not provided'
+                                }
+                            />
+                            <SummaryRow
+                                label="Submitted"
+                                value={walletRequest.created_at ?? '—'}
+                            />
+                            {walletRequest.provider_reference ? (
+                                <SummaryRow
+                                    label="Payment receipt"
+                                    value={walletRequest.provider_reference}
+                                />
+                            ) : null}
+                            {walletRequest.review_notes ? (
+                                <Text style={styles.mutedSmall}>
+                                    {walletRequest.review_notes}
+                                </Text>
+                            ) : null}
+                            {walletRequest.status === 'pending' ? (
+                                <View style={styles.walletReviewActions}>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        style={styles.walletActionButton}
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'wallet-request/complete',
+                                                {
+                                                    requestId: walletRequest.id,
+                                                },
+                                            )
+                                        }
+                                    >
+                                        <Text style={styles.walletActionText}>
+                                            Mark paid with receipt
+                                        </Text>
+                                    </Pressable>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        style={[
+                                            styles.walletActionButton,
+                                            styles.walletRejectButton,
+                                        ]}
+                                        onPress={() =>
+                                            props.onLocalForm(
+                                                'wallet-request/reject',
+                                                {
+                                                    requestId: walletRequest.id,
+                                                },
+                                            )
+                                        }
+                                    >
+                                        <Text style={styles.walletRejectText}>
+                                            Reject request
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            ) : null}
+                        </View>
+                    ))
+                )}
             </ScrollView>
         );
     }
@@ -8010,6 +8180,50 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: API_FOREST,
     },
+    walletActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 8,
+    },
+    walletActionButton: {
+        minHeight: 48,
+        flex: 1,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 14,
+        backgroundColor: '#eaf3eb',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    walletActionDark: { backgroundColor: API_FOREST },
+    walletActionText: { color: API_FOREST, fontSize: 13, fontWeight: '700' },
+    walletActionTextLight: { color: '#ffffff' },
+    walletRequestNote: {
+        color: MUTED,
+        fontSize: 11,
+        lineHeight: 16,
+        marginBottom: 13,
+        paddingHorizontal: 3,
+    },
+    walletRequestHeading: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+    },
+    walletRequestStatus: {
+        color: API_FOREST,
+        fontSize: 10,
+        fontWeight: '700',
+        backgroundColor: '#eaf3eb',
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 9,
+    },
+    walletReviewActions: { gap: 8, marginTop: 12 },
+    walletRejectButton: { backgroundColor: '#fff1ef' },
+    walletRejectText: { color: '#9f352d', fontSize: 13, fontWeight: '700' },
     walletBalanceIcon: {
         width: 42,
         height: 42,
