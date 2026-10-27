@@ -9,12 +9,17 @@ import {
     useMap,
 } from 'react-leaflet';
 import { EmptyState } from '@/components/empty-state';
-import { GoogleBasemap } from '@/components/google-basemap';
 import { Button } from '@/components/ui/button';
 import { FarmerStatusBadge, StatusBadge } from '@/components/status-badge';
 import type { FarmStatus, FarmerRecordStatus } from '@/components/status-badge';
 import { userCanAccess } from '@/lib/access';
-import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
+import {
+    loadGoogleMaps,
+    useGoogleMapsApiKey,
+    type GoogleMapInstance,
+    type GoogleMapType,
+    type GoogleMarker,
+} from '@/lib/google-maps';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 
@@ -99,6 +104,186 @@ function FocusLocation({
     return null;
 }
 
+function GoogleFarmLocationsMap({
+    apiKey,
+    focusKey,
+    focusRequest,
+    latitude,
+    locations,
+    longitude,
+    mapType,
+    onError,
+    onReady,
+    onSelect,
+    ready,
+    selectedId,
+}: {
+    apiKey: string;
+    focusKey: string;
+    focusRequest: number;
+    latitude: number;
+    locations: FarmLocation[];
+    longitude: number;
+    mapType: GoogleMapType;
+    onError: () => void;
+    onReady: () => void;
+    onSelect: (locationId: number) => void;
+    ready: boolean;
+    selectedId: number;
+}) {
+    const host = useRef<HTMLDivElement>(null);
+    const map = useRef<GoogleMapInstance | null>(null);
+    const markers = useRef(new Map<number, GoogleMarker>());
+
+    useEffect(() => {
+        const element = host.current;
+
+        if (element === null || apiKey === '') {
+            return;
+        }
+
+        let cancelled = false;
+        let observer: ResizeObserver | null = null;
+
+        loadGoogleMaps(apiKey)
+            .then(() => {
+                const maps = window.google?.maps;
+
+                if (cancelled || maps === undefined) {
+                    return;
+                }
+
+                const instance = new maps.Map(element, {
+                    center: { lat: 8.05, lng: 125.1 },
+                    zoom: 12,
+                    mapTypeId: 'roadmap',
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                    gestureHandling: 'greedy',
+                    clickableIcons: false,
+                    backgroundColor: '#e7eee8',
+                });
+                map.current = instance;
+                onReady();
+
+                observer = new ResizeObserver(() => {
+                    maps.event.trigger(instance, 'resize');
+                });
+                observer.observe(element);
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    onError();
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            observer?.disconnect();
+            markers.current.forEach((marker) => marker.setMap(null));
+            markers.current.clear();
+            map.current = null;
+        };
+    }, [apiKey, onError, onReady]);
+
+    useEffect(() => {
+        map.current?.setMapTypeId(mapType);
+    }, [mapType, ready]);
+
+    useEffect(() => {
+        const instance = map.current;
+        const maps = window.google?.maps;
+
+        if (instance === null || maps === undefined || !ready) {
+            return;
+        }
+
+        markers.current.forEach((marker) => marker.setMap(null));
+        markers.current.clear();
+
+        const bounds = new maps.LatLngBounds();
+
+        locations.forEach((location) => {
+            const position = {
+                lat: location.latitude,
+                lng: location.longitude,
+            };
+            const marker = new maps.Marker({
+                map: instance,
+                position,
+                clickable: true,
+                title: `${location.farm_id} · ${location.farm_name}`,
+                icon: {
+                    path: maps.SymbolPath.CIRCLE,
+                    scale: 7,
+                    fillColor: markerColors[location.verification_status],
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2,
+                },
+            });
+            marker.addListener('click', () => onSelect(location.id));
+            markers.current.set(location.id, marker);
+            bounds.extend(position);
+        });
+
+        if (locations.length === 1) {
+            const location = locations[0];
+            instance.setCenter({
+                lat: location.latitude,
+                lng: location.longitude,
+            });
+            instance.setZoom(15);
+        } else if (locations.length > 1) {
+            instance.fitBounds(bounds, 36);
+        }
+    }, [focusKey, locations, onSelect, ready]);
+
+    useEffect(() => {
+        const maps = window.google?.maps;
+
+        if (maps === undefined || !ready) {
+            return;
+        }
+
+        markers.current.forEach((marker, id) => {
+            const location = locations.find((item) => item.id === id);
+
+            if (location === undefined) {
+                return;
+            }
+
+            marker.setIcon({
+                path: maps.SymbolPath.CIRCLE,
+                scale: id === selectedId ? 9 : 7,
+                fillColor: markerColors[location.verification_status],
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: id === selectedId ? 3 : 2,
+            });
+        });
+    }, [locations, ready, selectedId]);
+
+    useEffect(() => {
+        const instance = map.current;
+
+        if (instance === null || !ready || focusRequest === 0) {
+            return;
+        }
+
+        instance.setCenter({ lat: latitude, lng: longitude });
+        instance.setZoom(16);
+    }, [focusRequest, latitude, longitude, ready]);
+
+    return (
+        <div
+            ref={host}
+            className="pointer-events-auto absolute inset-0 z-0"
+            aria-hidden={!ready}
+        />
+    );
+}
+
 export function FarmLocationMap({
     locations,
     emptyTitle = 'No farm locations recorded yet.',
@@ -121,7 +306,6 @@ export function FarmLocationMap({
     const [mapType, setMapType] = useState<GoogleMapType>('roadmap');
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
-    const googleHost = useRef<HTMLDivElement>(null);
     const markGoogleReady = useCallback(() => setGoogleReady(true), []);
     const markGoogleFailed = useCallback(() => setGoogleFailed(true), []);
     const positions = useMemo(
@@ -146,10 +330,10 @@ export function FarmLocationMap({
         locations.find((location) => location.id === selectedId) ??
         locations[0];
 
-    const selectLocation = (locationId: number) => {
+    const selectLocation = useCallback((locationId: number) => {
         setSelectedId(locationId);
         setFocusRequest((request) => request + 1);
-    };
+    }, []);
 
     if (locations.length === 0 || selected === undefined) {
         return (
@@ -189,81 +373,86 @@ export function FarmLocationMap({
                             : 'OpenStreetMap'}
                     </div>
                 )}
-                <div className="h-80 sm:h-[28rem]">
-                    <div
-                        ref={googleHost}
-                        className="pointer-events-none absolute inset-0 z-0"
-                        aria-hidden={googleReady ? undefined : true}
-                    />
-                    <MapContainer
-                        center={positions[0]}
-                        zoom={12}
-                        className="relative z-[1] h-full w-full"
-                        style={{ background: 'transparent' }}
-                        scrollWheelZoom
-                    >
-                        {googleApiKey !== '' && !googleFailed && (
-                            <GoogleBasemap
-                                host={googleHost}
-                                apiKey={googleApiKey}
-                                mapType={mapType}
-                                onReady={markGoogleReady}
-                                onError={markGoogleFailed}
-                            />
-                        )}
-                        {(googleApiKey === '' ||
-                            googleFailed ||
-                            !googleReady) && (
-                            <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                        )}
-                        <FitLocations
+                <div className="relative h-80 sm:h-[28rem]">
+                    {googleApiKey !== '' && (
+                        <GoogleFarmLocationsMap
+                            apiKey={googleApiKey}
                             focusKey={focusKey}
-                            positions={positions}
-                        />
-                        <FocusLocation
+                            focusRequest={focusRequest}
                             latitude={selected.latitude}
+                            locations={locations}
                             longitude={selected.longitude}
-                            request={focusRequest}
+                            mapType={mapType}
+                            onError={markGoogleFailed}
+                            onReady={markGoogleReady}
+                            onSelect={selectLocation}
+                            ready={googleReady}
+                            selectedId={selected.id}
                         />
-                        {locations.map((location) => {
-                            const active = location.id === selected.id;
+                    )}
+                    {(googleApiKey === '' || googleFailed || !googleReady) && (
+                        <div className="relative z-[1] h-full w-full">
+                            <MapContainer
+                                center={positions[0]}
+                                zoom={12}
+                                className="h-full w-full"
+                                scrollWheelZoom
+                            >
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                    url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                                <FitLocations
+                                    focusKey={focusKey}
+                                    positions={positions}
+                                />
+                                <FocusLocation
+                                    latitude={selected.latitude}
+                                    longitude={selected.longitude}
+                                    request={focusRequest}
+                                />
+                                {locations.map((location) => {
+                                    const active = location.id === selected.id;
 
-                            return (
-                                <CircleMarker
-                                    key={location.id}
-                                    center={[
-                                        location.latitude,
-                                        location.longitude,
-                                    ]}
-                                    radius={active ? 10 : 7}
-                                    eventHandlers={{
-                                        click: () =>
-                                            selectLocation(location.id),
-                                    }}
-                                    pathOptions={{
-                                        color: '#ffffff',
-                                        weight: active ? 3 : 2,
-                                        fillColor:
-                                            markerColors[
-                                                location.verification_status
-                                            ],
-                                        fillOpacity: 1,
-                                    }}
-                                >
-                                    <Tooltip direction="top" offset={[0, -8]}>
-                                        <span className="font-medium">
-                                            {location.farm_id}
-                                        </span>
-                                        <br />
-                                        {location.farm_name}
-                                    </Tooltip>
-                                </CircleMarker>
-                            );
-                        })}
-                    </MapContainer>
+                                    return (
+                                        <CircleMarker
+                                            key={location.id}
+                                            center={[
+                                                location.latitude,
+                                                location.longitude,
+                                            ]}
+                                            radius={active ? 10 : 7}
+                                            eventHandlers={{
+                                                click: () =>
+                                                    selectLocation(location.id),
+                                            }}
+                                            pathOptions={{
+                                                color: '#ffffff',
+                                                weight: active ? 3 : 2,
+                                                fillColor:
+                                                    markerColors[
+                                                        location
+                                                            .verification_status
+                                                    ],
+                                                fillOpacity: 1,
+                                            }}
+                                        >
+                                            <Tooltip
+                                                direction="top"
+                                                offset={[0, -8]}
+                                            >
+                                                <span className="font-medium">
+                                                    {location.farm_id}
+                                                </span>
+                                                <br />
+                                                {location.farm_name}
+                                            </Tooltip>
+                                        </CircleMarker>
+                                    );
+                                })}
+                            </MapContainer>
+                        </div>
+                    )}
                 </div>
                 <p className="absolute right-3 bottom-3 left-3 z-[2] max-w-md rounded-md border bg-background/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
                     Markers use recorded farm coordinates. Location does not

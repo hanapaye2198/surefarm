@@ -41,6 +41,19 @@ export type GoogleOverlay = {
     ) => void;
 };
 
+export type GoogleMarkerIcon = {
+    path: number;
+    scale: number;
+    fillColor: string;
+    fillOpacity: number;
+    strokeColor: string;
+    strokeWeight: number;
+};
+
+export type GoogleMarker = GoogleOverlay & {
+    setIcon: (icon: GoogleMarkerIcon) => void;
+};
+
 type GoogleMapOptions = {
     center: GoogleLatLng;
     zoom: number;
@@ -82,20 +95,14 @@ type GoogleMarkerOptions = {
     map: GoogleMapInstance;
     position: GoogleLatLng;
     clickable?: boolean;
+    title?: string;
     label?: {
         text: string;
         color?: string;
         fontSize?: string;
         fontWeight?: string;
     };
-    icon?: {
-        path: number;
-        scale: number;
-        fillColor: string;
-        fillOpacity: number;
-        strokeColor: string;
-        strokeWeight: number;
-    };
+    icon?: GoogleMarkerIcon;
 };
 
 type GoogleMapsNamespace = {
@@ -105,7 +112,7 @@ type GoogleMapsNamespace = {
     ) => GoogleMapInstance;
     Polygon: new (options: GoogleShapeOptions) => GoogleOverlay;
     Polyline: new (options: GoogleShapeOptions) => GoogleOverlay;
-    Marker: new (options: GoogleMarkerOptions) => GoogleOverlay;
+    Marker: new (options: GoogleMarkerOptions) => GoogleMarker;
     InfoWindow: new (options?: {
         maxWidth?: number;
         disableAutoPan?: boolean;
