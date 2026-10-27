@@ -328,9 +328,7 @@ export function FarmLocationMap({
                                     type="button"
                                     className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors ${location.id === selected.id ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted'}`}
                                     aria-pressed={location.id === selected.id}
-                                    onClick={() =>
-                                        selectLocation(location.id)
-                                    }
+                                    onClick={() => selectLocation(location.id)}
                                 >
                                     <span
                                         className="size-2.5 shrink-0 rounded-full ring-2 ring-white"
