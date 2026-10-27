@@ -76,10 +76,12 @@ function FitLocations({
 }
 
 function FocusLocation({
-    position,
+    latitude,
+    longitude,
     request,
 }: {
-    position: [number, number];
+    latitude: number;
+    longitude: number;
     request: number;
 }) {
     const map = useMap();
@@ -89,8 +91,10 @@ function FocusLocation({
             return;
         }
 
-        map.flyTo(position, Math.max(map.getZoom(), 16), { duration: 0.6 });
-    }, [map, position, request]);
+        map.flyTo([latitude, longitude], Math.max(map.getZoom(), 16), {
+            duration: 0.6,
+        });
+    }, [latitude, longitude, map, request]);
 
     return null;
 }
@@ -220,7 +224,8 @@ export function FarmLocationMap({
                             positions={positions}
                         />
                         <FocusLocation
-                            position={[selected.latitude, selected.longitude]}
+                            latitude={selected.latitude}
+                            longitude={selected.longitude}
                             request={focusRequest}
                         />
                         {locations.map((location) => {
