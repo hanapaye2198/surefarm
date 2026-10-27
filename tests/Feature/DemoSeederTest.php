@@ -5,8 +5,10 @@ use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmVerifierAssignment;
 use App\Models\Inventory;
+use App\Models\RegistryGrant;
 use App\Models\TraceabilityLot;
 use App\Models\User;
+use App\RegistryGrantKind;
 use App\UserRole;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoSeeder;
@@ -22,10 +24,19 @@ test('demo seeder fills a walkthrough and can run twice', function () {
         ->and(Farmer::query()->count())->toBe(6)
         ->and(Farm::query()->count())->toBe(7);
 
+    $operations = User::query()->where('email', 'operations@surefarm.io')->first();
     $farmer = User::query()->where('email', 'juan.delacruz@surefarm.io')->first();
     $verifier = User::query()->where('email', 'verifier@surefarm.io')->first();
 
-    expect($farmer)->not->toBeNull()
+    expect($operations)->not->toBeNull()
+        ->and(RegistryGrant::query()
+            ->where('user_id', $operations->id)
+            ->where('kind', RegistryGrantKind::Platform)
+            ->whereNull('province')
+            ->whereNull('revoked_at')
+            ->count())->toBe(1)
+        ->and(Farm::query()->visibleTo($operations)->count())->toBe(7)
+        ->and($farmer)->not->toBeNull()
         ->and($farmer->role)->toBe(UserRole::Farmer)
         ->and(Hash::check('password!', $farmer->password))->toBeTrue()
         ->and($farmer->farmer?->farmer_id)->toBe('SF-999-000-000-001')

@@ -31,10 +31,12 @@ use App\Models\FarmVerification;
 use App\Models\FarmVerifierAssignment;
 use App\Models\Inventory;
 use App\Models\InventoryProcessingStage;
+use App\Models\RegistryGrant;
 use App\Models\TraceabilityLot;
 use App\Models\User;
 use App\ProductionStatus;
 use App\PropertyOwnership;
+use App\RegistryGrantKind;
 use App\UserRole;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +48,7 @@ class DemoSeeder extends Seeder
      * Seed a Bukidnon and Davao walkthrough. Running it again updates the
      * same records. Demo logins use the password "password!".
      *
-     * operations@surefarm.io — operations
+     * operations@surefarm.io — operations, with a platform registry grant
      * verifier@surefarm.io — field verifier
      * juan.delacruz@surefarm.io — farmer, linked to SF-999-000-000-001
      */
@@ -58,6 +60,7 @@ class DemoSeeder extends Seeder
         ]);
 
         $operations = $this->user('operations@surefarm.io', 'SureFarm Operations', UserRole::Operations);
+        $this->platformGrant($operations);
         $verifier = $this->user('verifier@surefarm.io', 'Elena Vasquez', UserRole::FieldVerifier);
         $farmerUser = $this->user('juan.delacruz@surefarm.io', 'Juan dela Cruz', UserRole::Farmer);
 
@@ -482,6 +485,25 @@ class DemoSeeder extends Seeder
         ])->save();
 
         return $user;
+    }
+
+    /**
+     * Operations accounts see no farmers or farms until a grant exists.
+     * The demo account needs the national registry so the walkthrough is visible.
+     */
+    private function platformGrant(User $user): void
+    {
+        RegistryGrant::query()->firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'kind' => RegistryGrantKind::Platform,
+                'province' => null,
+                'revoked_at' => null,
+            ],
+            [
+                'granted_by' => null,
+            ],
+        );
     }
 
     private function cooperative(string $code, string $name): Cooperative
