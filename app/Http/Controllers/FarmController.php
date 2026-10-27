@@ -660,7 +660,9 @@ class FarmController extends Controller
      *     verification_status: string,
      *     status: string,
      *     latitude: float,
-     *     longitude: float
+     *     longitude: float,
+     *     measured_area_hectares: float|null,
+     *     boundary: array<string, mixed>|null
      * }>
      */
     private function mapLocations(?User $viewer): array
@@ -679,7 +681,10 @@ class FarmController extends Controller
                 'latitude',
                 'longitude',
             ])
-            ->with('farmer:id,first_name,middle_name,last_name')
+            ->with([
+                'farmer:id,first_name,middle_name,last_name',
+                'boundary:id,farm_id,boundary_geojson,gps_measured_area_hectares',
+            ])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderBy('farm_id')
@@ -691,10 +696,14 @@ class FarmController extends Controller
                 'farmer_name' => $farm->farmer->fullName(),
                 'crop_label' => $farm->crop_type->label(),
                 'declared_area_hectares' => (float) $farm->declared_area_hectares,
+                'measured_area_hectares' => $farm->boundary?->gps_measured_area_hectares === null
+                    ? null
+                    : (float) $farm->boundary->gps_measured_area_hectares,
                 'verification_status' => $farm->verification_status->value,
                 'status' => $farm->status->value,
                 'latitude' => (float) $farm->latitude,
                 'longitude' => (float) $farm->longitude,
+                'boundary' => $farm->boundary?->boundary_geojson,
             ])
             ->values()
             ->all());

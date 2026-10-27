@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Polygon, TileLayer, useMap } from 'react-leaflet';
 import { EmptyState } from '@/components/empty-state';
 import { GoogleBasemap } from '@/components/google-basemap';
+import { HectareAreaLegend } from '@/components/hectare-area-legend';
 import { Button } from '@/components/ui/button';
 import { userCanAccess } from '@/lib/access';
 import { useGoogleMapsApiKey, type GoogleMapType } from '@/lib/google-maps';
+import { hectareColor } from '@/lib/hectare-area';
 import { show } from '@/routes/farms';
 import 'leaflet/dist/leaflet.css';
 
@@ -159,6 +161,9 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                         />
                         {lands.map((land) => {
                             const active = selected?.id === land.id;
+                            const color = hectareColor(
+                                land.verified_area_hectares ?? 0,
+                            );
 
                             return (
                                 <Polygon
@@ -168,10 +173,10 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                                         click: () => setSelectedId(land.id),
                                     }}
                                     pathOptions={{
-                                        color: active ? '#1f4d32' : '#2f6b45',
+                                        color,
                                         weight: active ? 3 : 2,
-                                        fillColor: '#2f6b45',
-                                        fillOpacity: active ? 0.45 : 0.28,
+                                        fillColor: color,
+                                        fillOpacity: active ? 0.5 : 0.32,
                                     }}
                                 />
                             );
@@ -180,6 +185,7 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                 </div>
             </div>
             <div className="flex min-h-0 flex-col gap-3">
+                <HectareAreaLegend />
                 <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium">
                         {lands.length} verified{' '}
@@ -207,7 +213,16 @@ export function VerifiedFarmLandMap({ lands }: { lands: VerifiedFarmLand[] }) {
                                     className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${active ? 'border-primary bg-primary/5' : 'hover:bg-muted/60'}`}
                                     onClick={() => setSelectedId(land.id)}
                                 >
-                                    <span className="block text-sm font-medium">
+                                    <span className="flex items-center gap-2 text-sm font-medium">
+                                        <span
+                                            className="size-2.5 shrink-0 rounded-sm"
+                                            style={{
+                                                backgroundColor: hectareColor(
+                                                    land.verified_area_hectares ??
+                                                        0,
+                                                ),
+                                            }}
+                                        />
                                         {land.farm_name}
                                     </span>
                                     <span className="mt-1 block text-xs text-muted-foreground">
