@@ -114,6 +114,30 @@ function FitLocations({
     return null;
 }
 
+function FocusLocation({
+    latitude,
+    longitude,
+    request,
+}: {
+    latitude: number;
+    longitude: number;
+    request: number;
+}) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (request === 0) {
+            return;
+        }
+
+        map.flyTo([latitude, longitude], Math.max(map.getZoom(), 16), {
+            duration: 0.6,
+        });
+    }, [latitude, longitude, map, request]);
+
+    return null;
+}
+
 export function FarmLocationMap({
     locations,
     emptyTitle = 'No farm locations recorded yet.',
@@ -132,6 +156,7 @@ export function FarmLocationMap({
     const [selectedId, setSelectedId] = useState<number | null>(
         locations[0]?.id ?? null,
     );
+    const [focusRequest, setFocusRequest] = useState(0);
     const [mapType, setMapType] = useState<GoogleMapType>('roadmap');
     const [googleReady, setGoogleReady] = useState(false);
     const [googleFailed, setGoogleFailed] = useState(false);
@@ -159,6 +184,11 @@ export function FarmLocationMap({
     const selected =
         locations.find((location) => location.id === selectedId) ??
         locations[0];
+
+    const selectLocation = (locationId: number) => {
+        setSelectedId(locationId);
+        setFocusRequest((request) => request + 1);
+    };
 
     if (locations.length === 0 || selected === undefined) {
         return (
@@ -232,6 +262,11 @@ export function FarmLocationMap({
                             focusKey={focusKey}
                             positions={positions}
                         />
+                        <FocusLocation
+                            latitude={selected.latitude}
+                            longitude={selected.longitude}
+                            request={focusRequest}
+                        />
                         {locations.map((location) => {
                             const area = locationArea(location);
                             const color = hectareColor(area.hectares);
@@ -280,7 +315,8 @@ export function FarmLocationMap({
                                     ]}
                                     radius={active ? 10 : 7}
                                     eventHandlers={{
-                                        click: () => setSelectedId(location.id),
+                                        click: () =>
+                                            selectLocation(location.id),
                                     }}
                                     pathOptions={{
                                         color: '#ffffff',
@@ -383,7 +419,8 @@ export function FarmLocationMap({
                                 <button
                                     type="button"
                                     className={`flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors ${location.id === selected.id ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-                                    onClick={() => setSelectedId(location.id)}
+                                    aria-pressed={location.id === selected.id}
+                                    onClick={() => selectLocation(location.id)}
                                 >
                                     <span
                                         className="size-2.5 shrink-0 rounded-full ring-2 ring-white"
