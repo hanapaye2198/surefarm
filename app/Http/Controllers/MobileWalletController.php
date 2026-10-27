@@ -23,7 +23,6 @@ class MobileWalletController extends Controller
         $farmer = $this->farmer($request);
         $balance = $this->availableBalance($farmer);
         $reserved = $this->reservedBalance($farmer);
-        $demoBalance = $this->demoBalance($farmer);
 
         $transactions = $farmer->walletTransactions()
             ->latest('id')
@@ -64,8 +63,6 @@ class MobileWalletController extends Controller
             'wallet' => [
                 'balance_minor' => $balance,
                 'balance_label' => $this->moneyLabel($balance),
-                'demo_balance_minor' => $demoBalance,
-                'demo_balance_label' => $this->moneyLabel($demoBalance),
                 'reserved_minor' => $reserved,
                 'reserved_label' => $this->moneyLabel($reserved),
                 'currency' => 'PHP',
@@ -207,9 +204,12 @@ class MobileWalletController extends Controller
             $farmer->walletTransactions()->create([
                 'direction' => 'debit',
                 'status' => 'completed',
+                'is_demo' => $this->isPresentationFarmer($farmer),
                 'amount_minor' => $lockedRequest->amount_minor,
                 'currency' => $lockedRequest->currency,
-                'description' => $lockedRequest->description,
+                'description' => $this->isPresentationFarmer($farmer)
+                    ? 'DEMO - '.$lockedRequest->description
+                    : $lockedRequest->description,
                 'reference' => 'TXN-'.$lockedRequest->reference,
                 'provider' => $lockedRequest->provider,
                 'provider_reference' => $reference,
@@ -274,8 +274,18 @@ class MobileWalletController extends Controller
             ->where('is_demo', false);
         $credits = (int) (clone $transactions)->where('direction', 'credit')->sum('amount_minor');
         $debits = (int) (clone $transactions)->where('direction', 'debit')->sum('amount_minor');
+        $balance = $credits - $debits;
 
-        return max(0, $credits - $debits - $this->reservedBalance($farmer));
+        if ($this->isPresentationFarmer($farmer)) {
+            $balance += $this->demoBalance($farmer);
+        }
+
+        return max(0, $balance - $this->reservedBalance($farmer));
+    }
+
+    private function isPresentationFarmer(Farmer $farmer): bool
+    {
+        return $farmer->farmer_id === 'SF-999-000-000-001';
     }
 
     private function demoBalance(Farmer $farmer): int
