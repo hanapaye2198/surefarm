@@ -69,6 +69,7 @@ Route::prefix('mobile')->name('api.mobile.')->group(function (): void {
             });
 
             Route::middleware('role:farmer')->prefix('farmer')->group(function (): void {
+                Route::get('wallet', [MobileFarmerController::class, 'wallet'])->name('farmer.wallet');
                 Route::get('farms', [MobileFarmerController::class, 'farms']);
                 Route::get('farms/{farm}', [MobileFarmerController::class, 'showFarm']);
                 Route::post('farms/{farm}/boundary-update-request', [MobileFarmerController::class, 'requestBoundaryUpdate']);

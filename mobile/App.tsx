@@ -72,6 +72,7 @@ const ICONS = {
     cooperatives: 'domain',
     cropManagement: 'leaf',
     finance: 'cash-multiple',
+    wallet: 'wallet-outline',
     insurance: 'shield-check-outline',
     logistics: 'truck-delivery-outline',
     reports: 'chart-box-outline',
@@ -504,6 +505,14 @@ const SECTIONS: Section[] = [
         path: '/farmer/profile',
         roles: ['farmer'],
         icon: 'account',
+    },
+    {
+        key: 'farmer-wallet',
+        title: 'E-wallet',
+        description: 'Your balance and transaction history',
+        path: '/farmer/wallet',
+        roles: ['farmer'],
+        icon: 'wallet',
     },
     {
         key: 'farmer-farms',
@@ -2800,6 +2809,81 @@ function DataPage(props: {
         : Array.isArray(collection?.data)
           ? collection.data
           : [];
+
+    if (page.component === 'mobile/farmer-wallet') {
+        const wallet = page.data.wallet ?? {};
+        const transactions: any[] = Array.isArray(page.data.transactions)
+            ? page.data.transactions
+            : [];
+
+        return (
+            <ScrollView
+                style={styles.page}
+                contentContainerStyle={styles.content}
+            >
+                <View style={styles.walletBalanceCard}>
+                    <View style={styles.walletBalanceIcon}>
+                        <AppIcon name="wallet" size={23} color="#ffffff" />
+                    </View>
+                    <Text style={styles.walletBalanceLabel}>
+                        Available balance
+                    </Text>
+                    <Text style={styles.walletBalanceAmount}>
+                        {wallet.balance_label ?? '₱0.00'}
+                    </Text>
+                    <Text style={styles.walletBalanceNote}>
+                        {wallet.account_label ?? 'SureFarm E-wallet'}
+                    </Text>
+                </View>
+
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Transaction history</Text>
+                    {transactions.length === 0 ? (
+                        <View style={styles.walletEmpty}>
+                            <AppIcon name="wallet" size={24} color={GREEN} />
+                            <Text style={styles.recordTitle}>
+                                No transactions yet
+                            </Text>
+                            <Text style={styles.mutedSmall}>
+                                E-wallet credits and debits will appear here.
+                            </Text>
+                        </View>
+                    ) : (
+                        transactions.map((transaction) => (
+                            <View
+                                key={transaction.id}
+                                style={styles.walletTransaction}
+                            >
+                                <View style={styles.flex}>
+                                    <Text style={styles.recordTitle}>
+                                        {transaction.description}
+                                    </Text>
+                                    <Text style={styles.mutedSmall}>
+                                        {[
+                                            transaction.reference,
+                                            transaction.created_at,
+                                            transaction.status_label,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </Text>
+                                </View>
+                                <Text
+                                    style={[
+                                        styles.walletTransactionAmount,
+                                        transaction.direction === 'debit' &&
+                                            styles.walletDebit,
+                                    ]}
+                                >
+                                    {transaction.amount_label}
+                                </Text>
+                            </View>
+                        ))
+                    )}
+                </View>
+            </ScrollView>
+        );
+    }
 
     if (page.component === 'cooperatives/show') {
         const cooperative = page.data.cooperative ?? {};
@@ -7920,6 +8004,52 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 0.5,
     },
+    walletBalanceCard: {
+        marginBottom: 13,
+        padding: 20,
+        borderRadius: 20,
+        backgroundColor: API_FOREST,
+    },
+    walletBalanceIcon: {
+        width: 42,
+        height: 42,
+        marginBottom: 18,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff20',
+    },
+    walletBalanceLabel: { color: '#d4e3d8', fontSize: 12 },
+    walletBalanceAmount: {
+        color: '#ffffff',
+        marginTop: 4,
+        fontSize: 32,
+        lineHeight: 38,
+        fontWeight: '800',
+    },
+    walletBalanceNote: { color: '#d4e3d8', fontSize: 11, marginTop: 5 },
+    walletEmpty: {
+        minHeight: 140,
+        padding: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+    },
+    walletTransaction: {
+        minHeight: 62,
+        paddingVertical: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#edf0ed',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    walletTransactionAmount: {
+        color: GREEN,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    walletDebit: { color: '#b3473e' },
     cardTitle: { color: INK, fontSize: 16, fontWeight: '700', marginBottom: 9 },
     sectionCount: { color: MUTED, fontSize: 11, fontWeight: '600' },
     sectionEyebrow: {
