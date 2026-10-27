@@ -100,6 +100,24 @@ const verificationBar = {
     needs_review: 'bg-warning',
 } as const;
 
+const verificationRows = [
+    { status: 'pending', count: 'pending_verification' },
+    { status: 'in_progress', count: 'in_progress' },
+    { status: 'verified', count: 'verified_farms' },
+    { status: 'needs_review', count: 'needs_review' },
+    { status: 'failed', count: 'failed' },
+] as const satisfies readonly {
+    status: FarmStatus;
+    count: keyof Pick<
+        DashboardSummary,
+        | 'pending_verification'
+        | 'in_progress'
+        | 'verified_farms'
+        | 'needs_review'
+        | 'failed'
+    >;
+}[];
+
 function SectionCard({
     kicker,
     title,
