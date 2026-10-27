@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,12 +11,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $amount_minor
  * @property string $direction
  * @property string $status
+ * @property bool $is_demo
  * @property string $reference
+ * @property CarbonImmutable|null $occurred_at
  */
 #[Fillable([
     'farmer_id',
     'direction',
     'status',
+    'is_demo',
     'amount_minor',
     'currency',
     'description',
@@ -33,6 +37,7 @@ class FarmerWalletTransaction extends Model
     {
         return [
             'amount_minor' => 'integer',
+            'is_demo' => 'boolean',
             'occurred_at' => 'immutable_datetime',
         ];
     }

@@ -23,6 +23,7 @@ class MobileWalletController extends Controller
         $farmer = $this->farmer($request);
         $balance = $this->availableBalance($farmer);
         $reserved = $this->reservedBalance($farmer);
+        $demoBalance = $this->demoBalance($farmer);
 
         $transactions = $farmer->walletTransactions()
             ->latest('id')
@@ -35,9 +36,11 @@ class MobileWalletController extends Controller
                     .$this->moneyLabel($transaction->amount_minor),
                 'description' => $transaction->description,
                 'reference' => $transaction->reference,
-                'status_label' => $this->statusLabel($transaction->status),
-                'created_at' => $transaction->created_at?->format('M j, Y g:i A'),
-                'sort_timestamp' => $transaction->created_at?->getTimestamp() ?? 0,
+                'status_label' => $transaction->is_demo
+                    ? 'Demo sample only'
+                    : $this->statusLabel($transaction->status),
+                'created_at' => ($transaction->occurred_at ?? $transaction->created_at)?->format('M j, Y g:i A'),
+                'sort_timestamp' => ($transaction->occurred_at ?? $transaction->created_at)?->getTimestamp() ?? 0,
             ]);
 
         $requests = $farmer->walletRequests()
@@ -61,6 +64,8 @@ class MobileWalletController extends Controller
             'wallet' => [
                 'balance_minor' => $balance,
                 'balance_label' => $this->moneyLabel($balance),
+                'demo_balance_minor' => $demoBalance,
+                'demo_balance_label' => $this->moneyLabel($demoBalance),
                 'reserved_minor' => $reserved,
                 'reserved_label' => $this->moneyLabel($reserved),
                 'currency' => 'PHP',
@@ -264,11 +269,24 @@ class MobileWalletController extends Controller
 
     private function availableBalance(Farmer $farmer): int
     {
-        $transactions = $farmer->walletTransactions()->where('status', 'completed');
+        $transactions = $farmer->walletTransactions()
+            ->where('status', 'completed')
+            ->where('is_demo', false);
         $credits = (int) (clone $transactions)->where('direction', 'credit')->sum('amount_minor');
         $debits = (int) (clone $transactions)->where('direction', 'debit')->sum('amount_minor');
 
         return max(0, $credits - $debits - $this->reservedBalance($farmer));
+    }
+
+    private function demoBalance(Farmer $farmer): int
+    {
+        $transactions = $farmer->walletTransactions()
+            ->where('status', 'completed')
+            ->where('is_demo', true);
+        $credits = (int) (clone $transactions)->where('direction', 'credit')->sum('amount_minor');
+        $debits = (int) (clone $transactions)->where('direction', 'debit')->sum('amount_minor');
+
+        return max(0, $credits - $debits);
     }
 
     private function reservedBalance(Farmer $farmer): int

@@ -2850,6 +2850,21 @@ function DataPage(props: {
                     </Text>
                 </View>
 
+                {Number(wallet.demo_balance_minor ?? 0) > 0 ? (
+                    <View style={styles.walletDemoCard}>
+                        <Text style={styles.walletDemoLabel}>
+                            Sample balance
+                        </Text>
+                        <Text style={styles.walletDemoAmount}>
+                            {wallet.demo_balance_label}
+                        </Text>
+                        <Text style={styles.walletDemoNote}>
+                            Demo funds only. They are excluded from your
+                            available balance and cannot be paid out.
+                        </Text>
+                    </View>
+                ) : null}
+
                 <View style={styles.walletActions}>
                     <Pressable
                         accessibilityRole="button"
@@ -8179,6 +8194,28 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 20,
         backgroundColor: API_FOREST,
+    },
+    walletDemoCard: {
+        marginBottom: 13,
+        padding: 15,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#ead9a8',
+        backgroundColor: '#fff9e8',
+    },
+    walletDemoLabel: { color: '#795a14', fontSize: 12, fontWeight: '700' },
+    walletDemoAmount: {
+        color: '#543d0c',
+        marginTop: 4,
+        fontSize: 23,
+        lineHeight: 28,
+        fontWeight: '800',
+    },
+    walletDemoNote: {
+        color: '#795a14',
+        marginTop: 5,
+        fontSize: 11,
+        lineHeight: 16,
     },
     walletActions: {
         flexDirection: 'row',

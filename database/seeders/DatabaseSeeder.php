@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(DemoSeeder::class);
+        $this->call(DemoWalletSeeder::class);
 
         $tester = User::query()->firstOrNew([
             'email' => 'test@example.com',
