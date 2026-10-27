@@ -15,13 +15,13 @@ class InventoryProcessingStageSeeder extends Seeder
     {
         $stages = [
             ['Coffee Cherry', 'COFFEE_CHERRY', 'Fresh coffee cherry received from harvest.', 1],
-            ['Dried Coffee', 'DRIED_COFFEE', 'Coffee dried after the cherry stage.', 2],
-            ['Parchment', 'PARCHMENT', 'Dried coffee hulled to parchment.', 3],
-            ['Green Beans', 'GREEN_BEANS', 'Parchment milled to green coffee beans.', 4],
+            ['Parchment', 'PARCHMENT', 'Coffee cherry processed to parchment.', 2],
+            ['Dried Coffee', 'DRIED_COFFEE', 'Parchment dried before milling.', 3],
+            ['Green Beans', 'GREEN_BEANS', 'Dried coffee milled to green beans.', 4],
         ];
 
         foreach ($stages as [$name, $code, $description, $sequence]) {
-            InventoryProcessingStage::query()->firstOrCreate(
+            $stage = InventoryProcessingStage::query()->firstOrCreate(
                 ['code' => $code],
                 [
                     'name' => $name,
@@ -30,6 +30,12 @@ class InventoryProcessingStageSeeder extends Seeder
                     'status' => ProcessingStageStatus::Active,
                 ],
             );
+
+            $stage->fill([
+                'name' => $name,
+                'description' => $description,
+                'sequence' => $sequence,
+            ])->save();
         }
     }
 }

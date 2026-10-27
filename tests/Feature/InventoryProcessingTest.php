@@ -161,28 +161,28 @@ test('processing follows the next stage and records yield', function () {
         'inventory_id' => $source->id,
         'input_quantity' => 500,
         'output_quantity' => 350,
-        'destination_stage_id' => $dried->id,
+        'destination_stage_id' => $parchment->id,
         'processing_date' => '2026-10-08',
     ])->assertRedirect(route('inventory.show', $source));
 
     $source->refresh();
-    $driedStock = Inventory::query()->where('processing_stage_id', $dried->id)->firstOrFail();
+    $parchmentStock = Inventory::query()->where('processing_stage_id', $parchment->id)->firstOrFail();
     $movement = InventoryMovement::query()->where('movement_type', InventoryMovementType::Processing)->firstOrFail();
 
     expect((float) $source->quantity)->toBe(400.0)
-        ->and((float) $driedStock->quantity)->toBe(350.0)
-        ->and($driedStock->harvest_id)->toBe($harvest->id)
-        ->and($driedStock->farm_id)->toBe($harvest->farm_id)
+        ->and((float) $parchmentStock->quantity)->toBe(350.0)
+        ->and($parchmentStock->harvest_id)->toBe($harvest->id)
+        ->and($parchmentStock->farm_id)->toBe($harvest->farm_id)
         ->and((float) $movement->quantity)->toBe(500.0)
         ->and((float) $movement->output_quantity)->toBe(350.0)
         ->and($movement->source_stage_id)->toBe($cherry->id)
-        ->and($movement->destination_stage_id)->toBe($dried->id);
+        ->and($movement->destination_stage_id)->toBe($parchment->id);
 
     $this->actingAs($user)->post(route('inventory.process.store'), [
         'inventory_id' => $source->id,
         'input_quantity' => 10,
         'output_quantity' => 0,
-        'destination_stage_id' => $dried->id,
+        'destination_stage_id' => $parchment->id,
         'processing_date' => '2026-10-08',
     ])->assertSessionHasErrors('output_quantity');
 
@@ -190,7 +190,7 @@ test('processing follows the next stage and records yield', function () {
         'inventory_id' => $source->id,
         'input_quantity' => 0,
         'output_quantity' => 10,
-        'destination_stage_id' => $dried->id,
+        'destination_stage_id' => $parchment->id,
         'processing_date' => '2026-10-08',
     ])->assertSessionHasErrors('input_quantity');
 
@@ -198,7 +198,7 @@ test('processing follows the next stage and records yield', function () {
         'inventory_id' => $source->id,
         'input_quantity' => 500,
         'output_quantity' => 100,
-        'destination_stage_id' => $dried->id,
+        'destination_stage_id' => $parchment->id,
         'processing_date' => '2026-10-08',
     ])->assertSessionHasErrors('input_quantity');
 
@@ -211,19 +211,19 @@ test('processing follows the next stage and records yield', function () {
     ])->assertSessionHasErrors('destination_stage_id');
 
     expect((float) $source->refresh()->quantity)->toBe(400.0)
-        ->and(Inventory::query()->where('processing_stage_id', $parchment->id)->count())->toBe(0)
+        ->and(Inventory::query()->where('processing_stage_id', $dried->id)->count())->toBe(0)
         ->and(Inventory::query()->where('processing_stage_id', $green->id)->count())->toBe(0);
 
     $this->actingAs($user)->post(route('inventory.process.store'), [
-        'inventory_id' => $driedStock->id,
+        'inventory_id' => $parchmentStock->id,
         'input_quantity' => 200,
         'output_quantity' => 140,
-        'destination_stage_id' => $parchment->id,
+        'destination_stage_id' => $dried->id,
         'processing_date' => '2026-10-09',
     ])->assertRedirect();
 
-    expect((float) $driedStock->refresh()->quantity)->toBe(150.0)
-        ->and((float) Inventory::query()->where('processing_stage_id', $parchment->id)->value('quantity'))->toBe(140.0);
+    expect((float) $parchmentStock->refresh()->quantity)->toBe(150.0)
+        ->and((float) Inventory::query()->where('processing_stage_id', $dried->id)->value('quantity'))->toBe(140.0);
 });
 
 test('a failed processing movement rolls back both balances', function () {
@@ -256,7 +256,7 @@ test('a failed processing movement rolls back both balances', function () {
             'inventory_id' => $source->id,
             'input_quantity' => 500,
             'output_quantity' => 350,
-            'destination_stage_id' => inventoryStage('DRIED_COFFEE')->id,
+            'destination_stage_id' => inventoryStage('PARCHMENT')->id,
             'processing_date' => '2026-10-08',
         ]))->toThrow(RuntimeException::class);
     } finally {
@@ -331,7 +331,7 @@ test('farm farmer and dashboard inventory summaries use available stock', functi
         'inventory_id' => $source->id,
         'input_quantity' => 500,
         'output_quantity' => 350,
-        'destination_stage_id' => inventoryStage('DRIED_COFFEE')->id,
+        'destination_stage_id' => inventoryStage('PARCHMENT')->id,
         'processing_date' => '2026-10-08',
     ]);
 
@@ -410,7 +410,7 @@ test('field verifiers can view inventory and cannot change it', function () {
             'inventory_id' => $inventory->id,
             'input_quantity' => 10,
             'output_quantity' => 8,
-            'destination_stage_id' => inventoryStage('DRIED_COFFEE')->id,
+            'destination_stage_id' => inventoryStage('PARCHMENT')->id,
             'processing_date' => '2026-10-08',
         ])
         ->assertForbidden();

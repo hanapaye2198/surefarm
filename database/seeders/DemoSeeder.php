@@ -734,26 +734,26 @@ class DemoSeeder extends Seeder
                 'notes' => 'Demo receipt from the first Kalasungay pick.',
             ], $creator->id);
 
-            $dried = app(ProcessCoffeeInventory::class)->handle([
+            $parchment = app(ProcessCoffeeInventory::class)->handle([
                 'inventory_id' => $cherry->id,
                 'input_quantity' => 700,
                 'output_quantity' => 280,
-                'destination_stage_id' => $stages['DRIED_COFFEE']->id,
+                'destination_stage_id' => $stages['PARCHMENT']->id,
                 'processing_date' => '2026-02-28',
+                'notes' => 'Pulped to parchment at the Malaybalay station.',
+            ], $creator->id);
+
+            $dried = app(ProcessCoffeeInventory::class)->handle([
+                'inventory_id' => $parchment->id,
+                'input_quantity' => 280,
+                'output_quantity' => 168,
+                'destination_stage_id' => $stages['DRIED_COFFEE']->id,
+                'processing_date' => '2026-03-08',
                 'notes' => 'Sun-dried at the Malaybalay yard.',
             ], $creator->id);
 
-            $parchment = app(ProcessCoffeeInventory::class)->handle([
-                'inventory_id' => $dried->id,
-                'input_quantity' => 280,
-                'output_quantity' => 168,
-                'destination_stage_id' => $stages['PARCHMENT']->id,
-                'processing_date' => '2026-03-08',
-                'notes' => 'Hulled to parchment.',
-            ], $creator->id);
-
             $green = app(ProcessCoffeeInventory::class)->handle([
-                'inventory_id' => $parchment->id,
+                'inventory_id' => $dried->id,
                 'input_quantity' => 168,
                 'output_quantity' => 126,
                 'destination_stage_id' => $stages['GREEN_BEANS']->id,

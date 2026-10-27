@@ -157,22 +157,22 @@ test('processing history is read from inventory movements', function () {
         'location' => 'Farm Storage',
         'received_date' => '2026-10-07',
     ], $user->id);
-    $dried = app(ProcessCoffeeInventory::class)->handle([
+    $parchment = app(ProcessCoffeeInventory::class)->handle([
         'inventory_id' => $cherry->id,
         'input_quantity' => 50,
         'output_quantity' => 40,
-        'destination_stage_id' => traceabilityStage('DRIED_COFFEE')->id,
+        'destination_stage_id' => traceabilityStage('PARCHMENT')->id,
         'processing_date' => '2026-10-08',
     ], $user->id);
-    $parchment = app(ProcessCoffeeInventory::class)->handle([
-        'inventory_id' => $dried->id,
+    $dried = app(ProcessCoffeeInventory::class)->handle([
+        'inventory_id' => $parchment->id,
         'input_quantity' => 40,
         'output_quantity' => 30,
-        'destination_stage_id' => traceabilityStage('PARCHMENT')->id,
+        'destination_stage_id' => traceabilityStage('DRIED_COFFEE')->id,
         'processing_date' => '2026-10-09',
     ], $user->id);
     $green = app(ProcessCoffeeInventory::class)->handle([
-        'inventory_id' => $parchment->id,
+        'inventory_id' => $dried->id,
         'input_quantity' => 30,
         'output_quantity' => 20,
         'destination_stage_id' => traceabilityStage('GREEN_BEANS')->id,
@@ -202,7 +202,10 @@ test('processing history is read from inventory movements', function () {
             ->where('lot.lot_code', $lot->lot_code)
             ->where('journey.0.input_label', '50 kg')
             ->where('journey.0.output_label', '40 kg')
+            ->where('journey.0.to_stage', 'Parchment')
+            ->where('journey.1.to_stage', 'Dried Coffee')
             ->where('journey.2.to_stage', 'Green Beans')
+            ->where('stages', ['Coffee Cherry', 'Parchment', 'Dried Coffee', 'Green Beans'])
             ->where('lot.farm.verification_status', 'verified')
             ->where('lot.farm.verified_area', '2.79 ha')
             ->where('public_url', route('trace.public', ['token' => $lot->public_token]))

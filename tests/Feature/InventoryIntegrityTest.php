@@ -271,7 +271,7 @@ test('a receipt cannot be reversed after the coffee is processed', function () {
         'inventory_id' => $inventory->id,
         'input_quantity' => 10,
         'output_quantity' => 8,
-        'destination_stage_id' => integrityStage('DRIED_COFFEE')->id,
+        'destination_stage_id' => integrityStage('PARCHMENT')->id,
         'processing_date' => '2026-10-08',
     ], $user->id);
 
@@ -314,7 +314,7 @@ test('processing and damage stay reconciled to their movements', function () {
         'inventory_id' => $available->id,
         'input_quantity' => 20,
         'output_quantity' => 16,
-        'destination_stage_id' => integrityStage('DRIED_COFFEE')->id,
+        'destination_stage_id' => integrityStage('PARCHMENT')->id,
         'processing_date' => '2026-10-09',
     ], $user->id);
 
